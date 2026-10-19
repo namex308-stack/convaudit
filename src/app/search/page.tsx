@@ -8,11 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 export const metadata = buildStaticPageMetadata({
-  title: "Search Free Image, PDF & YouTube Creator Tools",
-  description:
-    "Search Convaudit tools and guides — images, PDFs, YouTube creator tools.",
+  title: "Search",
+  description: "Search Convaudit tools and guides for images, PDFs and YouTube creators.",
   path: "/search",
-  keywords: ["search convaudit", "find online tool"],
+  robots: { index: false, follow: true },
 });
 
 type Props = { searchParams: Promise<{ q?: string }> };

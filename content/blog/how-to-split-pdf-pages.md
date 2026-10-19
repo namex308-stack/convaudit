@@ -2,7 +2,7 @@
 title: "How to Split a PDF and Extract Specific Pages"
 description: "Learn how to extract PDF pages or divide a document into separate files using page ranges, and what to check before sharing the results."
 date: "2026-02-28"
-modifiedDate: "2026-10-16"
+modifiedDate: "2026-10-19"
 author: "Convaudit Team"
 tags: ["split PDF", "extract PDF pages", "documents"]
 toolSlug: "split-pdf"
@@ -22,6 +22,7 @@ PDF page numbers start at 1. Use a single number for one page, or a hyphen for a
 | `1-3, 7, 10-12` | Three PDFs: pages 1–3, page 7, and pages 10–12 |
 
 Check the page count in your PDF viewer first. A range must not include page 0 or a number beyond the final page. Each comma-separated range is exported as its own file; this tool does not combine non-adjacent pages into one output PDF.
+If ranges overlap, the repeated pages appear in more than one output file. Leave a page out of every range if you do not want it included.
 
 ## Split a PDF in your browser
 

@@ -1,10 +1,9 @@
 /**
  * Shared utilities for YouTube creator tools.
  *
- * All functions are client-side safe. The YouTube oEmbed endpoint supports
- * CORS, so we can fetch video metadata directly from the browser without an
- * API key. For tag extraction (which oEmbed doesn't provide) we fall back to
- * a public CORS proxy to read the watch page's <meta name="keywords"> tag.
+ * Browser-safe helpers for YouTube creator tools. Metadata and thumbnail
+ * helpers make direct requests to YouTube; tag extraction is handled by the
+ * same-origin API route so its network access can be constrained.
  */
 
 /** Result from the YouTube oEmbed endpoint. */
@@ -59,32 +58,33 @@ export function extractVideoId(input: string): string | null {
   const trimmed = input.trim();
   if (!trimmed) return null;
 
-  // Bare 11-char video ID
   if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
 
-  const patterns = [
-    /(?:youtube\.com\/watch\?(?:.*&)?v=)([a-zA-Z0-9_-]{11})/,
-    /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-    /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
-    /(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
-    /(?:youtube\.com\/live\/)([a-zA-Z0-9_-]{11})/,
-  ];
-
-  for (const pattern of patterns) {
-    const match = trimmed.match(pattern);
-    if (match) return match[1];
-  }
-
-  // Try URL parsing as a last resort
   try {
     const url = new URL(trimmed);
-    const v = url.searchParams.get("v");
-    if (v && /^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
-  } catch {
-    // not a URL
-  }
+    if (
+      url.protocol !== "https:" ||
+      url.username ||
+      url.password ||
+      url.port ||
+      !["youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"].includes(
+        url.hostname.toLowerCase(),
+      )
+    ) {
+      return null;
+    }
 
-  return null;
+    const match =
+      url.hostname.toLowerCase() === "youtu.be"
+        ? url.pathname.match(/^\/([A-Za-z0-9_-]{11})\/?$/)
+        : url.pathname === "/watch"
+          ? [null, url.searchParams.get("v") ?? ""]
+          : url.pathname.match(/^\/(?:embed|shorts|live)\/([A-Za-z0-9_-]{11})\/?$/);
+    const id = match?.[1] ?? null;
+    return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -121,40 +121,6 @@ export async function fetchOEmbed(videoUrl: string): Promise<YouTubeOEmbed> {
     );
   }
   return (await res.json()) as YouTubeOEmbed;
-}
-
-/**
- * Extract tags/keywords from a YouTube video page.
- *
- * oEmbed doesn't include tags, so we fetch the watch page through a public
- * CORS proxy and parse the <meta name="keywords"> tag. This is best-effort —
- * if the proxy is down or YouTube changes its markup, we return an empty
- * array.
- */
-export async function fetchVideoTags(videoUrl: string): Promise<string[]> {
-  // allorigins is a free, reliable CORS proxy that returns the raw page.
-  const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(
-    videoUrl
-  )}`;
-  try {
-    const res = await fetch(proxyUrl);
-    if (!res.ok) return [];
-    const html = await res.text();
-
-    // Extract <meta name="keywords" content="tag1, tag2, tag3">
-    const keywordsMatch = html.match(
-      /<meta\s+name="keywords"\s+content="([^"]*)"/i
-    );
-    if (!keywordsMatch) return [];
-
-    const keywords = keywordsMatch[1];
-    return keywords
-      .split(",")
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0 && t.length < 100);
-  } catch {
-    return [];
-  }
 }
 
 /**
@@ -218,53 +184,6 @@ export function buildTimestampLink(videoId: string, seconds: number): string {
 export function extractChannelId(url: string): string | null {
   const match = url.match(/\/channel\/(UC[a-zA-Z0-9_-]{22})/);
   return match ? match[1] : null;
-}
-
-/**
- * Estimate YouTube earnings.
- *
- * CPM (cost per mille = per 1000 views) varies dramatically by niche.
- * These ranges are based on publicly reported creator data. RPM (revenue
- * per mille) is typically 50-70% of CPM after YouTube's cut and is what
- * creators actually receive.
- */
-export type NicheCPM = {
-  niche: string;
-  cpmLow: number; // USD per 1000 views
-  cpmHigh: number;
-  rpmFactor: number; // fraction of CPM the creator receives (~0.55-0.65)
-};
-
-export const YOUTUBE_NICHES: NicheCPM[] = [
-  { niche: "Finance / Investing", cpmLow: 15, cpmHigh: 35, rpmFactor: 0.6 },
-  { niche: "Tech / Software", cpmLow: 8, cpmHigh: 20, rpmFactor: 0.6 },
-  { niche: "Business / Marketing", cpmLow: 8, cpmHigh: 18, rpmFactor: 0.6 },
-  { niche: "Education / How-to", cpmLow: 6, cpmHigh: 15, rpmFactor: 0.55 },
-  { niche: "Gaming", cpmLow: 3, cpmHigh: 8, rpmFactor: 0.55 },
-  { niche: "Entertainment", cpmLow: 2, cpmHigh: 6, rpmFactor: 0.5 },
-  { niche: "Vlog / Lifestyle", cpmLow: 3, cpmHigh: 8, rpmFactor: 0.55 },
-  { niche: "Beauty / Fashion", cpmLow: 4, cpmHigh: 10, rpmFactor: 0.55 },
-  { niche: "Food / Cooking", cpmLow: 4, cpmHigh: 9, rpmFactor: 0.55 },
-  { niche: "Health / Fitness", cpmLow: 5, cpmHigh: 12, rpmFactor: 0.55 },
-  { niche: "Music", cpmLow: 1, cpmHigh: 4, rpmFactor: 0.5 },
-  { niche: "Kids / Family", cpmLow: 1, cpmHigh: 3, rpmFactor: 0.5 },
-  { niche: "News / Politics", cpmLow: 3, cpmHigh: 10, rpmFactor: 0.55 },
-  { niche: "Sports", cpmLow: 3, cpmHigh: 8, rpmFactor: 0.55 },
-  { niche: "Auto / Vehicles", cpmLow: 5, cpmHigh: 12, rpmFactor: 0.6 },
-  { niche: "Travel", cpmLow: 4, cpmHigh: 10, rpmFactor: 0.55 },
-];
-
-/**
- * Calculate estimated earnings for a given number of views and niche.
- * Returns low/high estimates for the creator's actual take-home pay.
- */
-export function calculateEarnings(
-  views: number,
-  niche: NicheCPM
-): { low: number; high: number; mid: number } {
-  const low = (views / 1000) * niche.cpmLow * niche.rpmFactor;
-  const high = (views / 1000) * niche.cpmHigh * niche.rpmFactor;
-  return { low, high, mid: (low + high) / 2 };
 }
 
 /**

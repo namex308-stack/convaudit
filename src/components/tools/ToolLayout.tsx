@@ -10,14 +10,9 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { AdSlot } from "@/components/ads/AdSlot";
 import { RelatedTools } from "./RelatedTools";
+import { ToolPrivacyBadge } from "./ToolPrivacyBadge";
 import { SITE_CONFIG, type Tool } from "@/lib/tools";
 import { getToolContent } from "@/lib/tool-content";
 
@@ -31,7 +26,7 @@ type ToolLayoutProps = {
  * Layout shared by every tool page.
  *
  * Structured data injected:
- *  - SoftwareApplication (name, category, offers, aggregateRating)
+ *  - SoftwareApplication (name, category, and offers)
  *  - FAQPage (5+ Q&A from the tool's faqs array)
  *  - HowTo (step-by-step from the tool's howToSteps array)
  *  - BreadcrumbList (Home > Category > Tool)
@@ -39,10 +34,10 @@ type ToolLayoutProps = {
  * UI sections:
  *  - Breadcrumb (visual)
  *  - H1 + description
- *  - 4 AdSense slots (top, after tool, before FAQ, bottom)
+ *  - Up to 2 consent-gated AdSense slots, both below the tool UI
  *  - Interactive tool component
  *  - How-to section
- *  - FAQ accordion
+ *  - Server-rendered FAQ details
  *  - Related tools + blog post (internal linking)
  */
 export function ToolLayout({ tool, children }: ToolLayoutProps) {
@@ -61,11 +56,6 @@ export function ToolLayout({ tool, children }: ToolLayoutProps) {
       "@type": "Offer",
       price: "0",
       priceCurrency: "USD",
-    },
-    aggregateRating: {
-      "@type": "AggregateRating",
-      ratingValue: "4.8",
-      ratingCount: "1240",
     },
   };
 
@@ -120,6 +110,10 @@ export function ToolLayout({ tool, children }: ToolLayoutProps) {
       },
     ],
   };
+  const content = getToolContent(tool.slug);
+  const hasContentBody = Boolean(
+    content?.replace(/^#{1,6}\s+.*$/gm, "").trim(),
+  );
 
   return (
     <article className="mx-auto max-w-4xl px-5 py-12 sm:px-6 lg:px-8">
@@ -182,10 +176,19 @@ export function ToolLayout({ tool, children }: ToolLayoutProps) {
         <p className="mt-3 text-base leading-relaxed text-muted-foreground sm:text-lg">
           {tool.description}
         </p>
+        <div className="mt-3">
+          <ToolPrivacyBadge mode={tool.privacyMode} />
+        </div>
       </header>
 
-      {/* Ad: top of page (after H1) — essential, always shown */}
-      <AdSlot slot="1111111111" label="Advertisement" importance="essential" />
+      {tool.notice && (
+        <aside
+          className="mb-5 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm leading-relaxed"
+          role="note"
+        >
+          {tool.notice}
+        </aside>
+      )}
 
       {/* The interactive tool component */}
       <section className="rounded-xl border border-border/70 bg-card p-5 shadow-sm sm:p-7">
@@ -197,20 +200,13 @@ export function ToolLayout({ tool, children }: ToolLayoutProps) {
       </p>
 
       {/* Tool blog post — unique SEO content per tool */}
-      {(() => {
-        const content = getToolContent(tool.slug);
-        if (!content) return null;
-        return (
-          <section className="prose mt-10" aria-labelledby="tool-content-heading">
-            <h2 id="tool-content-heading" className="sr-only">
-              About {tool.name}
-            </h2>
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
-          </section>
-        );
-      })()}
+      {content && hasContentBody && (
+        <section className="prose mt-10">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+        </section>
+      )}
 
-      {/* Ad: after the tool component */}
+      {/* Ad: below the tool UI */}
       <AdSlot slot="2222222222" label="Advertisement" />
 
       {/* How to use */}
@@ -241,7 +237,7 @@ export function ToolLayout({ tool, children }: ToolLayoutProps) {
         </ol>
       </section>
 
-      {/* Ad: before FAQ */}
+      {/* Ad: below the tool UI and before FAQ */}
       <AdSlot slot="3333333333" label="Advertisement" />
 
       {/* FAQ */}
@@ -252,22 +248,19 @@ export function ToolLayout({ tool, children }: ToolLayoutProps) {
         >
           Frequently Asked Questions
         </h2>
-        <Accordion type="single" collapsible className="mt-5">
+        <div className="mt-5 divide-y divide-border/60 rounded-lg border border-border/60">
           {tool.faqs.map((faq, i) => (
-            <AccordionItem key={i} value={`faq-${i}`} className="border-border/60">
-              <AccordionTrigger className="text-left text-[15px]">
+            <details key={i} className="group px-4">
+              <summary className="cursor-pointer list-none py-4 pr-8 text-[15px] font-medium marker:hidden [&::-webkit-details-marker]:hidden">
                 {faq.q}
-              </AccordionTrigger>
-              <AccordionContent className="text-sm leading-relaxed text-muted-foreground">
+              </summary>
+              <p className="pb-4 text-sm leading-relaxed text-muted-foreground">
                 {faq.a}
-              </AccordionContent>
-            </AccordionItem>
+              </p>
+            </details>
           ))}
-        </Accordion>
+        </div>
       </section>
-
-      {/* Ad: bottom of page — essential, always shown */}
-      <AdSlot slot="4444444444" label="Advertisement" importance="essential" />
 
       {/* Internal linking: related tools + blog post */}
       <RelatedTools currentSlug={tool.slug} category={tool.category} />

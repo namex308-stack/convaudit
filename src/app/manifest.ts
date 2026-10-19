@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Convaudit",
     short_name: "Convaudit",
     description:
-      "Free private browser tools for images, PDFs, and YouTube creator workflows.",
+      "Free tools for images, PDFs and YouTube creator workflows. Processing varies by tool.",
     start_url: "/",
     display: "standalone",
     background_color: "#0b0f19",

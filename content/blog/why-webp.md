@@ -2,7 +2,7 @@
 title: "WebP vs JPG and PNG: When to Use Each Format"
 description: "Compare WebP, JPG, and PNG for photos, graphics, transparency, and compatibility—and choose a format for your specific use."
 date: "2025-09-28"
-modifiedDate: "2026-10-16"
+modifiedDate: "2026-10-19"
 author: "Convaudit Team"
 tags: ["WebP vs JPG", "WebP vs PNG", "image formats"]
 toolSlug: "jpg-to-webp"
@@ -35,6 +35,7 @@ For a website that needs to serve multiple formats, use an `<img>` fallback insi
 ```
 
 The browser can use a supported source and fall back to the `img` image. For different image dimensions at different screen sizes, use `srcset` and `sizes`; see the guide to [compressing and serving web images](/blog/image-compression-guide).
+After adding alternate formats, test the page in the browsers and publishing systems your audience uses, and confirm that the fallback image loads when WebP is unavailable.
 
 ## Convert a JPG to WebP
 

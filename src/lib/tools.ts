@@ -3,7 +3,18 @@
  * Each tool has SEO metadata, FAQs, and step-by-step instructions.
  */
 
+import { CPM_RANGES, CREATOR_SHARE } from "./youtube-earnings";
+
+const highestCpm = CPM_RANGES["Finance / Investing"];
+const lowestCpm = CPM_RANGES.Music;
+
 export type FAQ = { q: string; a: string };
+export type ToolPrivacyMode =
+  | "browser"
+  | "youtube-thumbnails"
+  | "youtube-thumbnail-preview"
+  | "youtube-and-proxy"
+  | "server-video-url";
 
 export type Tool = {
   /** URL slug, e.g. "compress-image" */
@@ -14,10 +25,14 @@ export type Tool = {
   description: string;
   /** Category for grouping on the homepage */
   category: "Image" | "PDF" | "Conversion" | "YouTube";
+  /** Data handling mode used by the shared per-tool privacy badge */
+  privacyMode: ToolPrivacyMode;
   /** Search keywords for filtering / SEO meta */
   keywords: string[];
   /** Long-form description used inside the tool page body */
   longDescription: string;
+  /** Important limitation shown beside the tool. */
+  notice?: string;
   /** Frequently asked questions for the FAQ section + JSON-LD */
   faqs: FAQ[];
   /** Step-by-step instructions displayed under the tool */
@@ -35,8 +50,9 @@ export const TOOLS: Tool[] = [
     slug: "compress-image",
     name: "Compress Image",
     description:
-      "Reduce the file size of JPG, PNG, and WebP images instantly in your browser. No upload, no quality loss you can't control.",
+      "Reduce JPG, PNG, and WebP image file sizes in your browser with a quality setting you control.",
     category: "Image",
+    privacyMode: "browser",
     keywords: [
       "compress image",
       "image compressor",
@@ -47,11 +63,11 @@ export const TOOLS: Tool[] = [
       "web image optimizer",
     ],
     longDescription:
-      "Our Compress Image tool lets you shrink JPG, PNG, and WebP photos right inside your browser. Files never leave your device, so it's perfect for sensitive documents or personal pictures. Pick a target quality, drag in a batch of files, and download a smaller archive in seconds.",
+      "Our Compress Image tool shrinks JPG, PNG, and WebP photos in your browser. Image files are not sent to our server for compression. Pick a target quality, add a batch of files, and download the results.",
     faqs: [
       {
         q: "Are my images uploaded to a server?",
-        a: "No. All compression happens locally in your browser using the Canvas API and browser-image-compression. Your files never leave your device.",
+        a: "No. Compression uses the Canvas API and browser-image-compression in your browser; the selected image files are not sent to our server for compression.",
       },
       {
         q: "What is the maximum file size I can compress?",
@@ -80,6 +96,7 @@ export const TOOLS: Tool[] = [
     description:
       "Convert Apple HEIC and HEIF photos from your iPhone into universally compatible JPG files directly in your browser.",
     category: "Conversion",
+    privacyMode: "browser",
     keywords: [
       "heic to jpg",
       "heic converter",
@@ -89,7 +106,7 @@ export const TOOLS: Tool[] = [
       "heif to jpg",
     ],
     longDescription:
-      "HEIC is the default photo format on modern iPhones, but many apps and websites still expect JPG. Our HEIC to JPG converter runs entirely in your browser using the heic2any library, so your photos stay private. Convert a single photo or a batch at once.",
+      "HEIC is the default photo format on modern iPhones, but many apps and websites still expect JPG. Our HEIC to JPG converter uses the heic2any library in your browser; selected photos are not sent to our server for conversion. Convert a single photo or a batch at once.",
     faqs: [
       {
         q: "Is this HEIC converter free?",
@@ -101,7 +118,7 @@ export const TOOLS: Tool[] = [
       },
       {
         q: "Are my photos uploaded anywhere?",
-        a: "No. HEIC decoding happens locally with the heic2any library. Nothing is sent to a server.",
+        a: "HEIC decoding uses the heic2any library in your browser. The selected HEIC files are not sent to our server for conversion.",
       },
       {
         q: "Why does conversion take a few seconds per image?",
@@ -122,6 +139,7 @@ export const TOOLS: Tool[] = [
     description:
       "Free online PDF merger: combine multiple PDF files into one in your browser. Reorder documents and download the result; files are not uploaded for processing.",
     category: "PDF",
+    privacyMode: "browser",
     keywords: [
       "pdf merger free",
       "combine pdf files free",
@@ -171,8 +189,9 @@ export const TOOLS: Tool[] = [
     slug: "split-pdf",
     name: "Split PDF",
     description:
-      "Extract pages or split a PDF into multiple files by page ranges. 100% client-side, your PDF never leaves your browser.",
+      "Extract pages or split a PDF into multiple files by page ranges in your browser.",
     category: "PDF",
+    privacyMode: "browser",
     keywords: [
       "split pdf",
       "pdf splitter",
@@ -189,7 +208,7 @@ export const TOOLS: Tool[] = [
       },
       {
         q: "Are my PDFs uploaded anywhere?",
-        a: "No. Splitting is performed entirely in your browser with pdf-lib. No file is sent over the network.",
+        a: "Splitting is performed in your browser with pdf-lib; the selected PDF is not sent to our server for processing.",
       },
       {
         q: "What's the largest PDF I can split?",
@@ -210,10 +229,11 @@ export const TOOLS: Tool[] = [
   },
   {
     slug: "pdf-to-word",
-    name: "PDF to Word",
+    name: "PDF to Text — Word-compatible .doc",
     description:
-      "Extract text from a PDF and download it as an editable Word-compatible .doc file. Runs locally in your browser.",
+      "Extract selectable PDF text into a Word-compatible .doc file in your browser. Text-focused output; original page layout is not preserved.",
     category: "Conversion",
+    privacyMode: "browser",
     keywords: [
       "pdf to word",
       "pdf to doc",
@@ -222,15 +242,17 @@ export const TOOLS: Tool[] = [
       "pdf text extractor",
     ],
     longDescription:
-      "PDF to Word uses the pdfjs-dist library to extract text content from your PDF and packages it as a .doc file you can open in Microsoft Word, Google Docs, or LibreOffice. Note: complex layouts may not be preserved perfectly — this tool focuses on accurate text extraction rather than visual fidelity.",
+      "PDF to Text uses the pdfjs-dist library to extract text content from your PDF and packages it as a .doc file you can open in Microsoft Word, Google Docs, or LibreOffice. It extracts text, not the original page design: tables, columns, images, and complex layouts may change or be omitted.",
+    notice:
+      "This tool extracts text into a Word-compatible .doc file; it does not preserve the original PDF layout, images, or complex tables.",
     faqs: [
       {
         q: "Will the layout be preserved?",
         a: "Text is extracted line by line. Tables, images, and complex layouts may not match the original perfectly. The tool prioritizes text accuracy over visual fidelity.",
       },
       {
-        q: "Is this PDF to Word converter free?",
-        a: "Yes, completely free with no sign-up, no watermark, and no upload — it runs in your browser.",
+        q: "Is this PDF to Text tool free?",
+        a: "Yes. Conversion runs in your browser, and the selected files are not sent to our server for conversion.",
       },
       {
         q: "Can I convert scanned PDFs?",
@@ -255,6 +277,7 @@ export const TOOLS: Tool[] = [
     description:
       "Convert JPG, PNG, and WebP images into a single PDF document. Reorder, set page size, and download instantly.",
     category: "PDF",
+    privacyMode: "browser",
     keywords: [
       "image to pdf",
       "jpg to pdf",
@@ -263,7 +286,7 @@ export const TOOLS: Tool[] = [
       "picture to pdf",
     ],
     longDescription:
-      "Turn one or more images into a single PDF with our Image to PDF tool. Choose page size (A4, Letter, or fit-to-image), reorder pages by dragging, and download the result. Everything runs locally with pdf-lib, so your images stay private.",
+      "Turn one or more images into a single PDF with our Image to PDF tool. Choose page size (A4, Letter, or fit-to-image), reorder pages by dragging, and download the result. The selected images are processed in your browser with pdf-lib and are not sent to our server for conversion.",
     faqs: [
       {
         q: "Which image formats are supported?",
@@ -275,7 +298,7 @@ export const TOOLS: Tool[] = [
       },
       {
         q: "Are my images uploaded to a server?",
-        a: "No. All processing happens in your browser using pdf-lib. Your images never leave your device.",
+        a: "This tool processes the selected images in your browser using pdf-lib; the image contents are not sent to our server for processing.",
       },
       {
         q: "Is there a file size limit?",
@@ -294,8 +317,9 @@ export const TOOLS: Tool[] = [
     slug: "compress-pdf",
     name: "Compress PDF",
     description:
-      "Shrink the size of a PDF by rasterizing its pages to a lower resolution. Reduce PDF file size in your browser.",
+      "Reduce PDF file size by rasterizing each page to an image in your browser. The output text is no longer selectable or searchable.",
     category: "PDF",
+    privacyMode: "browser",
     keywords: [
       "compress pdf",
       "reduce pdf size",
@@ -304,7 +328,9 @@ export const TOOLS: Tool[] = [
       "optimize pdf",
     ],
     longDescription:
-      "Compress PDF reduces the file size of a PDF by rasterizing each page to a JPEG image at a resolution you choose. This is most effective on PDFs that contain large embedded images. Text-heavy PDFs may not compress as dramatically. All processing happens locally with pdf-lib and pdfjs-dist.",
+      "Compress PDF reduces a file's size by rasterizing each page to a JPEG image at a resolution you choose. The new PDF contains page images, so its text is no longer selectable or searchable. This is most effective on PDFs that contain large embedded images. Text-heavy PDFs may not compress as dramatically. All processing happens locally with pdf-lib and pdfjs-dist.",
+    notice:
+      "Important: pages are rasterized into images. Text in the compressed PDF will no longer be selectable or searchable; keep your original file.",
     faqs: [
       {
         q: "How does PDF compression work?",
@@ -316,7 +342,7 @@ export const TOOLS: Tool[] = [
       },
       {
         q: "Are my PDFs uploaded anywhere?",
-        a: "No. Compression runs entirely in your browser using pdfjs-dist and pdf-lib. Nothing leaves your device.",
+        a: "Compression runs in your browser using pdfjs-dist and pdf-lib; the selected PDF contents are not sent to our server for processing.",
       },
       {
         q: "What quality should I choose?",
@@ -337,6 +363,7 @@ export const TOOLS: Tool[] = [
     description:
       "Convert WebP images to PNG format with full transparency support. Fast, free, and 100% browser-based.",
     category: "Conversion",
+    privacyMode: "browser",
     keywords: [
       "webp to png",
       "convert webp",
@@ -377,6 +404,7 @@ export const TOOLS: Tool[] = [
     description:
       "Convert PNG images to JPG format to reduce file size. Choose a background color for transparent areas.",
     category: "Conversion",
+    privacyMode: "browser",
     keywords: [
       "png to jpg",
       "convert png",
@@ -392,7 +420,7 @@ export const TOOLS: Tool[] = [
       },
       {
         q: "Are my images uploaded anywhere?",
-        a: "No. Conversion uses the Canvas API locally in your browser. Your images never leave your device.",
+        a: "Conversion uses the Canvas API in your browser; the selected images are not sent to our server for conversion.",
       },
       {
         q: "Can I convert multiple PNGs at once?",
@@ -417,6 +445,7 @@ export const TOOLS: Tool[] = [
     description:
       "Convert JPG images to modern WebP format for smaller file sizes and better web performance.",
     category: "Conversion",
+    privacyMode: "browser",
     keywords: [
       "jpg to webp",
       "convert to webp",
@@ -424,7 +453,7 @@ export const TOOLS: Tool[] = [
       "webp converter",
     ],
     longDescription:
-      "WebP files are typically 25-35% smaller than JPGs at equivalent quality, making them ideal for the web. Our JPG to WebP converter uses the Canvas API to encode WebP locally in your browser, so your images stay private.",
+      "WebP files can be smaller than JPGs at comparable visual quality, depending on the image and settings. Our JPG to WebP converter uses the Canvas API in your browser.",
     faqs: [
       {
         q: "How much smaller will WebP be than JPG?",
@@ -432,7 +461,7 @@ export const TOOLS: Tool[] = [
       },
       {
         q: "Are my images uploaded to a server?",
-        a: "No. Conversion happens locally with the Canvas API. Your files never leave your device.",
+        a: "Conversion happens with the Canvas API in your browser; the selected files are not sent to our server for conversion.",
       },
       {
         q: "Can I batch convert multiple JPGs?",
@@ -458,6 +487,7 @@ export const TOOLS: Tool[] = [
     description:
       "Download HD thumbnails from any YouTube video in one click. Supports maxres, SD, HQ, and MQ resolutions — no sign-up, no watermark.",
     category: "YouTube",
+    privacyMode: "youtube-thumbnails",
     keywords: [
       "youtube thumbnail downloader",
       "download youtube thumbnail",
@@ -466,7 +496,7 @@ export const TOOLS: Tool[] = [
       "get youtube thumbnail",
     ],
     longDescription:
-      "Paste any YouTube URL and instantly get download links for every available thumbnail resolution — from the full 1280×720 HD version down to the small 120×90 default. Perfect for studying what makes top creators' thumbnails click-worthy, or for grabbing a still frame from a video. Everything happens in your browser using YouTube's public thumbnail CDN.",
+      "Paste a YouTube URL to retrieve public thumbnails at available resolutions. The tool requests video metadata and thumbnail images directly from YouTube.",
     faqs: [
       {
         q: "Is this thumbnail downloader free?",
@@ -499,6 +529,7 @@ export const TOOLS: Tool[] = [
     description:
       "Resize and crop your thumbnail to YouTube's required 1280×720 with a safe-zone overlay so text isn't cut off on mobile.",
     category: "YouTube",
+    privacyMode: "browser",
     keywords: [
       "youtube thumbnail resizer",
       "resize youtube thumbnail",
@@ -523,7 +554,7 @@ export const TOOLS: Tool[] = [
       },
       {
         q: "Are my images uploaded to a server?",
-        a: "No. All cropping and resizing happens in your browser using the Canvas API. Your image never leaves your device.",
+        a: "Cropping and resizing happen in your browser using the Canvas API. The selected image is not sent to our server for processing.",
       },
     ],
     howToSteps: [
@@ -538,8 +569,9 @@ export const TOOLS: Tool[] = [
     slug: "youtube-tags-extractor",
     name: "YouTube Tags Extractor",
     description:
-      "Extract the hidden tags and keywords from any YouTube video. See exactly what keywords top creators are ranking for.",
+      "Check a YouTube video's public page for tags. Its URL is sent to our server to fetch the page; tags may be unavailable.",
     category: "YouTube",
+    privacyMode: "server-video-url",
     keywords: [
       "youtube tags extractor",
       "extract youtube tags",
@@ -548,11 +580,11 @@ export const TOOLS: Tool[] = [
       "youtube tag finder",
     ],
     longDescription:
-      "YouTube tags are hidden from viewers but play a role in search discovery. Our extractor fetches the video page and parses the keyword metadata, showing you exactly which tags a creator is targeting. Great for competitor research and finding keyword gaps in your own content strategy.",
+      "Our extractor sends the video URL to our server, which fetches the public YouTube video page and reads its keyword metadata. The server receives the URL, not a video or file upload.",
     faqs: [
       {
         q: "How does the tags extractor work?",
-        a: "We fetch the video page through a CORS proxy and parse the <meta name=\"keywords\"> tag, which contains the creator's tags. Everything runs in your browser — no server-side processing.",
+        a: "The tool sends the video URL to our server. The server validates it, fetches the public YouTube page without following redirects, and reads its keyword metadata.",
       },
       {
         q: "Why are no tags showing for some videos?",
@@ -581,6 +613,7 @@ export const TOOLS: Tool[] = [
     description:
       "Generate SEO-optimized YouTube titles from your topic. Includes a live character counter so you stay under 100 characters.",
     category: "YouTube",
+    privacyMode: "browser",
     keywords: [
       "youtube title generator",
       "generate youtube titles",
@@ -622,6 +655,7 @@ export const TOOLS: Tool[] = [
     description:
       "Generate structured YouTube descriptions with timestamps, social links, and hashtags. SEO-ready in seconds.",
     category: "YouTube",
+    privacyMode: "browser",
     keywords: [
       "youtube description generator",
       "generate youtube description",
@@ -663,6 +697,7 @@ export const TOOLS: Tool[] = [
     description:
       "Generate relevant YouTube hashtags for your niche or topic. Boost discoverability with researched tag combinations.",
     category: "YouTube",
+    privacyMode: "browser",
     keywords: [
       "youtube hashtag generator",
       "generate youtube hashtags",
@@ -704,6 +739,7 @@ export const TOOLS: Tool[] = [
     description:
       "Estimate YouTube earnings based on views, niche, and CPM. See potential ad revenue across 16 content categories.",
     category: "YouTube",
+    privacyMode: "browser",
     keywords: [
       "youtube money calculator",
       "youtube earnings calculator",
@@ -712,11 +748,11 @@ export const TOOLS: Tool[] = [
       "how much youtube pays",
     ],
     longDescription:
-      "Wondering how much a YouTube channel earns? Our calculator estimates ad revenue based on monthly views and content niche. We use real-world CPM ranges from 16 categories — from finance ($15-35 CPM) to gaming ($3-8 CPM) — and apply YouTube's revenue share to give you a realistic range.",
+      `Wondering how much a YouTube channel earns? Our calculator estimates ad revenue based on monthly views and content niche. We use CPM ranges from ${Object.keys(CPM_RANGES).length} categories — from finance ($${highestCpm.low}-${highestCpm.high} CPM) to music ($${lowestCpm.low}-${lowestCpm.high} CPM) — and apply a ${CREATOR_SHARE * 100}% creator share. Estimates depend on geography, watch time, ad format, and season.`,
     faqs: [
       {
         q: "How accurate is the YouTube money calculator?",
-        a: "Our estimates use publicly reported CPM ranges and YouTube's ~55% revenue share. Actual earnings vary based on audience geography, watch time, ad format, and whether the creator has brand deals or merchandise.",
+        a: `Our estimates apply a ${CREATOR_SHARE * 100}% creator share to niche CPM ranges. Actual earnings vary based on audience geography, watch time, ad format, and season. Sponsorships and merchandise are not included.`,
       },
       {
         q: "What is CPM?",
@@ -745,6 +781,7 @@ export const TOOLS: Tool[] = [
     description:
       "Preview your thumbnail at real-world sizes — mobile feed, desktop search, TV, and tiny preview. See it as viewers will.",
     category: "YouTube",
+    privacyMode: "youtube-thumbnail-preview",
     keywords: [
       "youtube thumbnail tester",
       "preview youtube thumbnail",
@@ -765,7 +802,7 @@ export const TOOLS: Tool[] = [
       },
       {
         q: "Are my images uploaded anywhere?",
-        a: "No. The thumbnail is loaded locally in your browser and rendered at different sizes using CSS. Nothing leaves your device.",
+        a: "If you enter a YouTube URL, your browser requests the public thumbnail images directly from YouTube. If you select an image file, it is previewed in your browser and is not sent to our server.",
       },
       {
         q: "Can I test a thumbnail from an existing YouTube video?",
@@ -786,6 +823,7 @@ export const TOOLS: Tool[] = [
     description:
       "Find any YouTube channel ID from a video URL, handle, or channel link. Get the UC... ID instantly for APIs and integrations.",
     category: "YouTube",
+    privacyMode: "youtube-and-proxy",
     keywords: [
       "youtube channel id finder",
       "find youtube channel id",
@@ -794,7 +832,7 @@ export const TOOLS: Tool[] = [
       "youtube uc id",
     ],
     longDescription:
-      "Need a channel ID for the YouTube API, RSS feeds, or third-party tools? Our finder extracts the UC... channel ID from any YouTube URL — video, handle (@name), or channel link — using the public oEmbed API. No API key required.",
+      "Need a channel ID for the YouTube API, RSS feeds, or third-party tools? Video lookups send the video URL to YouTube's public oEmbed endpoint; handle lookups send the channel URL to the AllOrigins proxy. Direct channel-ID links are parsed in your browser.",
     faqs: [
       {
         q: "What is a YouTube channel ID?",
@@ -802,11 +840,11 @@ export const TOOLS: Tool[] = [
       },
       {
         q: "Can I find a channel ID from a @handle?",
-        a: "Yes. Paste the handle URL (youtube.com/@name) and we'll resolve it. We use a CORS proxy to fetch the channel page and extract the ID from the meta tags.",
+        a: "Yes. The tool sends the channel URL to the AllOrigins proxy, which fetches the public channel page so the ID can be extracted.",
       },
       {
         q: "Can I find a channel ID from a video URL?",
-        a: "Yes — this is the most reliable method. We use YouTube's oEmbed API to get the channel URL from a video, then extract the channel ID. This works without any proxy.",
+        a: "Yes. The tool sends the video URL directly to YouTube's public oEmbed endpoint, then extracts the channel ID from the response.",
       },
       {
         q: "Is this free?",
@@ -827,6 +865,7 @@ export const TOOLS: Tool[] = [
     description:
       "Create shareable YouTube links that start at a specific timestamp. Skip intros and link directly to the good part.",
     category: "YouTube",
+    privacyMode: "browser",
     keywords: [
       "youtube timestamp link generator",
       "youtube link with timestamp",
@@ -866,8 +905,9 @@ export const TOOLS: Tool[] = [
     slug: "remove-exif",
     name: "Remove EXIF Data",
     description:
-      "Strip EXIF, GPS location, camera details, and privacy metadata from JPG, PNG, and WebP images. 100% private in your browser.",
+      "Strip EXIF, GPS location, camera details, and privacy metadata from JPG, PNG, and WebP images in your browser.",
     category: "Image",
+    privacyMode: "browser",
     keywords: [
       "remove exif",
       "exif remover",
@@ -886,7 +926,7 @@ export const TOOLS: Tool[] = [
       },
       {
         q: "Are my photos uploaded to a server?",
-        a: "No. All inspection and stripping happens locally in your browser using HTML5 Canvas and WebAssembly. Your photos never leave your device.",
+        a: "Inspection and stripping use HTML5 Canvas and WebAssembly in your browser; the selected photos are not sent to our server for processing.",
       },
       {
         q: "Will removing EXIF reduce photo quality?",
@@ -909,8 +949,9 @@ export const TOOLS: Tool[] = [
     slug: "pdf-to-image",
     name: "PDF to Image",
     description:
-      "Convert PDF pages to high-resolution JPG, PNG, or WebP images in up to 300 DPI print quality. 100% in-browser, no upload.",
+      "Convert PDF pages to high-resolution JPG, PNG, or WebP images in up to 300 DPI print quality in your browser.",
     category: "PDF",
+    privacyMode: "browser",
     keywords: [
       "pdf to image",
       "pdf to jpg",
@@ -937,7 +978,7 @@ export const TOOLS: Tool[] = [
       },
       {
         q: "Are my PDF files uploaded anywhere?",
-        a: "No. Conversion uses pdfjs-dist entirely inside your browser. Your sensitive documents never leave your computer.",
+        a: "Conversion uses pdfjs-dist in your browser; the selected PDF contents are not sent to our server for conversion.",
       },
     ],
     howToSteps: [
@@ -953,12 +994,14 @@ export const TOOLS: Tool[] = [
 /** Site-wide config used for metadata, sitemap, and JSON-LD */
 export const SITE_CONFIG = {
   name: "Convaudit",
-  title: "Convaudit — Free Online File Converter, PDF & Image Tools",
+  title: "Images, PDFs and YouTube Creator Tools",
   description:
-    "Free, private online tools to compress images, convert PDF, HEIC to JPG, merge documents, and more. 100% client-side — your files never leave your device.",
+    "Free tools for images, PDFs and YouTube creator tasks. Processing and data sharing vary by tool; see each tool's privacy badge.",
   url: "https://convaudit.com",
-  // Placeholder AdSense publisher ID — replace with your own.
-  adsenseClient: "ca-pub-XXXXXXXXXXXXXXXX",
+  adsenseClient: (process.env.NEXT_PUBLIC_ADSENSE_CLIENT || "").trim(),
+  analyticsProvider:
+    "Google Analytics 4, Vercel Analytics, and Vercel Speed Insights",
+  analyticsMeasurementId: "G-MDR2NP5CJ3",
 };
 
 export function getToolBySlug(slug: string): Tool | undefined {

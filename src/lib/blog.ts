@@ -59,6 +59,19 @@ function filenameToSlug(filename: string): string {
   return filename.replace(/\.md$/i, "");
 }
 
+function requireContentDate(value: unknown, field: string, file: string): string {
+  const date = String(value ?? "");
+  const parsedDate = new Date(`${date}T00:00:00.000Z`);
+  if (
+    !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+    Number.isNaN(parsedDate.getTime()) ||
+    parsedDate.toISOString().slice(0, 10) !== date
+  ) {
+    throw new Error(`Missing or invalid ${field} date in blog content: ${file}`);
+  }
+  return date;
+}
+
 /**
  * List all blog post metadata, sorted by date (newest first).
  * Used by the blog index page and the home page's "From the blog" section.
@@ -80,8 +93,10 @@ export function getAllPosts(): BlogPostMeta[] {
       slug: filenameToSlug(filename),
       title: String(data.title ?? filename),
       description: String(data.description ?? ""),
-      date: String(data.date ?? new Date().toISOString().split("T")[0]),
-      modifiedDate: data.modifiedDate ? String(data.modifiedDate) : undefined,
+      date: requireContentDate(data.date, "publication", filename),
+      modifiedDate: data.modifiedDate
+        ? requireContentDate(data.modifiedDate, "modified", filename)
+        : undefined,
       author: String(data.author ?? "Convaudit Team"),
       tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
       coverImage: data.coverImage ? String(data.coverImage) : undefined,
@@ -109,8 +124,10 @@ export function getPostBySlug(slug: string): BlogPost | undefined {
     slug,
     title: String(data.title ?? slug),
     description: String(data.description ?? ""),
-    date: String(data.date ?? new Date().toISOString().split("T")[0]),
-    modifiedDate: data.modifiedDate ? String(data.modifiedDate) : undefined,
+    date: requireContentDate(data.date, "publication", slug),
+    modifiedDate: data.modifiedDate
+      ? requireContentDate(data.modifiedDate, "modified", slug)
+      : undefined,
     author: String(data.author ?? "Convaudit Team"),
     tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
     coverImage: data.coverImage ? String(data.coverImage) : undefined,

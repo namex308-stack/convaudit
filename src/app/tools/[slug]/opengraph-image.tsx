@@ -1,8 +1,7 @@
 import { ImageResponse } from "next/og";
-import { TOOLS, getToolBySlug } from "@/lib/tools";
+import { getToolBySlug } from "@/lib/tools";
 
 export const runtime = "nodejs";
-export const alt = "Convaudit tool";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -10,20 +9,39 @@ export const contentType = "image/png";
  * Dynamic OpenGraph image for each tool page.
  * Route: /tools/{slug}/opengraph-image
  */
-export async function generateStaticParams() {
-  return TOOLS.map((t) => ({ slug: t.slug }));
+export function generateImageMetadata({
+  params,
+}: {
+  params: { slug: string };
+}) {
+  const tool = getToolBySlug(params.slug);
+  return tool
+    ? [
+        {
+          id: tool.slug,
+          alt: `${tool.name} — ${tool.description}`,
+          size,
+          contentType,
+        },
+      ]
+    : [];
 }
 
 export default async function Image({
+  id,
   params,
 }: {
+  id: Promise<string>;
   params: Promise<{ slug: string }>;
 }) {
-  const { slug } = await params;
+  const [{ slug }, imageId] = await Promise.all([params, id]);
   const tool = getToolBySlug(slug);
+  if (!tool || imageId !== tool.slug) {
+    throw new Error(`Could not generate Open Graph image for tool "${slug}".`);
+  }
 
-  const name = tool?.name ?? "Convaudit";
-  const category = tool?.category ?? "Tools";
+  const name = tool.name;
+  const category = tool.category;
 
   return new ImageResponse(
     (
@@ -96,7 +114,7 @@ export default async function Image({
               fontSize: "26px",
             }}
           >
-            Free · Private · Browser-based — no uploads, no sign-up
+            {tool.description}
           </div>
         </div>
 
@@ -111,7 +129,7 @@ export default async function Image({
           }}
         >
           <div style={{ display: "flex" }}>convaudit.com/tools/{slug}</div>
-          <div style={{ display: "flex" }}>100% client-side</div>
+          <div style={{ display: "flex" }}>See the tool's data-use badge</div>
         </div>
       </div>
     ),

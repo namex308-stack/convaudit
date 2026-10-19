@@ -2,141 +2,131 @@ import type { Metadata } from "next";
 import { buildStaticPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = buildStaticPageMetadata({
-  title: "Convaudit Terms of Service for Online Tools",
+  title: "Terms of Use",
   description:
-    "Convaudit terms of service — free, browser-based tools provided as-is. By using the site you agree to these terms. No warranty, no liability.",
+    "Plain-language terms for using Convaudit's images, PDFs and YouTube creator tools.",
   path: "/terms",
-  keywords: [
-    "convaudit terms of service",
-    "terms of use",
-    "free tools terms",
-    "browser tools terms",
-    "online tools agreement",
-  ],
 });
 
-/**
- * Static Terms of Service page.
- * Placeholder content — replace with your own legal review before launch.
- */
 export default function TermsPage() {
   return (
     <article className="mx-auto max-w-3xl px-5 py-16 sm:px-6 lg:px-8">
       <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-        Terms of Service
+        Terms of Use
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Last updated:{" "}
-        {new Date().toLocaleDateString("en-US", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        })}
+        Last updated: October 19, 2026
       </p>
 
       <div className="mt-10 space-y-8">
         <section>
-          <h2 className="text-lg font-semibold tracking-tight">
-            1. Acceptance of terms
-          </h2>
+          <h2 className="text-lg font-semibold tracking-tight">What these terms cover</h2>
           <p className="mt-3 leading-relaxed text-muted-foreground">
-            By accessing or using Convaudit (the &quot;Service&quot;), you
-            agree to be bound by these Terms of Service. If you do not agree,
-            please do not use the Service.
+            These terms apply to your use of the Convaudit website, its images,
+            PDFs and YouTube creator tools, and the related information on the
+            site. By using the site, you agree to these terms. If you do not
+            agree, do not use the tools.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold tracking-tight">Acceptable use</h2>
+          <p className="mt-3 leading-relaxed text-muted-foreground">
+            Use the tools lawfully and only with files, URLs, and other
+            material you are allowed to use. Do not interfere with the site,
+            bypass its usage limits, or use it to violate another person&apos;s
+            rights. You are responsible for checking tool results and keeping
+            your own copies of important files.
           </p>
         </section>
 
         <section>
           <h2 className="text-lg font-semibold tracking-tight">
-            2. Use of the Service
+            Files, outputs, and third-party services
           </h2>
           <p className="mt-3 leading-relaxed text-muted-foreground">
-            The Service provides free, browser-based tools for working with
-            images and PDFs. You may use the Service for any lawful purpose.
-            You agree not to use the Service to process material that you do
-            not have the right to process.
+            Image and PDF files are processed in your browser. Most YouTube
+            tools also run in your browser, but some request public data from
+            YouTube or AllOrigins. The Tags Extractor sends a video URL to our
+            server, which requests the public YouTube page. See the Privacy
+            Policy and About page for the details. Results may be incomplete
+            or inaccurate; review them before relying on them.
+          </p>
+          <p className="mt-3 leading-relaxed text-muted-foreground">
+            YouTube, Google, and other third-party names and marks belong to
+            their respective owners. Convaudit is independent and is not
+            affiliated with, endorsed by, or sponsored by YouTube or Google.
+            Third-party websites and services are governed by their own terms
+            and privacy policies.
           </p>
         </section>
 
         <section>
           <h2 className="text-lg font-semibold tracking-tight">
-            3. No warranty
+            Advertising and availability
           </h2>
           <p className="mt-3 leading-relaxed text-muted-foreground">
-            The Service is provided &quot;as is&quot; and &quot;as
-            available&quot; without warranties of any kind, either express or
-            implied. We do not guarantee that the Service will be
-            uninterrupted, error-free, or that results will be accurate or
-            reliable.
+            The site is supported by advertising. Ads and links may lead to
+            third-party services; we do not control their content. Tools may
+            change or become unavailable, and we do not promise uninterrupted
+            access.
           </p>
         </section>
 
         <section>
           <h2 className="text-lg font-semibold tracking-tight">
-            4. Limitation of liability
+            Warranty and liability
           </h2>
           <p className="mt-3 leading-relaxed text-muted-foreground">
-            To the maximum extent permitted by law, we shall not be liable
-            for any indirect, incidental, special, consequential, or
-            punitive damages, or any loss of data, arising out of your use
-            of the Service.
+            The site and tools are provided “as is” and “as available,”
+            without promises that they will be error-free, suitable for a
+            particular purpose, or produce a specific result. To the extent
+            permitted by applicable law, the site operator is not liable for
+            indirect or consequential loss arising from use of the site or
+            inability to use it. Nothing in these terms excludes liability
+            that cannot lawfully be excluded.
           </p>
         </section>
 
         <section>
           <h2 className="text-lg font-semibold tracking-tight">
-            5. Files and data
+            Changes and governing law
           </h2>
           <p className="mt-3 leading-relaxed text-muted-foreground">
-            All files you process with the Service remain on your device. We
-            do not have access to your files and are not responsible for any
-            loss or damage to your files. You are solely responsible for
-            maintaining backups of your data.
+            We may revise these terms by posting an updated version on this
+            page and changing the date above. These terms are governed by the
+            law of{" "}
+            <strong className="text-foreground">
+              [TODO_OWNER: jurisdiction]
+            </strong>
+            , subject to any mandatory rules that apply.
           </p>
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold tracking-tight">
-            6. Advertising
-          </h2>
+          <h2 className="text-lg font-semibold tracking-tight">Contact</h2>
           <p className="mt-3 leading-relaxed text-muted-foreground">
-            The Service is supported by advertising. We are not responsible
-            for the content of ads served by third-party networks.
-          </p>
-        </section>
-
-        <section>
-          <h2 className="text-lg font-semibold tracking-tight">
-            7. Changes to the Service
-          </h2>
-          <p className="mt-3 leading-relaxed text-muted-foreground">
-            We reserve the right to modify, suspend, or discontinue the
-            Service at any time without notice. We will not be liable to you
-            or any third party for any modification, suspension, or
-            discontinuance of the Service.
-          </p>
-        </section>
-
-        <section>
-          <h2 className="text-lg font-semibold tracking-tight">
-            8. Governing law
-          </h2>
-          <p className="mt-3 leading-relaxed text-muted-foreground">
-            These Terms shall be governed by and construed in accordance
-            with applicable law, without regard to conflict of law
-            principles.
-          </p>
-        </section>
-
-        <section>
-          <h2 className="text-lg font-semibold tracking-tight">9. Contact</h2>
-          <p className="mt-3 leading-relaxed text-muted-foreground">
-            Questions about these Terms? Contact us at{" "}
-            <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+            Questions about these terms? Contact{" "}
+            <a
+              className="text-foreground underline underline-offset-4"
+              href="mailto:legal@convaudit.com"
+            >
               legal@convaudit.com
-            </code>
+            </a>
             .
           </p>
+        </section>
+
+        <section className="rounded-lg border border-dashed p-4">
+          <h2 className="font-semibold">
+            TODO_OWNER: confirm before publication
+          </h2>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+            <li>TODO_OWNER: Choose and verify the governing-law jurisdiction.</li>
+            <li>
+              TODO_OWNER: Confirm legal@convaudit.com is active and monitored.
+            </li>
+          </ul>
         </section>
       </div>
     </article>

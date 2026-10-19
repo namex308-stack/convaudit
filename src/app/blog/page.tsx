@@ -14,19 +14,9 @@ import { getAllPosts, formatDate, type BlogPostMeta } from "@/lib/blog";
 import { SITE_CONFIG } from "@/lib/tools";
 
 export const metadata: Metadata = {
-  title: "Image, PDF & YouTube Guides for Everyday Tasks",
+  title: "Guides for Images, PDFs and YouTube Creators",
   description:
-    "Practical guides to image formats, photo metadata, PDF workflows, and YouTube thumbnail requirements.",
-  keywords: [
-    "image compression guide",
-    "heic vs jpg",
-    "pdf compression tips",
-    "webp optimization",
-    "youtube creator tools blog",
-    "merge pdf without uploading",
-    "reduce pdf file size",
-    "image formats comparison",
-  ],
+    "Practical guides for images, PDFs and YouTube creators, covering formats, metadata, file workflows and thumbnail requirements.",
   alternates: {
     canonical: "/blog",
     languages: {
@@ -35,7 +25,7 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "Convaudit Blog — Guides for Images, PDFs & YouTube",
+    title: "Convaudit Blog — Guides for Images, PDFs and YouTube Creators",
     description:
       "Practical guides to image formats, photo metadata, PDF workflows, and YouTube thumbnail requirements.",
     url: `${SITE_CONFIG.url}/blog`,
@@ -44,9 +34,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Convaudit Blog — Guides for Images, PDFs & YouTube",
+    title: "Convaudit Blog — Guides for Images, PDFs and YouTube Creators",
     description:
-      "Practical guides to image formats, photo metadata, PDF workflows, and YouTube thumbnail requirements.",
+      "Practical guides for images, PDFs and YouTube creators, covering formats, metadata, file workflows and thumbnail requirements.",
   },
   robots: {
     index: true,
@@ -106,11 +96,16 @@ export default function BlogPage() {
           The Convaudit Blog
         </h1>
         <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
-          Guides, comparisons, and best practices for working with images and
-          PDFs. Everything we publish is informed by the same principle that
-          drives our tools: your files should stay private.
+          Practical guides to image formats, photo metadata, PDF workflows, and
+          YouTube thumbnails, with clear notes on trade-offs and privacy.
         </p>
       </header>
+
+      <p className="mb-8 text-sm">
+        <Link href="/blog/archive" className="font-medium text-foreground underline-offset-4 hover:underline">
+          Browse the archive by year
+        </Link>
+      </p>
 
       {posts.length === 0 && (
         <p className="rounded-xl border border-dashed border-border/70 bg-muted/30 p-8 text-center text-sm text-muted-foreground">

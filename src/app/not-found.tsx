@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 /**
  * 404 Not Found page.
  *
- * - Search input (submits to /search?q= — reserved for future search page)
+ * - Search input (submits to the noindex /search route)
  * - Popular tools grid (the first 6 tools by slug)
  * - Link back home
  */
@@ -36,7 +36,7 @@ export default function NotFound() {
         Try searching, or browse our popular tools below.
       </p>
 
-      {/* Search (submits to /search — reserved path) */}
+      {/* Search (submits to the noindex /search route) */}
       <form
         action="/search"
         method="get"

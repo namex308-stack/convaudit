@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { useAdPreferences, type AdImportance } from "./AdPreferences";
+import { usePrivacyConsent } from "./PrivacyConsent";
+import { SITE_CONFIG } from "@/lib/tools";
 
 type AdSlotProps = {
   /** AdSense slot ID (numeric string from your AdSense dashboard) */
@@ -20,9 +22,8 @@ type AdSlotProps = {
   /** Optional label shown above the ad for transparency. */
   label?: string;
   /**
-   * Importance level. "essential" slots always render (top + bottom of page).
-   * "standard" slots are hidden when the user enables "reduced ads" mode.
-   * Defaults to "standard".
+   * Importance level. "standard" slots are hidden in reduced-ads mode.
+   * All slots still require a configured publisher ID and consent.
    */
   importance?: AdImportance;
 };
@@ -35,11 +36,10 @@ type AdSlotProps = {
  *    reducing visual clutter on initial page load.
  *
  * 2. **Reduced-ads mode** — users can opt into a lighter experience via
- *    the AdPreferences provider. When enabled, "standard" slots are
- *    hidden entirely, leaving only "essential" slots (top + bottom of page).
+ *    the AdPreferences provider. When enabled, "standard" slots are hidden.
  *
- * If AdSense is not yet approved or the script hasn't loaded, the slot
- * collapses to nothing — no broken layout.
+ * If advertising is not configured or the visitor has not consented, nothing
+ * is rendered.
  */
 export function AdSlot({
   slot = "0000000000",
@@ -52,12 +52,16 @@ export function AdSlot({
   importance = "standard",
 }: AdSlotProps) {
   const { mode } = useAdPreferences();
+  const { optionalAllowed } = usePrivacyConsent();
   const containerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
 
   // Hide non-essential ads when the user has enabled reduced-ads mode
-  const isHidden = importance === "standard" && mode === "reduced";
+  const isHidden =
+    !SITE_CONFIG.adsenseClient ||
+    !optionalAllowed ||
+    (importance === "standard" && mode === "reduced");
 
   // Lazy-load: only render the <ins> element once the slot is near the viewport
   useEffect(() => {
@@ -88,14 +92,18 @@ export function AdSlot({
   useEffect(() => {
     if (!isVisible) return;
     Promise.resolve().then(() => setShouldRender(true));
+  }, [isVisible]);
+
+  useEffect(() => {
+    if (!shouldRender || isHidden) return;
     try {
       const w = window as unknown as { adsbygoogle?: unknown[] };
       w.adsbygoogle = w.adsbygoogle || [];
       (w.adsbygoogle as unknown[]).push({});
-    } catch {
-      // Silently fail — ads are not critical
+    } catch (error) {
+      console.error("Failed to initialize the configured ad slot.", error);
     }
-  }, [isVisible]);
+  }, [isHidden, shouldRender]);
 
   if (isHidden) return null;
 
@@ -103,30 +111,24 @@ export function AdSlot({
     <div
       ref={containerRef}
       className={cn(
-        "my-6 w-full overflow-hidden rounded-lg border border-dashed border-border/60 bg-muted/30 text-center",
-        // Reserve space until the ad loads to prevent layout shift
-        !shouldRender && "min-h-[90px]",
+        "my-6 min-h-[280px] w-full overflow-hidden text-center",
         className
       )}
       aria-label="Sponsored content"
     >
-      <span className="sr-only">{label}</span>
-      {shouldRender ? (
-        <ins
-          className="adsbygoogle block min-h-[90px]"
-          style={{ display: "block" }}
-          data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-          data-ad-slot={slot}
-          data-ad-format={format}
-          data-ad-layout={layout}
-          data-ad-layout-key={layoutKey}
-          data-full-width-responsive={responsive ? "true" : "false"}
-        />
-      ) : (
-        <div className="flex h-[90px] items-center justify-center text-xs text-muted-foreground/60">
-          {label}
-        </div>
-      )}
+      <span className="mb-2 block text-center text-xs text-muted-foreground">
+        {label}
+      </span>
+      <ins
+        className="adsbygoogle block min-h-[250px]"
+        style={{ display: "block" }}
+        data-ad-client={SITE_CONFIG.adsenseClient}
+        data-ad-slot={slot}
+        data-ad-format={format}
+        data-ad-layout={layout}
+        data-ad-layout-key={layoutKey}
+        data-full-width-responsive={responsive ? "true" : "false"}
+      />
     </div>
   );
 }

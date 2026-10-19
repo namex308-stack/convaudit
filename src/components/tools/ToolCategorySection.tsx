@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { TOOLS, type Tool } from "@/lib/tools";
+import { ToolPrivacyBadge } from "./ToolPrivacyBadge";
 
 /**
  * Get unique categories from tools, ordered by appearance.
@@ -81,6 +82,7 @@ export function ToolCard({ tool, index }: { tool: Tool; index: number }) {
         )}
       </CardHeader>
       <CardContent className="p-4 pt-2">
+        <ToolPrivacyBadge mode={tool.privacyMode} />
         <Button asChild variant="ghost" size="sm" className="w-full justify-start py-2 text-sm">
           <Link href={`/tools/${tool.slug}`}>
             Open Tool

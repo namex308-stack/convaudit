@@ -1,7 +1,8 @@
 /**
  * Local storage service for tracking and managing privacy-related preferences.
  *
- * All user data is stored client-side only. Nothing is sent to any server.
+ * Tool preferences and recent-tool values are stored in browser local storage.
+ * This does not describe network requests made by individual tools.
  */
 
 const STORAGE_PREFIX = "convaudit_";

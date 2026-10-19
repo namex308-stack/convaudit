@@ -2,7 +2,7 @@
 title: "Convert Images to PDF: A Practical Guide"
 description: "Turn photos, scans, and receipts into one PDF. Learn how to order pages, choose page dimensions, and check image quality and file size."
 date: "2026-02-20"
-modifiedDate: "2026-10-16"
+modifiedDate: "2026-10-19"
 author: "Convaudit Team"
 tags: ["convert images to PDF", "image to PDF", "photo PDF"]
 toolSlug: "image-to-pdf"
@@ -25,6 +25,8 @@ Converting images to PDF is useful when a form, email, or document portal accept
 - **Orientation and margins** affect the available space. Check that no edge or text is cut off and that the image is not stretched.
 
 The best choice depends on where the PDF will be viewed or printed. Check any requirements from the recipient before converting.
+
+For scanned documents, inspect a page at normal reading size after export. A page can look sharp when zoomed in but still be difficult to read on a phone or after printing.
 
 ## Create one PDF from your images
 

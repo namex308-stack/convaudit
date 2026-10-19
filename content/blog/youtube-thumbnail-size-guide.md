@@ -2,7 +2,7 @@
 title: "YouTube Thumbnail Size: Dimensions and Specs"
 description: "Check YouTube’s recommended thumbnail dimensions, aspect ratio, formats, and file-size limits, then prepare and review an upload."
 date: "2026-03-04"
-modifiedDate: "2026-10-16"
+modifiedDate: "2026-10-19"
 author: "Convaudit Team"
 tags: ["YouTube thumbnail size", "thumbnail dimensions", "YouTube creator"]
 toolSlug: "youtube-thumbnail-downloader"
@@ -22,6 +22,7 @@ For a standard YouTube video thumbnail, use a **16:9 image at 1280 × 720 pixels
 | Listed image formats | JPG, GIF, or PNG |
 
 These figures apply to the standard video thumbnail requirements described by YouTube; they are not a guarantee that every account or upload will be accepted. Podcast thumbnail limits and other platform surfaces may differ. YouTube may also resize or recompress uploaded artwork.
+Because YouTube can revise upload requirements, use its linked help page as the final reference when preparing a thumbnail for a specific channel or feature.
 
 ## Prepare a thumbnail that fits
 

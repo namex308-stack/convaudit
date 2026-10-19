@@ -81,7 +81,6 @@ export default async function BlogPostPage({
       "@type": "WebPage",
       "@id": `${SITE_CONFIG.url}/blog/${post.slug}`,
     },
-    keywords: post.tags.join(", "),
   };
 
   // BreadcrumbList JSON-LD — Home > Blog > Post
@@ -132,9 +131,23 @@ export default async function BlogPostPage({
 
       <header className="mb-10">
         <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <time dateTime={post.date} className="font-medium">
-            {formatDate(post.date)}
-          </time>
+          <span>
+            Published{" "}
+            <time dateTime={post.date} className="font-medium">
+              {formatDate(post.date)}
+            </time>
+          </span>
+          {post.modifiedDate && post.modifiedDate !== post.date && (
+            <>
+              <span aria-hidden>·</span>
+              <span>
+                Updated{" "}
+                <time dateTime={post.modifiedDate} className="font-medium">
+                  {formatDate(post.modifiedDate)}
+                </time>
+              </span>
+            </>
+          )}
           <span aria-hidden>·</span>
           <span>{post.readingTime} min read</span>
           <span aria-hidden>·</span>

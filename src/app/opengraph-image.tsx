@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "nodejs";
-export const alt = "Convaudit — Free Online File Converter, PDF & Image Tools";
+export const alt = "Convaudit — Images, PDFs and YouTube Creator Tools";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -58,7 +58,7 @@ export default async function Image() {
               lineHeight: 1.05,
             }}
           >
-            Free Online File Converter & Tools
+            Images, PDFs & YouTube Creator Tools
           </div>
           <div
             style={{
@@ -67,7 +67,7 @@ export default async function Image() {
               fontSize: "28px",
             }}
           >
-            Compress images, convert PDF, HEIC to JPG, merge documents — 100% private in your browser.
+            Free tools for images, PDFs and YouTube creators. Check each tool&apos;s data-use badge.
           </div>
         </div>
 
@@ -82,7 +82,7 @@ export default async function Image() {
           }}
         >
           <div style={{ display: "flex" }}>convaudit.com</div>
-          <div style={{ display: "flex" }}>20+ tools · 100% client-side</div>
+          <div style={{ display: "flex" }}>Tool-specific processing disclosures</div>
         </div>
       </div>
     ),

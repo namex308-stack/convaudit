@@ -8,7 +8,7 @@ const toolSummary = TOOLS.map(
 export async function GET() {
   const body = `# Convaudit
 
-> Convaudit provides free, private, browser-based tools for image optimization, PDF handling, file conversion, and YouTube creator workflows. All processing happens locally in the user's browser; files are never uploaded to a server.
+> Convaudit provides browser-based image, PDF, and file-conversion tools, plus YouTube creator utilities. Image and PDF files are processed in the browser; YouTube tools may send URLs to Convaudit, YouTube, or a third-party proxy as described on each tool page.
 
 ## Overview
 - Website: ${SITE_CONFIG.url}

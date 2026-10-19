@@ -2,7 +2,7 @@
 title: "How to Merge PDF Files Without Uploading Them"
 description: "Merge PDFs locally in a browser, check the order and document features, and understand the difference between local processing and a server upload."
 date: "2025-10-05"
-modifiedDate: "2026-10-16"
+modifiedDate: "2026-10-19"
 author: "Convaudit Team"
 tags: ["merge PDF files", "offline PDF merge", "PDF privacy"]
 toolSlug: "merge-pdf"
@@ -25,6 +25,7 @@ If a document is sensitive, review the site’s privacy information and your org
 4. Select **Merge PDFs**, download the result, and open it to check page order and appearance.
 
 The operation copies pages into a new PDF rather than rasterizing them, so page content is not re-encoded as images. However, do not assume that every interactive or document-level feature—such as forms, attachments, bookmarks, or signatures—will behave exactly as it did in the source files. A merged file is a new document; source digital signatures do not validate the merged output.
+If the source files are encrypted or rely on specialized PDF features, verify that the merge tool can open and preserve what you need before using the combined file as the authoritative copy.
 
 ## Check the combined document
 

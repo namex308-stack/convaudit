@@ -1,5 +1,3 @@
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
@@ -11,6 +9,10 @@ import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { AdPreferencesProvider } from "@/components/ads/AdPreferences";
 import { AdBlockDetector } from "@/components/ads/AdBlockDetector";
 import { AdSenseScript } from "@/components/ads/AdSenseScript";
+import {
+  ConsentManagedScripts,
+  PrivacyConsentProvider,
+} from "@/components/ads/PrivacyConsent";
 import { SITE_CONFIG } from "@/lib/tools";
 
 const geistSans = Geist({
@@ -23,13 +25,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const googleSearchConsoleToken = (process.env.NEXT_PUBLIC_GSC_TOKEN || "").trim();
+
 /**
  * Global metadata — applies to every page unless overridden.
  *
  * - title.template: "%s | Convaudit" — per-page titles get the brand appended
  * - title.default: shown on the home page and when no title is set
  * - metadataBase: resolves all relative metadata URLs against convaudit.com
- * - verification: Google Search Console + AdSense placeholder tokens
+ * - verification: optional Google Search Console + AdSense env configuration
  */
 export const viewport: Viewport = {
   width: "device-width",
@@ -49,29 +53,6 @@ export const metadata: Metadata = {
     shortcut: "/logo.svg",
   },
   description: SITE_CONFIG.description,
-  keywords: [
-    "online file converter",
-    "free online tools",
-    "image compressor online",
-    "heic to jpg converter",
-    "merge pdf online free",
-    "split pdf online",
-    "pdf to word converter",
-    "image to pdf converter",
-    "compress pdf online",
-    "webp to png converter",
-    "png to jpg converter",
-    "jpg to webp converter",
-    "remove exif online",
-    "pdf to image converter",
-    "client side file converter",
-    "private file converter",
-    "browser based tools",
-    "no upload file tools",
-    "youtube thumbnail downloader",
-    "youtube tags extractor",
-    "convaudit",
-  ],
   authors: [{ name: SITE_CONFIG.name }],
   creator: SITE_CONFIG.name,
   publisher: SITE_CONFIG.name,
@@ -90,7 +71,7 @@ export const metadata: Metadata = {
     "llms.txt": `${SITE_CONFIG.url}/llms.txt`,
   },
   openGraph: {
-    title: SITE_CONFIG.title,
+    title: `${SITE_CONFIG.title} | ${SITE_CONFIG.name}`,
     description: SITE_CONFIG.description,
     url: SITE_CONFIG.url,
     siteName: SITE_CONFIG.name,
@@ -100,7 +81,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: SITE_CONFIG.title,
+    title: `${SITE_CONFIG.title} | ${SITE_CONFIG.name}`,
     description: SITE_CONFIG.description,
   },
   robots: {
@@ -114,13 +95,22 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
-  // Google Search Console verification — replace with your verification token.
-  // Get it from https://search.google.com/search-console → Settings → Verification.
-  verification: {
-    google: "GOOGLE_SEARCH_CONSOLE_VERIFICATION_TOKEN",
-    // Google AdSense site verification — replace with your publisher ID.
-    other: { "google-adsense-account": SITE_CONFIG.adsenseClient },
-  },
+  ...(googleSearchConsoleToken || SITE_CONFIG.adsenseClient
+    ? {
+        verification: {
+          ...(googleSearchConsoleToken
+            ? { google: googleSearchConsoleToken }
+            : {}),
+          ...(SITE_CONFIG.adsenseClient
+            ? {
+                other: {
+                  "google-adsense-account": SITE_CONFIG.adsenseClient,
+                },
+              }
+            : {}),
+        },
+      }
+    : {}),
   category: "utilities",
 };
 
@@ -134,35 +124,34 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        <AdSenseScript />
-        {/* Google Analytics 4 — measurement ID G-MDR2NP5CJ3.
-            Loaded with afterInteractive strategy so it doesn't block
-            first paint. */}
-        <Script
-          id="ga-src"
-          strategy="afterInteractive"
-          src="https://www.googletagmanager.com/gtag/js?id=G-MDR2NP5CJ3"
-        />
-        <Script id="ga-init" strategy="afterInteractive">
+        <Script id="google-consent-default" strategy="beforeInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-MDR2NP5CJ3', {
-              anonymize_ip: true,
-              cookie_flags: 'SameSite=None;Secure',
+            window.gtag = function(){window.dataLayer.push(arguments);};
+            window.gtag('consent', 'default', {
+              ad_storage: 'denied',
+              ad_user_data: 'denied',
+              ad_personalization: 'denied',
+              analytics_storage: 'denied',
+              functionality_storage: 'denied',
+              personalization_storage: 'denied',
+              security_storage: 'denied'
             });
           `}
         </Script>
         <ThemeProvider>
           <AdPreferencesProvider>
-            <div className="flex min-h-screen flex-col">
-              <Header />
-              <main className="flex-1">{children}</main>
-              <Footer />
-            </div>
-            <Toaster />
-            <AdBlockDetector />
+            <PrivacyConsentProvider>
+              <div className="flex min-h-screen flex-col">
+                <Header />
+                <main className="flex-1">{children}</main>
+                <Footer />
+              </div>
+              <Toaster />
+              <AdBlockDetector />
+              <AdSenseScript />
+              <ConsentManagedScripts />
+            </PrivacyConsentProvider>
           </AdPreferencesProvider>
 
           {/* Sitewide JSON-LD: Organization + WebSite with SearchAction.
@@ -200,8 +189,7 @@ export default function RootLayout({
                   name: SITE_CONFIG.name,
                   url: SITE_CONFIG.url,
                 },
-                // Sitelinks search box — tells Google we support search.
-                // The /search?q={query} path is reserved for a future search page.
+                // Sitelinks search box for the on-site search route.
                 potentialAction: {
                   "@type": "SearchAction",
                   target: {
@@ -214,8 +202,6 @@ export default function RootLayout({
             }}
           />
         </ThemeProvider>
-        <Analytics />
-        <SpeedInsights />
       </body>
     </html>
   );

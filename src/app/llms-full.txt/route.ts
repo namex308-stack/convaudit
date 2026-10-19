@@ -10,7 +10,7 @@ export async function GET() {
   const body = `# Convaudit Full Overview
 
 ## Site summary
-Convaudit is a free, browser-based productivity and utility platform for images, PDFs, file conversion, and YouTube creator tasks. The experience is designed around privacy-first local processing, so user files stay on-device and are not uploaded to a remote server.
+Convaudit provides browser-based tools for images, PDFs, file conversion, and YouTube creator tasks. Image and PDF files are processed in the browser and are not sent to Convaudit for processing. YouTube tools may request public data directly from YouTube or AllOrigins; the Tags Extractor sends a video URL to Convaudit's server to fetch public tags. See each tool's data-use badge for details.
 
 ## Site URLs
 - Homepage: ${SITE_CONFIG.url}

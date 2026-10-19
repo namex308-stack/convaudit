@@ -94,11 +94,13 @@ export function LocalStoragePanel() {
             <DialogTitle className="flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-primary" />
               Privacy Dashboard
-              <Badge variant="secondary" className="ml-auto text-xs">Client-side only</Badge>
+              <Badge variant="secondary" className="ml-auto text-xs">Preferences stored in browser</Badge>
             </DialogTitle>
             <DialogDescription>
-              Convaudit runs 100% in your browser. Files never leave your device.
-              This panel shows what preferences are stored locally.
+              Data handling depends on the tool. Image and PDF files are processed
+              in your browser; YouTube tools may request public data from YouTube,
+              AllOrigins, or Convaudit's tags endpoint. Check each tool's badge
+              before using it. This panel shows preferences stored in this browser.
             </DialogDescription>
           </DialogHeader>
 

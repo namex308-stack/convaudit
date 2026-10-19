@@ -2,7 +2,7 @@
 title: "Reduce PDF File Size: Methods and Trade-Offs"
 description: "Find practical ways to make a PDF smaller, from reducing image resolution to removing unnecessary content, while preserving what your document needs."
 date: "2025-09-20"
-modifiedDate: "2026-10-16"
+modifiedDate: "2026-10-19"
 author: "Convaudit Team"
 tags: ["reduce PDF file size", "PDF compression", "PDF optimization"]
 toolSlug: "compress-pdf"
@@ -38,6 +38,7 @@ An editor may let you remove unused attachments, duplicate assets, or metadata. 
 The [Compress PDF tool](/tools/compress-pdf) renders each page to a JPEG image and assembles those images into a new PDF. This can help when a PDF is image-heavy, but the result depends on the source and selected quality. It may be larger than the original, especially for a text-based or already-compressed PDF.
 
 Because pages are rasterized, the output no longer has selectable/searchable text or the original vector text and line art. Links, forms, bookmarks, accessibility information, and signatures should not be assumed to carry over. Keep the original and review the output before using it as a record or sharing it.
+If text search matters, try a file-optimization option that preserves the original text layer instead of rasterizing the pages.
 
 ## A quick before-and-after check
 

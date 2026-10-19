@@ -2,7 +2,7 @@
 title: "Remove EXIF Data from Photos: A Practical Guide"
 description: "Learn what EXIF metadata can reveal, how to check a photo, and how to export a copy that removes common embedded photo metadata."
 date: "2026-03-10"
-modifiedDate: "2026-10-16"
+modifiedDate: "2026-10-19"
 author: "Convaudit Team"
 tags: ["remove EXIF data", "photo privacy", "image metadata"]
 toolSlug: "remove-exif"
@@ -44,6 +44,7 @@ To create a copy with Convaudit:
 4. Download the new file and inspect it again if a particular metadata field matters.
 
 The tool processes the image in the browser by drawing it to a canvas and exporting it again. That means the downloaded image is a re-encoded copy, not the untouched original. Browser support for opening formats such as HEIC can vary. If you need to verify removal for a legal, forensic, or organizational requirement, use a metadata inspection tool that checks the exact output format and fields you care about.
+Re-encoding can affect more than metadata: compare the exported image with the source and check its dimensions, orientation, and color appearance before replacing the original.
 
 ## Reduce location data in future photos
 

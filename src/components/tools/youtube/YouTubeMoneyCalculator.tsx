@@ -15,16 +15,14 @@ import {
 import {
   YOUTUBE_NICHES,
   calculateEarnings,
-  formatCurrency,
-  formatLargeNumber,
   type NicheCPM,
-} from "@/lib/youtube";
+} from "@/lib/youtube-earnings";
+import { formatCurrency, formatLargeNumber } from "@/lib/youtube";
 
 /**
  * YouTube Money Calculator.
  *
- * Estimates ad revenue from monthly views and niche. Uses real-world
- * CPM ranges and YouTube's ~55% revenue share.
+ * Estimates ad revenue from monthly views and the selected niche's CPM range.
  */
 export function YouTubeMoneyCalculator() {
   const [views, setViews] = useState<string>("100000");
@@ -93,7 +91,7 @@ export function YouTubeMoneyCalculator() {
               Low estimate
             </p>
             <p className="mt-1 text-2xl font-bold tracking-tight text-muted-foreground">
-              {formatCurrency(earnings.low)}
+              {formatCurrency(earnings.monthly.low)}
             </p>
           </div>
           <div className="rounded-lg bg-foreground p-4 text-center text-background">
@@ -101,7 +99,7 @@ export function YouTubeMoneyCalculator() {
               Most likely
             </p>
             <p className="mt-1 text-3xl font-bold tracking-tight">
-              {formatCurrency(earnings.mid)}
+              {formatCurrency(earnings.monthly.mid)}
             </p>
           </div>
           <div className="rounded-lg bg-muted/30 p-4 text-center">
@@ -109,7 +107,7 @@ export function YouTubeMoneyCalculator() {
               High estimate
             </p>
             <p className="mt-1 text-2xl font-bold tracking-tight text-muted-foreground">
-              {formatCurrency(earnings.high)}
+              {formatCurrency(earnings.monthly.high)}
             </p>
           </div>
         </div>
@@ -119,10 +117,10 @@ export function YouTubeMoneyCalculator() {
           <span>
             Based on {formatLargeNumber(viewNumber)} monthly views in the{" "}
             <strong className="text-foreground">{niche.niche}</strong> niche.
-            RPM (revenue per 1K views after YouTube's {Math.round((1 - niche.rpmFactor) * 100)}% cut):{" "}
+            RPM (creator revenue per 1,000 views at low / likely / high):{" "}
             <strong className="text-foreground">
-              ${((niche.cpmLow + niche.cpmHigh) / 2 * niche.rpmFactor).toFixed(2)}–
-              ${(niche.cpmHigh * niche.rpmFactor).toFixed(2)}
+              ${earnings.rpm.low.toFixed(2)} / ${earnings.rpm.mid.toFixed(2)} /{" "}
+              ${earnings.rpm.high.toFixed(2)}
             </strong>.
             Does not include sponsorships, memberships, or merchandise.
           </span>
@@ -135,24 +133,30 @@ export function YouTubeMoneyCalculator() {
           <DollarSign className="h-3.5 w-3.5" />
           Projected Annual Revenue
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
-            <p className="text-xs text-muted-foreground">Low end / year</p>
+            <p className="text-xs text-muted-foreground">Low estimate / year</p>
             <p className="text-xl font-bold tracking-tight">
-              {formatCurrency(earnings.low * 12)}
+              {formatCurrency(earnings.annual.low)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">High end / year</p>
+            <p className="text-xs text-muted-foreground">Likely / year</p>
             <p className="text-xl font-bold tracking-tight">
-              {formatCurrency(earnings.high * 12)}
+              {formatCurrency(earnings.annual.mid)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">High estimate / year</p>
+            <p className="text-xl font-bold tracking-tight">
+              {formatCurrency(earnings.annual.high)}
             </p>
           </div>
         </div>
       </div>
 
       <p className="text-xs text-muted-foreground">
-        These are rough estimates. Actual earnings depend on audience geography, watch time, ad format, season, and many other factors.
+        Estimate only. Actual earnings depend on audience geography, watch time, ad format, and season.
       </p>
     </div>
   );

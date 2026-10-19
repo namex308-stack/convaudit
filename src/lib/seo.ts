@@ -4,92 +4,37 @@ import { SITE_CONFIG, type Tool } from "./tools";
 /**
  * SEO helpers shared across all pages.
  *
- * Centralizes the title pattern, keyword expansion, and common metadata
+ * Centralizes the title pattern and common metadata
  * fields (robots, alternates.languages, OpenGraph defaults) so every page
  * stays consistent.
  */
 
-/** Build the per-page title following the site pattern. */
+/** The tool name is unique and the root title template adds the site name. */
 export function buildToolTitle(tool: Tool): string {
-  const audienceBySlug: Record<string, string> = {
-    "compress-pdf": "for Email",
-    "image-to-pdf": "from Photos",
-    "merge-pdf": "in Your Browser",
-    "pdf-to-image": "for Pages",
-    "split-pdf": "for Page Ranges",
-    "webp-to-png": "for Web Images",
-  };
-  const brandLength = " | Convaudit".length;
-  const audience = audienceBySlug[tool.slug];
-  const candidates = [
-    `${tool.name} — Free Online ${tool.category} Tool`,
-    `${tool.name} — Free Tool`,
-    `${tool.name} — Free Online Tool`,
-    audience ? `${tool.name} — Free Online ${tool.category} Tool ${audience}` : "",
-  ].filter(Boolean);
-  const title = candidates.find(
-    (candidate) => candidate.length + brandLength >= 50 && candidate.length + brandLength <= 60,
-  );
-
-  if (!title) {
-    throw new Error(`No 50–60 character SEO title is defined for tool "${tool.slug}".`);
-  }
-
-  return title;
+  return tool.name;
 }
 
-/**
- * Expand a tool's base keywords into 8-12 long-tail variations.
- *
- * Google no longer uses the keywords meta tag for ranking, but other
- * search engines and directories still read it. We include a mix of:
- *  - The original explicit keywords (curated, high-intent)
- *  - Common modifier patterns (online, free, no signup, browser, etc.)
- */
-export function expandKeywords(tool: Tool): string[] {
-  const base = tool.keywords;
-  const name = tool.name.toLowerCase();
-  const slug = tool.slug;
-
-  // Common long-tail modifiers that match search intent
-  const modifiers = [
-    `${name} online free`,
-    `${name} no signup`,
-    `${name} browser based`,
-    `${name} without upload`,
-    `free ${name.toLowerCase()}`,
-    `${name} tool`,
-  ];
-
-  // Deduplicate while preserving order
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const kw of [...base, ...modifiers]) {
-    const lower = kw.toLowerCase();
-    if (!seen.has(lower) && lower.length > 2) {
-      seen.add(lower);
-      result.push(lower);
-    }
+function assertMetaDescription(description: string, page: string): void {
+  if (!description.trim() || description.length > 160) {
+    throw new Error(
+      `Meta description for "${page}" must contain 1-160 characters (got ${description.length}).`,
+    );
   }
-
-  // Cap at 12 keywords
-  return result.slice(0, 12);
 }
 
 /**
  * Build a full Metadata object for a tool page.
- * Includes title, description, keywords, canonical, OG, Twitter,
+ * Includes title, description, canonical, OG, Twitter,
  * alternates.languages (en + ar), and robots.
  */
 export function buildToolMetadata(tool: Tool): Metadata {
   const canonical = `${SITE_CONFIG.url}/tools/${tool.slug}`;
   const title = buildToolTitle(tool);
-  const keywords = expandKeywords(tool);
+  assertMetaDescription(tool.description, tool.slug);
 
   return {
     title,
     description: tool.description,
-    keywords,
     alternates: {
       canonical,
       languages: {
@@ -136,12 +81,11 @@ export function buildBlogPostMetadata(post: {
   tags: string[];
 }): Metadata {
   const canonical = `${SITE_CONFIG.url}/blog/${post.slug}`;
-  const keywords = [...post.tags, `${post.title.toLowerCase()}`, "convaudit blog"];
+  assertMetaDescription(post.description, post.slug);
 
   return {
     title: post.title,
     description: post.description,
-    keywords,
     alternates: {
       canonical,
       languages: {
@@ -186,14 +130,14 @@ export function buildStaticPageMetadata(options: {
   title: string;
   description: string;
   path: string;
-  keywords?: string[];
+  robots?: Metadata["robots"];
 }): Metadata {
   const canonical = `${SITE_CONFIG.url}${options.path}`;
+  assertMetaDescription(options.description, options.path);
 
   return {
     title: options.title,
     description: options.description,
-    keywords: options.keywords,
     alternates: {
       canonical,
       languages: {
@@ -213,7 +157,7 @@ export function buildStaticPageMetadata(options: {
       title: `${options.title} | ${SITE_CONFIG.name}`,
       description: options.description,
     },
-    robots: {
+    robots: options.robots ?? {
       index: true,
       follow: true,
     },

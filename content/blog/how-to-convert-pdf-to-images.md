@@ -2,7 +2,7 @@
 title: "How to Convert PDF Pages to JPG, PNG, or WebP"
 description: "Convert PDF pages into images by choosing a resolution and format that fit your screen, print, or sharing needs."
 date: "2026-03-08"
-modifiedDate: "2026-10-16"
+modifiedDate: "2026-10-19"
 author: "Convaudit Team"
 tags: ["convert PDF to image", "PDF to JPG", "PDF to PNG"]
 toolSlug: "pdf-to-image"
@@ -30,6 +30,8 @@ PDF pages are described in physical units and vector elements, so text and line 
 - **Printing:** 300 DPI is a common starting point, but the print service’s requirements and the source PDF’s content should guide the final setting.
 
 These are starting points, not guarantees of print quality. A raster export cannot add detail that is missing from the source, and a large multi-page PDF can use substantial memory at high resolutions.
+
+For example, a US Letter page rendered at 150 DPI is about 1,275 × 1,650 pixels; at 300 DPI it is about 2,550 × 3,300 pixels. Doubling the DPI in both dimensions creates roughly four times as many pixels per page.
 
 ## Convert pages in your browser
 

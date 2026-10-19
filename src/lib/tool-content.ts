@@ -13,12 +13,18 @@
  *  - Avoids duplicate content across tools
  */
 
+import { CPM_RANGES, CREATOR_SHARE, lastReviewed } from "./youtube-earnings";
+
+const cpmRangeCopy = Object.entries(CPM_RANGES)
+  .map(([niche, range]) => `- **${niche}**: $${range.low}-${range.high} CPM`)
+  .join("\n");
+
 export const TOOL_CONTENT: Record<string, string> = {
   "compress-image": `## Why compress images before uploading?
 
 Every image you upload to a website, attach to an email, or share on social media travels across networks and sits in storage. Large images slow down page loads, eat into mobile data plans, and eat cloud storage. Compressing images before they leave your device is the single most effective way to reduce their footprint without sacrificing the visual quality your viewers expect.
 
-Our [Compress Image tool](/tools/compress-image) runs entirely in your browser using the Canvas API and the \`browser-image-compression\` library. Your photos never leave your device — a critical privacy advantage when you're working with personal pictures, scanned documents, or client work.
+Our [Compress Image tool](/tools/compress-image) uses the Canvas API and the \`browser-image-compression\` library in your browser. The selected photo files are not sent to our server for compression.
 
 ## How browser-based compression works
 
@@ -39,7 +45,7 @@ If you need an even smaller format, convert your compressed JPG to [WebP](/tools
 
 Apple adopted HEIC as the default photo format on iPhones starting with iOS 11 in 2017. HEIC files are roughly half the size of equivalent JPGs, which is great for storage — but they break the moment they leave the Apple ecosystem. Windows PCs, most web upload forms, email clients, and older software simply don't know what to do with a \`.heic\` file.
 
-That's where our [HEIC to JPG converter](/tools/heic-to-jpg) comes in. It uses the \`heic2any\` library, which wraps libheif compiled to WebAssembly, to decode HEIC files directly in your browser. No upload, no server, no privacy concern.
+That's where our [HEIC to JPG converter](/tools/heic-to-jpg) comes in. It uses the \`heic2any\` library, which wraps libheif compiled to WebAssembly, to decode HEIC files in your browser. The selected HEIC files are not sent to our server for conversion.
 
 ## How the conversion works
 
@@ -105,13 +111,13 @@ Each range produces one output PDF. So \`1-3, 5, 7-9\` produces three files: pag
 - **Save specific slides** from a presentation deck
 - **Split a scan batch** into individual documents
 
-The tool uses \`pdf-lib\` client-side, so your PDF never leaves your device. For the reverse operation, see [Merge PDF](/tools/merge-pdf). To shrink a PDF before splitting, try [Compress PDF](/tools/compress-pdf).`,
+The tool uses \`pdf-lib\` in your browser; the selected PDF contents are not sent to our server for splitting. For the reverse operation, see [Merge PDF](/tools/merge-pdf). To shrink a PDF before splitting, try [Compress PDF](/tools/compress-pdf).`,
 
   "pdf-to-word": `## Extracting text from PDFs for editing
 
 PDF is a final-format document type — designed for printing and viewing, not editing. But sometimes you need to edit the text inside a PDF: update a contract clause, fix a typo in a resume, or repurpose content from a white paper.
 
-Our [PDF to Word tool](/tools/pdf-to-word) extracts the text content from a PDF using Mozilla's PDF.js library and packages it as a \`.doc\` file you can open in Microsoft Word, Google Docs, or LibreOffice. The conversion runs entirely in your browser.
+Our [PDF to Text tool](/tools/pdf-to-word) extracts the text content from a PDF using Mozilla's PDF.js library and packages it as a Word-compatible \`.doc\` file you can open in Microsoft Word, Google Docs, or LibreOffice. The conversion runs entirely in your browser.
 
 ## What gets preserved (and what doesn't)
 
@@ -127,7 +133,7 @@ Our [PDF to Word tool](/tools/pdf-to-word) extracts the text content from a PDF 
 - Hyperlinks
 - Form fields
 
-This tool prioritizes accurate text extraction over visual fidelity. If you need a pixel-perfect conversion, you'll need a commercial OCR service.
+This tool prioritizes text extraction over visual fidelity: original page layout, images, complex tables, and custom formatting are not preserved.
 
 ## A note on scanned PDFs
 
@@ -156,13 +162,13 @@ Images are centered on the page and scaled to fit while preserving aspect ratio.
 - **Compress first**: if your images are large, run them through [Compress Image](/tools/compress-image) first to keep the PDF manageable
 - **Convert HEIC first**: if your images are in HEIC format, use [HEIC to JPG](/tools/heic-to-jpg) before this tool
 
-For the reverse — extracting images from a PDF — pair this with [PDF to Word](/tools/pdf-to-word) for text or use a screenshot tool for images.`,
+For the reverse — extracting images from a PDF — use [PDF to Image](/tools/pdf-to-image); for text, try [PDF to Text](/tools/pdf-to-word).`,
 
   "compress-pdf": `## Shrinking oversized PDF files
 
 PDFs have a habit of growing large. Image-heavy reports, scanned documents, and embedded fonts can balloon a 200 KB file into 20 MB — too big for email attachments, too slow for website downloads, and too costly for cloud storage.
 
-Our [Compress PDF tool](/tools/compress-pdf) reduces PDF file size by rasterizing each page to a JPEG image at a quality level you choose, then reassembling those images into a new PDF. It uses \`pdfjs-dist\` (Mozilla's PDF.js) and \`pdf-lib\` together, all in your browser.
+Our [Compress PDF tool](/tools/compress-pdf) reduces PDF file size by rasterizing each page to a JPEG image at a quality level you choose, then reassembling those images into a new PDF. The output text is no longer selectable or searchable. It uses \`pdfjs-dist\` (Mozilla's PDF.js) and \`pdf-lib\` together, all in your browser.
 
 ## Three quality levels explained
 
@@ -242,7 +248,7 @@ For web publishing, consider [JPG to WebP](/tools/jpg-to-webp) for an additional
 
 WebP is the modern image format developed by Google. It produces files 25-35% smaller than JPG at equivalent visual quality, plus it supports transparency (which JPG doesn't) and animation (which JPG doesn't). Every major browser has supported WebP since 2020.
 
-Our [JPG to WebP converter](/tools/jpg-to-webp) re-encodes JPG images as WebP using your browser's Canvas API. Files never leave your device, and conversion takes a fraction of a second per image.
+Our [JPG to WebP converter](/tools/jpg-to-webp) re-encodes JPG images as WebP using your browser's Canvas API. The selected files are not sent to our server for conversion.
 
 ## Why WebP wins for the web
 
@@ -326,7 +332,7 @@ The cropping uses the Canvas API, so your image stays on your device. Once you'v
 
 YouTube tags are hidden from viewers — they're stored in the video's metadata and used by YouTube's algorithm to understand what the video is about. While YouTube has said tags play a minimal role in search ranking, they still help with disambiguation and related-video suggestions.
 
-Our [YouTube Tags Extractor](/tools/youtube-tags-extractor) fetches the video page and parses the \`<meta name="keywords">\` tag, which contains the creator's tags. Everything runs in your browser — no API key required.
+Our [YouTube Tags Extractor](/tools/youtube-tags-extractor) sends the video URL to our server, which fetches the public YouTube page and parses its \`<meta name="keywords">\` tag. The video URL, not a video file, is sent to our server.
 
 ## How to use extracted tags
 
@@ -429,11 +435,11 @@ YouTube tags (hidden metadata) and hashtags (visible in description) are differe
 
   "youtube-money-calculator": `## How much do YouTubers actually make?
 
-YouTube earnings vary wildly — from $0.50 to $35 per 1,000 views, depending on niche, audience geography, and ad format. Our [YouTube Money Calculator](/tools/youtube-money-calculator) estimates ad revenue based on monthly views and content category, using real-world CPM (cost per mille) ranges.
+YouTube earnings vary by niche, audience geography, and ad format. Our [YouTube Money Calculator](/tools/youtube-money-calculator) estimates ad revenue from monthly views and CPM (cost per mille) ranges.
 
 ## How YouTube ad revenue works
 
-Advertisers pay YouTube per 1,000 ad impressions (CPM). YouTube keeps 45% and pays creators 55% (RPM — revenue per mille). Actual CPMs depend on:
+Advertisers pay YouTube per 1,000 ad impressions (CPM). For this estimate, creators receive ${CREATOR_SHARE * 100}% of the CPM as RPM (revenue per mille). Actual CPMs depend on:
 
 - **Niche**: finance and tech attract premium advertisers; entertainment and music pay less
 - **Audience geography**: viewers in the US/UK/Canada generate higher CPMs than viewers in lower-GDP countries
@@ -442,14 +448,9 @@ Advertisers pay YouTube per 1,000 ad impressions (CPM). YouTube keeps 45% and pa
 
 ## CPM ranges by niche
 
-- **Finance / Investing**: $15-35 CPM (highest)
-- **Tech / Software**: $8-20 CPM
-- **Education / How-to**: $6-15 CPM
-- **Gaming**: $3-8 CPM
-- **Entertainment**: $2-6 CPM
-- **Music**: $1-4 CPM (lowest)
+${cpmRangeCopy}
 
-Our calculator applies the appropriate RPM factor (50-60% of CPM) to give you the creator's actual take-home range.
+These are estimates, not guarantees. Actual earnings depend on audience geography, watch time, ad format, and season. CPM ranges last reviewed ${lastReviewed}.
 
 ## What this calculator doesn't include
 
@@ -495,9 +496,9 @@ Finding the channel ID used to require digging through page source. Our [YouTube
 
 ## Three ways to find a channel ID
 
-1. **From a video URL** (most reliable): paste any video URL from the channel. We use oEmbed to get the author URL, which contains the channel ID.
+1. **From a video URL** (most reliable): paste a video URL from the channel. The browser sends that URL to YouTube's oEmbed API, then extracts the channel ID from the author URL.
 2. **From a /channel/ URL**: paste a URL like \`youtube.com/channel/UCxxxx\` and we extract the ID directly.
-3. **From a @handle URL**: paste \`youtube.com/@name\` and we fetch the channel page via a CORS proxy to extract the ID from meta tags.
+3. **From a @handle URL**: paste \`youtube.com/@name\`; the browser sends the channel URL to the AllOrigins proxy to fetch the channel page and extract the ID from its metadata.
 
 ## What channel IDs are used for
 

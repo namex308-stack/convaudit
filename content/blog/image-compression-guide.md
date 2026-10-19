@@ -2,7 +2,7 @@
 title: "Compress Images for Web Pages: A Practical Guide"
 description: "Optimize web images with a practical guide to dimensions, formats, responsive delivery, compression settings, and visual quality checks."
 date: "2025-10-10"
-modifiedDate: "2026-10-16"
+modifiedDate: "2026-10-19"
 author: "Convaudit Team"
 tags: ["image compression", "web performance", "responsive images"]
 toolSlug: "compress-image"
@@ -18,6 +18,8 @@ To make an image lighter for a website, first resize it to the largest dimension
 3. **Adjust compression gradually.** Start with a moderate setting, inspect the image at its actual display size, and lower quality only while visible artifacts remain acceptable.
 4. **Create responsive variants when needed.** Use `srcset` and `sizes` so browsers can select an image size suited to the layout. Google’s [image SEO guidance](https://developers.google.com/search/docs/appearance/google-images) and web.dev’s [responsive image guide](https://web.dev/articles/responsive-images) explain these patterns.
 5. **Check the page, not just the file.** Confirm that the image loads at the intended dimensions, has useful alternative text, and does not cause a layout shift. Set `width` and `height` attributes when using HTML images.
+
+Avoid enlarging a small source image to fill a larger display area: upscaling adds pixels, not image detail. When a larger presentation is required, start with a higher-resolution original if one is available.
 
 ```html
 <img
@@ -43,7 +45,7 @@ Format names alone do not guarantee a smaller file. An image that has already be
 
 ## Compress images with Convaudit
 
-The [Compress Image tool](/tools/compress-image) offers two modes. **Browser** mode is selected by default and processes images locally. **Python** mode sends the images to the configured backend for server-side processing; use Browser mode if you do not want the image uploaded to that backend.
+The [Compress Image tool](/tools/compress-image) processes selected images in your browser using the Canvas API and browser-image-compression. The image files are not sent to our server for compression.
 
 The quality slider is a starting control, not a promised output size or visual-quality score. Compare the downloaded result at its intended display size, and keep the original so you can try another setting if needed.
 

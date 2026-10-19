@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { TOOLS, SITE_CONFIG } from "@/lib/tools";
+import { PrivacySettingsButton } from "@/components/ads/PrivacyConsent";
 
 /**
  * Site footer — minimal, brand-forward, with tool links organized in a grid.
@@ -33,8 +34,8 @@ export function Footer() {
               </span>
             </div>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
-              Free, private, browser-based tools for images and PDFs. Files
-              never leave your device.
+              Free tools for images, PDFs and YouTube creator tools. See each
+              tool&apos;s data-use badge for processing and network details.
             </p>
           </div>
 
@@ -58,7 +59,7 @@ export function Footer() {
 
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Company
+              Information
             </h3>
             <ul className="mt-4 flex flex-col gap-2.5 text-sm">
               <li>
@@ -86,6 +87,9 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <PrivacySettingsButton />
+              </li>
+              <li>
                 <Link
                   href="/terms"
                   className="text-muted-foreground transition-colors hover:text-foreground"
@@ -99,11 +103,8 @@ export function Footer() {
 
         <div className="mt-10 flex flex-col items-start justify-between gap-3 border-t border-border/60 pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center">
           <p>
-            &copy; {new Date().getFullYear()} {SITE_CONFIG.name}. All processing
-            happens locally in your browser.
-          </p>
-          <p className="text-muted-foreground/70">
-            Built with Next.js, TypeScript, and Tailwind CSS.
+            &copy; {new Date().getFullYear()} {SITE_CONFIG.name}. Processing
+            and data sharing vary by tool.
           </p>
         </div>
       </div>

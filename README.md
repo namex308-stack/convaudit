@@ -5,9 +5,9 @@
 <h1 align="center">Convaudit</h1>
 
 <p align="center">
-  Private-by-default tools for image, PDF, and creator workflows.
+  Browser-based tools for image, PDF, and creator workflows with clear data-use disclosures.
   <br />
-  Convert, organize, and prepare files with a growing collection of browser-based tools.
+  Convert, organize, and prepare files with a growing collection of online tools.
 </p>
 
 <p align="center">
@@ -35,7 +35,7 @@ Browse the full collection on the [Convaudit homepage](https://convaudit.com/#to
 
 ## Privacy and processing
 
-Processing depends on the tool and the selected mode. Many image and PDF operations run locally in your browser. The image compressor also offers a Python mode that sends the selected image to the configured backend, and some creator features contact third-party services. Review the details for each tool and the [privacy policy](https://convaudit.com/privacy) before using sensitive data.
+Many image and PDF operations run in your browser; selected files are not sent to our server for processing. YouTube tools may send video or channel URLs to Convaudit, YouTube, or AllOrigins to fetch public information. Each tool page shows a data-use badge; review it and the [privacy policy](https://convaudit.com/privacy) before using sensitive data.
 
 ## Technology
 
@@ -86,7 +86,6 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ```text
 content/blog/       Blog articles
-mini-services/      Supporting services
 prisma/             Prisma schema and migrations
 public/             Static assets
 src/app/            App Router pages and API routes
