@@ -1,103 +1,95 @@
-<p align="center">
-  <img src="public/logo.svg" alt="Convaudit logo" width="64" height="64" />
-</p>
+# Convaudit
 
-<h1 align="center">Convaudit</h1>
+22 free browser-based tools for images, PDFs, and YouTube — no uploads, no sign-up.
 
-<p align="center">
-  Browser-based tools for image, PDF, and creator workflows with clear data-use disclosures.
-  <br />
-  Convert, organize, and prepare files with a growing collection of online tools.
-</p>
+[![Next.js](https://img.shields.io/badge/Next.js-App_Router-black?logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?logo=tailwindcss)](https://tailwindcss.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Deploy with Vercel](https://img.shields.io/badge/Deploy-Vercel-black?logo=vercel)](https://vercel.com/)
 
-<p align="center">
-  <a href="https://convaudit.com">Visit Convaudit</a> ·
-  <a href="https://convaudit.com/#tools">Explore tools</a> ·
-  <a href="https://convaudit.com/blog">Read the guides</a> ·
-  <a href="https://convaudit.com/privacy">Privacy</a>
-</p>
+**Live site:** [www.convaudit.com](https://www.convaudit.com)
 
----
+## Why Convaudit?
 
-## Overview
+- Quickly handle common image, PDF, and YouTube creator tasks in one place.
+- Image and PDF file operations run locally in your browser; those files are not sent to Convaudit for processing.
+- No account is required to use the tools.
+- Tool pages explain how inputs are handled so you can make an informed choice.
 
-Convaudit brings practical image converters, PDF utilities, YouTube creator tools, and step-by-step guides together in one web application. The interface is designed to make everyday file workflows clear and accessible without requiring an account.
+## Features
 
-### What you can do
+### Image
 
-| Image tools | PDF tools | Creator tools |
-| --- | --- | --- |
-| Compress images and remove metadata | Merge, split, and compress PDFs | Download and resize YouTube thumbnails |
-| Convert HEIC, JPG, PNG, and WebP | Convert PDFs to images or Word documents | Inspect tags and generate titles, descriptions, and hashtags |
-| Create PDFs from images | Work with PDF pages in your browser | Calculate channel metrics and create timestamp links |
+- Compress images
+- Remove image metadata (EXIF)
 
-Browse the full collection on the [Convaudit homepage](https://convaudit.com/#tools).
+### PDF
 
-## Privacy and processing
+- Merge and split PDF files
+- Compress PDFs
+- Convert images to PDF
+- Render PDF pages as images
 
-Many image and PDF operations run in your browser; selected files are not sent to our server for processing. YouTube tools may send video or channel URLs to Convaudit, YouTube, or AllOrigins to fetch public information. Each tool page shows a data-use badge; review it and the [privacy policy](https://convaudit.com/privacy) before using sensitive data.
+### Conversion
 
-## Technology
+- Convert HEIC to JPG
+- Convert WebP to PNG, PNG to JPG, and JPG to WebP
+- Convert PDF to Word
 
-- **Application:** Next.js App Router, React, and TypeScript
-- **Interface:** Tailwind CSS, Radix UI, and Lucide icons
-- **PDF workflows:** `pdf-lib` and Mozilla PDF.js
-- **Image workflows:** Canvas APIs and browser image-processing libraries
-- **Database-backed features:** Prisma with SQLite
+### YouTube
 
-## Run locally
+- Download, resize, and test thumbnails
+- Extract video tags
+- Generate titles, descriptions, and hashtags
+- Estimate channel earnings
+- Find channel IDs
+- Create timestamp links
 
-### Requirements
+## Tech stack
 
-- Node.js 20.9 or newer
-- npm
+- **Framework:** Next.js App Router and React
+- **Language:** TypeScript
+- **Styling and UI:** Tailwind CSS, Radix UI, and Lucide
+- **Image and document processing:** Canvas APIs, browser image libraries, `pdf-lib`, and PDF.js
+- **Data layer:** Prisma and SQLite
+- **Deployment:** Vercel
 
-### Setup
+## Getting started
 
-```bash
-git clone https://github.com/namex308-stack/convaduit.git
-cd convaduit
-npm ci
-```
-
-Create a local `.env` file from `.env.example` and configure the values for your environment. Do not commit secrets. For database-backed features, set `DATABASE_URL` to a SQLite database file, then generate the Prisma client and apply the schema:
+Requirements: Node.js 20.9 or newer and npm.
 
 ```bash
-npx prisma generate
-npx prisma db push
+git clone https://github.com/namex308-stack/convaudit.git
+cd convaudit
+npm install
+cp .env.example .env.local
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
-
-### Project commands
-
-| Command | Description |
-| --- | --- |
-| `npm run dev` | Start the development server |
-| `npm run lint` | Run ESLint |
-| `npx tsc --noEmit` | Check TypeScript types |
-| `npm run build` | Build the production application |
-| `npm run start` | Start the standalone production server |
-| `npx prisma generate` | Generate the Prisma client |
-| `npx prisma db push` | Apply the Prisma schema to the configured database |
+Open [http://localhost:3000](http://localhost:3000). The example environment values are placeholders; configure them for any integrations you enable. Never commit local environment files or real credentials.
 
 ## Project structure
 
 ```text
-content/blog/       Blog articles
-prisma/             Prisma schema and migrations
-public/             Static assets
-src/app/            App Router pages and API routes
-src/components/     Shared interface and tool components
-src/lib/             Application helpers and tool definitions
-tests/              Runtime build integration scripts
+content/                 Blog content
+prisma/                  Prisma schema and migrations
+public/                  Static assets
+src/
+  app/                   Next.js App Router pages and API routes
+  components/            Shared UI and tool components
+  lib/                   Tool definitions and application helpers
+tests/                   Tests
 ```
+
+## Privacy
+
+Image and PDF files handled by browser-based tools are processed locally and are not uploaded to Convaudit for those operations. Some YouTube tools request public information from YouTube or other services, and the YouTube Tags Extractor sends the video URL to the Convaudit server to retrieve public video-page data. Review the disclosure on each tool and the [privacy policy](https://www.convaudit.com/privacy) before use.
 
 ## Contributing
 
-Focused bug reports and improvements are welcome. Before opening a pull request, run `npm run lint`, `npx tsc --noEmit`, and `npm run build`. Include relevant test coverage when changing application behavior, and never include credentials or other secrets.
+Bug reports, feature ideas, and pull requests are welcome. See the [contribution guide](CONTRIBUTING.md) before submitting.
 
 ## License
 
-This repository does not grant an open-source license. The hosted service is subject to the [Convaudit Terms of Service](https://convaudit.com/terms).
+This project is licensed under the [MIT License](LICENSE).
