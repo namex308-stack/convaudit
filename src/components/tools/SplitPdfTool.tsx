@@ -7,8 +7,12 @@ import { Download, Loader2, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { FileUploader, type UploadedFile } from "./FileUploader";
-import { downloadBlob, downloadBytes, shortId } from "@/lib/download";
+import { CancelOperationButton } from "./CancelOperationButton";
+import { useOperationCancellation } from "./useOperationCancellation";
+import { downloadBlob, downloadBytes, formatBytes, shortId } from "@/lib/download";
+import { throwIfCancelled } from "@/lib/file-validation";
 
 type Range = { from: number; to: number };
 type SplitResult = { name: string; bytes: Uint8Array };
@@ -25,6 +29,8 @@ export function SplitPdfTool() {
   const [results, setResults] = useState<SplitResult[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [pageCount, setPageCount] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const cancellation = useOperationCancellation();
 
   const handleFilesAdded = async (newFiles: File[]) => {
     if (newFiles.length === 0) return;
@@ -49,6 +55,13 @@ export function SplitPdfTool() {
     setFile(null);
     setResults([]);
     setPageCount(0);
+  };
+
+  const handleProcessAnotherFile = () => {
+    handleRemove();
+    setError(null);
+    setProgress(0);
+    setRangesInput("1-1");
   };
 
   /**
@@ -80,9 +93,13 @@ export function SplitPdfTool() {
     setIsProcessing(true);
     setError(null);
     setResults([]);
+    setProgress(0);
+    const controller = cancellation.start();
     try {
+      throwIfCancelled(controller.signal);
       const ranges = parseRanges(rangesInput);
       const buf = await file.file.arrayBuffer();
+      throwIfCancelled(controller.signal);
       const src = await PDFDocument.load(buf, { ignoreEncryption: true });
       const total = src.getPageCount();
       for (const r of ranges) {
@@ -94,22 +111,32 @@ export function SplitPdfTool() {
       }
       const out: SplitResult[] = [];
       const baseName = file.file.name.replace(/\.pdf$/i, "");
-      for (const r of ranges) {
+      for (let i = 0; i < ranges.length; i++) {
+        throwIfCancelled(controller.signal);
+        const r = ranges[i];
         const newDoc = await PDFDocument.create();
         const pageIndices: number[] = [];
         for (let p = r.from; p <= r.to; p++) pageIndices.push(p - 1);
         const pages = await newDoc.copyPages(src, pageIndices);
+        throwIfCancelled(controller.signal);
         pages.forEach((p) => newDoc.addPage(p));
         const bytes = await newDoc.save();
+        throwIfCancelled(controller.signal);
         const label =
           r.from === r.to ? `page-${r.from}` : `pages-${r.from}-${r.to}`;
         out.push({ name: `${baseName}-${label}.pdf`, bytes });
+        setProgress(Math.round(((i + 1) / ranges.length) * 100));
       }
       setResults(out);
     } catch (err) {
-      console.error(err);
-      setError(err instanceof Error ? err.message : "Failed to split PDF.");
+      if (controller.signal.aborted) {
+        setError("Split cancelled. No partial results were saved.");
+      } else {
+        console.error(err);
+        setError(err instanceof Error ? err.message : "Failed to split PDF.");
+      }
     } finally {
+      cancellation.finish(controller);
       setIsProcessing(false);
     }
   };
@@ -146,9 +173,28 @@ export function SplitPdfTool() {
       </div>
 
       {error && (
-        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
           {error}
         </p>
+      )}
+
+      {isProcessing && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              {cancellation.isCancelling
+                ? "Stopping after the current page range..."
+                : `Splitting PDF... ${progress}%`}
+            </p>
+            <CancelOperationButton
+              onCancel={cancellation.cancel}
+              isCancelling={cancellation.isCancelling}
+              cancelLabel="Cancel after this range"
+              cancellingLabel="Stopping after this range..."
+            />
+          </div>
+          <Progress value={progress} />
+        </div>
       )}
 
       <Button
@@ -163,25 +209,34 @@ export function SplitPdfTool() {
 
       {results.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold">
               Results ({results.length} file{results.length === 1 ? "" : "s"})
             </h3>
-            {results.length > 1 && (
+            <div className="flex flex-wrap gap-2">
               <Button
                 size="sm"
                 variant="outline"
-                onClick={async () => {
-                  const zip = new JSZip();
-                  for (const r of results) zip.file(r.name, r.bytes);
-                  const blob = await zip.generateAsync({ type: "blob" });
-                  const base = file?.file.name.replace(/\.pdf$/i, "") ?? "split";
-                  downloadBlob(blob, `${base}-split.zip`);
-                }}
+                onClick={handleProcessAnotherFile}
               >
-                <Archive className="mr-1 h-3.5 w-3.5" /> Download all as ZIP
+                Process another file
               </Button>
-            )}
+              {results.length > 1 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    const zip = new JSZip();
+                    for (const r of results) zip.file(r.name, r.bytes);
+                    const blob = await zip.generateAsync({ type: "blob" });
+                    const base = file?.file.name.replace(/\.pdf$/i, "") ?? "split";
+                    downloadBlob(blob, `${base}-split.zip`);
+                  }}
+                >
+                  <Archive className="mr-1 h-3.5 w-3.5" /> Download all as ZIP
+                </Button>
+              )}
+            </div>
           </div>
           <ul className="space-y-2">
             {results.map((r, i) => (
@@ -189,7 +244,12 @@ export function SplitPdfTool() {
                 key={i}
                 className="flex items-center justify-between rounded-lg border bg-card p-3 text-sm"
               >
-                <p className="truncate font-medium">{r.name}</p>
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{r.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatBytes(r.bytes.byteLength)}
+                  </p>
+                </div>
                 <Button
                   size="sm"
                   variant="outline"

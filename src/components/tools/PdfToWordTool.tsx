@@ -5,7 +5,10 @@ import { Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { FileUploader, type UploadedFile } from "./FileUploader";
+import { CancelOperationButton } from "./CancelOperationButton";
+import { useOperationCancellation } from "./useOperationCancellation";
 import { downloadBlob, shortId } from "@/lib/download";
+import { throwIfCancelled } from "@/lib/file-validation";
 
 /**
  * PDF to Word tool.
@@ -23,6 +26,7 @@ export function PdfToWordTool() {
   const [progress, setProgress] = useState(0);
   const [extractedText, setExtractedText] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  const cancellation = useOperationCancellation();
 
   const handleFilesAdded = (newFiles: File[]) => {
     if (newFiles.length === 0) return;
@@ -41,14 +45,23 @@ export function PdfToWordTool() {
     setExtractedText("");
   };
 
+  const handleProcessAnotherFile = () => {
+    setFile(null);
+    setExtractedText("");
+    setError(null);
+    setProgress(0);
+  };
+
   const handleConvert = async () => {
     if (!file) return;
     setIsProcessing(true);
     setError(null);
     setProgress(0);
     setExtractedText("");
+    const controller = cancellation.start();
 
     try {
+      throwIfCancelled(controller.signal);
       // Lazy-load pdfjs-dist so the heavy WASM only loads when needed.
       const pdfjs = await import("pdfjs-dist/build/pdf.mjs");
       // Use a worker URL via webpack's new URL() support (Next.js compatible).
@@ -58,25 +71,34 @@ export function PdfToWordTool() {
       ).toString();
 
       const buf = await file.file.arrayBuffer();
+      throwIfCancelled(controller.signal);
       const doc = await pdfjs.getDocument({ data: buf }).promise;
       const lines: string[] = [];
       for (let i = 1; i <= doc.numPages; i++) {
+        throwIfCancelled(controller.signal);
         const page = await doc.getPage(i);
         const content = await page.getTextContent();
+        throwIfCancelled(controller.signal);
         const text = content.items
           .map((item) => ("str" in item ? (item as { str: string }).str : ""))
           .join(" ");
         lines.push(text);
         setProgress(Math.round((i / doc.numPages) * 100));
       }
+      throwIfCancelled(controller.signal);
       const fullText = lines.join("\n\n");
       setExtractedText(fullText);
     } catch (err) {
-      console.error(err);
-      setError(
-        "Failed to extract text. The PDF may be scanned (images only) or corrupted."
-      );
+      if (controller.signal.aborted) {
+        setError("Conversion cancelled. No partial document was created.");
+      } else {
+        console.error(err);
+        setError(
+          "Failed to extract text. The PDF may be scanned (images only) or corrupted."
+        );
+      }
     } finally {
+      cancellation.finish(controller);
       setIsProcessing(false);
     }
   };
@@ -110,17 +132,27 @@ export function PdfToWordTool() {
       />
 
       {error && (
-        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
           {error}
         </p>
       )}
 
       {isProcessing && (
         <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              {cancellation.isCancelling
+                ? "Stopping after the current page..."
+                : `Extracting text... ${progress}%`}
+            </p>
+            <CancelOperationButton
+              onCancel={cancellation.cancel}
+              isCancelling={cancellation.isCancelling}
+              cancelLabel="Cancel after this page"
+              cancellingLabel="Stopping after this page..."
+            />
+          </div>
           <Progress value={progress} />
-          <p className="text-xs text-muted-foreground">
-            Extracting text... {progress}%
-          </p>
         </div>
       )}
 
@@ -138,9 +170,18 @@ export function PdfToWordTool() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold">Extracted text preview</h3>
-            <Button size="sm" onClick={handleDownload}>
-              <Download className="mr-1 h-3.5 w-3.5" /> Download .doc
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={handleDownload}>
+                <Download className="mr-1 h-3.5 w-3.5" /> Download .doc
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleProcessAnotherFile}
+              >
+                Process another file
+              </Button>
+            </div>
           </div>
           <pre className="max-h-80 overflow-y-auto rounded-lg border bg-muted/30 p-3 text-xs whitespace-pre-wrap">
             {extractedText.slice(0, 4000)}

@@ -6,6 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { downloadBlob, shortId } from "@/lib/download";
+import { CancelOperationButton } from "../CancelOperationButton";
+import { useOperationCancellation } from "../useOperationCancellation";
+import {
+  FILE_SIZE_GUIDANCE,
+  throwIfCancelled,
+  validateToolFile,
+} from "@/lib/file-validation";
 
 const TARGET_W = 1280;
 const TARGET_H = 720;
@@ -28,21 +35,23 @@ export function YouTubeThumbnailResizer() {
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [showSafeZone, setShowSafeZone] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
+  const [wasExported, setWasExported] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const cancellation = useOperationCancellation();
   const dragRef = useRef<{ startX: number; startY: number; baseX: number; baseY: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = useCallback((file: File) => {
     setError(null);
-    // Accept by extension too: some browsers report an empty MIME for
-    // valid images, which previously rejected them outright.
-    const looksLikeImage =
-      file.type.startsWith("image/") ||
-      /\.(jpe?g|png|webp|gif|bmp|avif|tiff?|heic|heif)$/i.test(file.name);
-    if (!looksLikeImage) {
-      setError("Please upload an image file (JPG, PNG, WebP).");
+    const validationError = validateToolFile(
+      file,
+      "image/*,.heic,.heif,.tiff,.tif,.bmp,.gif,.avif"
+    );
+    if (validationError) {
+      setError(validationError);
       return;
     }
+    setWasExported(false);
     // Revoke the previous object URL to avoid leaking memory on
     // repeated uploads.
     setImageData((prev) => {
@@ -55,7 +64,10 @@ export function YouTubeThumbnailResizer() {
       setImageData({ url, img, width: img.naturalWidth, height: img.naturalHeight });
       setOffset({ x: 0, y: 0 });
     };
-    img.onerror = () => setError("Failed to load image. Try a different file.");
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      setError("Failed to load image. Try a different file.");
+    };
     img.src = url;
   }, []);
 
@@ -111,7 +123,9 @@ export function YouTubeThumbnailResizer() {
   const handleExport = async () => {
     if (!imageData) return;
     setIsExporting(true);
+    const controller = cancellation.start();
     try {
+      throwIfCancelled(controller.signal);
       const canvas = document.createElement("canvas");
       canvas.width = TARGET_W;
       canvas.height = TARGET_H;
@@ -134,26 +148,43 @@ export function YouTubeThumbnailResizer() {
           "image/png"
         )
       );
+      throwIfCancelled(controller.signal);
       downloadBlob(blob, `youtube-thumbnail-${shortId()}.png`);
-    } catch {
-      setError("Failed to export thumbnail. Please try again.");
+      setWasExported(true);
+    } catch (err) {
+      if (controller.signal.aborted) {
+        setError("Export cancelled. The image was not downloaded.");
+      } else {
+        console.error(err);
+        setError("Failed to export thumbnail. Please try again.");
+      }
     } finally {
+      cancellation.finish(controller);
       setIsExporting(false);
     }
   };
 
   const { drawW, drawH } = getDrawDimensions();
+  const processAnotherImage = () => {
+    if (imageData) URL.revokeObjectURL(imageData.url);
+    setImageData(null);
+    setOffset({ x: 0, y: 0 });
+    setShowSafeZone(true);
+    setWasExported(false);
+    setError(null);
+  };
 
   return (
     <div className="space-y-5">
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/*"
+        accept="image/*,.heic,.heif,.tiff,.tif,.bmp,.gif,.avif"
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) handleFile(f);
+          e.currentTarget.value = "";
         }}
       />
 
@@ -162,11 +193,22 @@ export function YouTubeThumbnailResizer() {
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
           onClick={() => fileInputRef.current?.click()}
-          className="flex min-h-50 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-8 text-center transition-colors hover:border-primary/50 hover:bg-muted/30"
+          role="button"
+          tabIndex={0}
+          aria-label={`Upload a thumbnail image. ${FILE_SIZE_GUIDANCE}`}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
+          className="flex min-h-50 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-8 text-center transition-colors hover:border-primary/50 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           <Upload className="h-10 w-10 text-muted-foreground" />
           <p className="mt-3 text-sm font-medium">Drop an image here, or click to browse</p>
-          <p className="mt-1 text-xs text-muted-foreground">JPG, PNG, WebP — any size</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            JPG, PNG, WebP, and more · {FILE_SIZE_GUIDANCE}
+          </p>
         </div>
       ) : (
         <>
@@ -178,12 +220,10 @@ export function YouTubeThumbnailResizer() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => {
-                setImageData(null);
-                setOffset({ x: 0, y: 0 });
-              }}
+              onClick={processAnotherImage}
+              disabled={isExporting}
             >
-              Choose different image
+              Process another image
             </Button>
           </div>
 
@@ -246,12 +286,29 @@ export function YouTubeThumbnailResizer() {
               {isExporting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
               Download 1280×720 PNG
             </Button>
+            {isExporting && (
+              <CancelOperationButton
+                onCancel={cancellation.cancel}
+                isCancelling={cancellation.isCancelling}
+                cancelLabel="Cancel after export encoding"
+                cancellingLabel="Waiting for export encoding..."
+              />
+            )}
           </div>
         </>
       )}
 
+      {wasExported && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-teal/20 bg-teal/5 p-3 text-sm">
+          <p role="status">Your thumbnail has been downloaded.</p>
+          <Button variant="outline" size="sm" onClick={processAnotherImage}>
+            Process another image
+          </Button>
+        </div>
+      )}
+
       {error && (
-        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">{error}</p>
       )}
     </div>
   );

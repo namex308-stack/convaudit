@@ -22,8 +22,12 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { FileUploader, type UploadedFile } from "./FileUploader";
+import { CancelOperationButton } from "./CancelOperationButton";
+import { useOperationCancellation } from "./useOperationCancellation";
 import { formatBytes, shortId } from "@/lib/download";
+import { throwIfCancelled } from "@/lib/file-validation";
 
 type ImageEntry = UploadedFile & {
   objectUrl: string;
@@ -46,6 +50,8 @@ export function ImageToPdfTool() {
   const [outputUrl, setOutputUrl] = useState<string | null>(null);
   const [outputSize, setOutputSize] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const cancellation = useOperationCancellation();
 
   const getImageDimensions = (url: string): Promise<{ width: number; height: number }> => {
     return new Promise((resolve) => {
@@ -80,7 +86,10 @@ export function ImageToPdfTool() {
     }
 
     setFiles((prev) => [...prev, ...newEntries]);
-    setOutputUrl(null);
+    setOutputUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
     setOutputSize(null);
   };
 
@@ -90,8 +99,25 @@ export function ImageToPdfTool() {
       if (entry) URL.revokeObjectURL(entry.objectUrl);
       return prev.filter((f) => f.id !== id);
     });
+    setOutputUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setOutputSize(null);
+  };
+
+  const handleProcessAnotherFile = () => {
+    files.forEach((entry) => URL.revokeObjectURL(entry.objectUrl));
+    if (outputUrl) URL.revokeObjectURL(outputUrl);
+    setFiles([]);
     setOutputUrl(null);
     setOutputSize(null);
+    setError(null);
+    setProgress(0);
+    setPageSize("Fit");
+    setOrientation("auto");
+    setMarginSize("none");
+    setQualityMode("lossless");
   };
 
   const move = (index: number, direction: "up" | "down") => {
@@ -111,7 +137,8 @@ export function ImageToPdfTool() {
    */
   const embedImageInDoc = async (
     doc: PDFDocument,
-    entry: ImageEntry
+    entry: ImageEntry,
+    signal: AbortSignal
   ): Promise<{
     image: import("pdf-lib").PDFImage;
     width: number;
@@ -128,20 +155,26 @@ export function ImageToPdfTool() {
     if (qualityMode === "lossless") {
       if (isJpg) {
         try {
+          throwIfCancelled(signal);
           const bytes = await entry.file.arrayBuffer();
+          throwIfCancelled(signal);
           const embedded = await doc.embedJpg(bytes);
           return { image: embedded, width: embedded.width, height: embedded.height };
         } catch {
+          throwIfCancelled(signal);
           // Fall back to canvas if direct embed fails (e.g. CMYK or unusual JPEG)
         }
       }
 
       if (isPng) {
         try {
+          throwIfCancelled(signal);
           const bytes = await entry.file.arrayBuffer();
+          throwIfCancelled(signal);
           const embedded = await doc.embedPng(bytes);
           return { image: embedded, width: embedded.width, height: embedded.height };
         } catch {
+          throwIfCancelled(signal);
           // Fall back to canvas if interlaced PNG
         }
       }
@@ -150,10 +183,22 @@ export function ImageToPdfTool() {
     // High quality canvas render for WebP, HEIC, or when optimization is requested
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
       const i = new Image();
-      i.onload = () => resolve(i);
-      i.onerror = () => reject(new Error(`Failed to load ${entry.file.name}`));
+      const onAbort = () => {
+        i.src = "";
+        reject(new DOMException("Operation cancelled.", "AbortError"));
+      };
+      i.onload = () => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(i);
+      };
+      i.onerror = () => {
+        signal.removeEventListener("abort", onAbort);
+        reject(new Error(`Failed to load ${entry.file.name}`));
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
       i.src = entry.objectUrl;
     });
+    throwIfCancelled(signal);
 
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth || img.width;
@@ -173,7 +218,9 @@ export function ImageToPdfTool() {
           0.85
         )
       );
+      throwIfCancelled(signal);
       const ab = await blob.arrayBuffer();
+      throwIfCancelled(signal);
       const embedded = await doc.embedJpg(ab);
       return { image: embedded, width: canvas.width, height: canvas.height };
     }
@@ -185,7 +232,9 @@ export function ImageToPdfTool() {
         "image/png"
       )
     );
+    throwIfCancelled(signal);
     const ab = await blob.arrayBuffer();
+    throwIfCancelled(signal);
     const embedded = await doc.embedPng(ab);
     return { image: embedded, width: canvas.width, height: canvas.height };
   };
@@ -194,14 +243,25 @@ export function ImageToPdfTool() {
     if (files.length === 0) return;
     setIsProcessing(true);
     setError(null);
-    setOutputUrl(null);
+    setOutputUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
     setOutputSize(null);
+    setProgress(0);
+    const controller = cancellation.start();
 
     try {
       const doc = await PDFDocument.create();
 
-      for (const entry of files) {
-        const { image, width, height } = await embedImageInDoc(doc, entry);
+      for (let i = 0; i < files.length; i++) {
+        throwIfCancelled(controller.signal);
+        const entry = files[i];
+        const { image, width, height } = await embedImageInDoc(
+          doc,
+          entry,
+          controller.signal
+        );
 
         let pageW: number;
         let pageH: number;
@@ -260,16 +320,24 @@ export function ImageToPdfTool() {
           width: drawW,
           height: drawH,
         });
+        setProgress(Math.round(((i + 1) / files.length) * 100));
       }
 
+      throwIfCancelled(controller.signal);
       const out = await doc.save();
+      throwIfCancelled(controller.signal);
       const blob = new Blob([out as BlobPart], { type: "application/pdf" });
       setOutputUrl(URL.createObjectURL(blob));
       setOutputSize(blob.size);
     } catch (err) {
-      console.error(err);
-      setError("Failed to create PDF. One or more images could not be embedded.");
+      if (controller.signal.aborted) {
+        setError("PDF creation cancelled. No partial result was saved.");
+      } else {
+        console.error(err);
+        setError("Failed to create PDF. One or more images could not be embedded.");
+      }
     } finally {
+      cancellation.finish(controller);
       setIsProcessing(false);
     }
   };
@@ -278,12 +346,12 @@ export function ImageToPdfTool() {
     <div className="space-y-6">
       {/* Uploader */}
       <FileUploader
-        accept="image/*,.heic,.tiff,.bmp"
+        accept="image/*,.heic,.heif,.tiff,.tif,.bmp"
         multiple
         files={files}
         onFilesAdded={handleFilesAdded}
         onFileRemove={handleRemove}
-        hint="Add JPG, PNG, WebP, or HEIC images. Embeds directly with 100% original lossless quality."
+        hint="Add JPG, PNG, WebP, HEIC, TIFF, or BMP images. Embeds directly with 100% original lossless quality."
         disabled={isProcessing}
       />
 
@@ -315,6 +383,15 @@ export function ImageToPdfTool() {
                 )}
               </Button>
 
+              {isProcessing && (
+                <CancelOperationButton
+                  onCancel={cancellation.cancel}
+                  isCancelling={cancellation.isCancelling}
+                  cancelLabel="Cancel after this image"
+                  cancellingLabel="Stopping after this image..."
+                />
+              )}
+
               {outputUrl && (
                 <Button asChild variant="outline" className="gap-2">
                   <a href={outputUrl} download="convaudit-document.pdf">
@@ -332,7 +409,11 @@ export function ImageToPdfTool() {
               <Label htmlFor="page-size" className="text-xs font-medium text-muted-foreground">
                 Page Sizing
               </Label>
-              <Select value={pageSize} onValueChange={(v: PageSize) => setPageSize(v)}>
+              <Select
+                value={pageSize}
+                onValueChange={(v: PageSize) => setPageSize(v)}
+                disabled={isProcessing}
+              >
                 <SelectTrigger id="page-size" className="h-9">
                   <SelectValue placeholder="Size" />
                 </SelectTrigger>
@@ -350,7 +431,11 @@ export function ImageToPdfTool() {
               <Label htmlFor="quality-mode" className="text-xs font-medium text-muted-foreground">
                 Quality / Fidelity
               </Label>
-              <Select value={qualityMode} onValueChange={(v: QualityMode) => setQualityMode(v)}>
+              <Select
+                value={qualityMode}
+                onValueChange={(v: QualityMode) => setQualityMode(v)}
+                disabled={isProcessing}
+              >
                 <SelectTrigger id="quality-mode" className="h-9">
                   <SelectValue placeholder="Quality" />
                 </SelectTrigger>
@@ -370,7 +455,7 @@ export function ImageToPdfTool() {
               <Select
                 value={orientation}
                 onValueChange={(v: Orientation) => setOrientation(v)}
-                disabled={pageSize === "Fit"}
+                disabled={isProcessing || pageSize === "Fit"}
               >
                 <SelectTrigger id="page-orientation" className="h-9">
                   <SelectValue placeholder="Orientation" />
@@ -391,7 +476,7 @@ export function ImageToPdfTool() {
               <Select
                 value={marginSize}
                 onValueChange={(v: MarginSize) => setMarginSize(v)}
-                disabled={pageSize === "Fit"}
+                disabled={isProcessing || pageSize === "Fit"}
               >
                 <SelectTrigger id="page-margin" className="h-9">
                   <SelectValue placeholder="Margin" />
@@ -405,7 +490,25 @@ export function ImageToPdfTool() {
             </div>
           </div>
 
-          {error && <p className="text-xs font-medium text-destructive">{error}</p>}
+          {isProcessing && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>
+                  {cancellation.isCancelling
+                    ? "Stopping after the current image..."
+                    : "Creating PDF..."}
+                </span>
+                <span>{progress}%</span>
+              </div>
+              <Progress value={progress} />
+            </div>
+          )}
+
+          {error && (
+            <p className="text-xs font-medium text-destructive" role="alert">
+              {error}
+            </p>
+          )}
         </div>
       )}
 
@@ -509,6 +612,12 @@ export function ImageToPdfTool() {
               <Download className="h-4 w-4" />
               Download PDF
             </a>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleProcessAnotherFile}
+          >
+            Process another file
           </Button>
         </div>
       )}

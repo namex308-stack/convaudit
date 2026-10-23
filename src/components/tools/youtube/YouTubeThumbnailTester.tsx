@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Upload, Youtube, AlertCircle, Smartphone, Monitor, Tv, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,10 @@ import {
   getThumbnailUrls,
   THUMBNAIL_FALLBACK_ORDER,
 } from "@/lib/youtube";
+import {
+  FILE_SIZE_GUIDANCE,
+  validateToolFile,
+} from "@/lib/file-validation";
 
 type PreviewSize = {
   key: string;
@@ -44,14 +48,16 @@ export function YouTubeThumbnailTester() {
   const [fallbackIdx, setFallbackIdx] = useState(0);
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (file: File) => {
     setError(null);
-    const looksLikeImage =
-      file.type.startsWith("image/") ||
-      /\.(jpe?g|png|webp|gif|bmp|avif|tiff?|heic|heif)$/i.test(file.name);
-    if (!looksLikeImage) {
-      setError("Please upload an image file.");
+    const validationError = validateToolFile(
+      file,
+      "image/*,.heic,.heif,.tiff,.tif,.bmp,.gif,.avif"
+    );
+    if (validationError) {
+      setError(validationError);
       return;
     }
     // Revoke the previous object URL to avoid leaking memory on
@@ -62,6 +68,12 @@ export function YouTubeThumbnailTester() {
     });
     setFallbackIdx(0);
     setImageUrl(URL.createObjectURL(file));
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files[0];
+    if (file) handleFile(file);
   };
 
   const handleUrlLoad = () => {
@@ -92,25 +104,52 @@ export function YouTubeThumbnailTester() {
     }
   };
 
+  const handleProcessAnotherImage = () => {
+    setImageUrl((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setFallbackIdx(0);
+    setError(null);
+    setUrl("");
+  };
+
   return (
     <div className="space-y-5">
       {/* Input: upload or URL */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label>Upload your thumbnail</Label>
-          <label className="flex min-h-20 cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted/30">
-            <Upload className="h-4 w-4" />
-            Click to browse
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleFile(f);
-              }}
-            />
-          </label>
+          <Label htmlFor="thumbnail-upload">Upload your thumbnail</Label>
+          <button
+            type="button"
+            aria-label={`Upload a thumbnail image. ${FILE_SIZE_GUIDANCE}`}
+            aria-describedby="thumbnail-upload-help"
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={handleDrop}
+            className="flex min-h-[180px] w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-6 text-center text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <Upload className="h-6 w-6" aria-hidden />
+            <span className="font-medium text-foreground">
+              Drop an image here, or click to browse
+            </span>
+            <span id="thumbnail-upload-help" className="text-xs">
+              JPG, PNG, WebP, and more · {FILE_SIZE_GUIDANCE}
+            </span>
+          </button>
+          <input
+            ref={fileInputRef}
+            id="thumbnail-upload"
+            type="file"
+            accept="image/*,.heic,.heif,.tiff,.tif,.bmp,.gif,.avif"
+            className="hidden"
+            tabIndex={-1}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) handleFile(file);
+              event.currentTarget.value = "";
+            }}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="yt-url">Or load from YouTube URL</Label>
@@ -130,7 +169,7 @@ export function YouTubeThumbnailTester() {
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
           <AlertCircle className="mt-0.5 h-4 w-4 flex-none" />
           <span>{error}</span>
         </div>
@@ -140,9 +179,18 @@ export function YouTubeThumbnailTester() {
         <div className="space-y-6">
           {/* Full-size preview */}
           <div className="overflow-hidden rounded-xl border bg-muted/30 p-4">
-            <p className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Full size (1280×720 source)
-            </p>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Full size (1280×720 source)
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleProcessAnotherImage}
+              >
+                Process another image
+              </Button>
+            </div>
             <img
               src={imageUrl}
               alt="Full-size thumbnail"

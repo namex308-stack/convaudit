@@ -12,6 +12,8 @@ import {
   type YouTubeOEmbed,
 } from "@/lib/youtube";
 import { copyText } from "@/lib/download";
+import { CancelOperationButton } from "../CancelOperationButton";
+import { useOperationCancellation } from "../useOperationCancellation";
 
 type Result = {
   channelId: string;
@@ -36,6 +38,7 @@ export function YouTubeChannelIdFinder() {
   const [result, setResult] = useState<Result | null>(null);
   const [meta, setMeta] = useState<YouTubeOEmbed | null>(null);
   const [copied, setCopied] = useState(false);
+  const cancellation = useOperationCancellation();
 
   const handleFind = async () => {
     setError(null);
@@ -50,11 +53,15 @@ export function YouTubeChannelIdFinder() {
     }
 
     setLoading(true);
+    const controller = cancellation.start();
     try {
       // Strategy 1: Video URL → oEmbed → author_url
       const videoId = extractVideoId(trimmed);
       if (videoId) {
-        const oembed = await fetchOEmbed(`https://www.youtube.com/watch?v=${videoId}`);
+        const oembed = await fetchOEmbed(
+          `https://www.youtube.com/watch?v=${videoId}`,
+          controller.signal
+        );
         const channelId = extractChannelId(oembed.author_url);
         if (channelId) {
           setMeta(oembed);
@@ -81,7 +88,7 @@ export function YouTubeChannelIdFinder() {
       // Strategy 3: Handle URL (/@name) → fetch page via CORS proxy
       if (trimmed.includes("/@") || trimmed.includes("/user/") || trimmed.includes("/c/")) {
         const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(trimmed)}`;
-        const res = await fetch(proxyUrl);
+        const res = await fetch(proxyUrl, { signal: controller.signal });
         if (res.ok) {
           const html = await res.text();
           // Look for <meta itemprop="channelId" content="UC...">
@@ -103,12 +110,13 @@ export function YouTubeChannelIdFinder() {
 
       setError("Please enter a valid YouTube URL — a video URL, channel URL, or @handle URL.");
     } catch (err) {
-      setError(
-        err instanceof Error
+      setError(controller.signal.aborted
+        ? "Lookup cancelled."
+        : err instanceof Error
           ? err.message
-          : "Failed to find channel ID. Please try again."
-      );
+          : "Failed to find channel ID. Please try again.");
     } finally {
+      cancellation.finish(controller);
       setLoading(false);
     }
   };
@@ -139,6 +147,12 @@ export function YouTubeChannelIdFinder() {
             {loading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Search className="mr-1.5 h-4 w-4" />}
             Find Channel ID
           </Button>
+          {loading && (
+            <CancelOperationButton
+              onCancel={cancellation.cancel}
+              isCancelling={cancellation.isCancelling}
+            />
+          )}
         </div>
         <p className="text-xs text-muted-foreground">
           Video URLs are the most reliable. Handle URLs (@name) use a CORS proxy and may occasionally fail.
@@ -146,7 +160,7 @@ export function YouTubeChannelIdFinder() {
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
           <AlertCircle className="mt-0.5 h-4 w-4 flex-none" />
           <span>{error}</span>
         </div>

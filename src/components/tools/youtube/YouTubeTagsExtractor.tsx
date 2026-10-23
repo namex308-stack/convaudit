@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { extractVideoId } from "@/lib/youtube";
 import { copyText } from "@/lib/download";
+import { CancelOperationButton } from "../CancelOperationButton";
+import { useOperationCancellation } from "../useOperationCancellation";
 
 /**
  * YouTube Tags Extractor.
@@ -21,6 +23,7 @@ export function YouTubeTagsExtractor() {
   const [error, setError] = useState<string | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
+  const cancellation = useOperationCancellation();
 
   const handleExtract = async () => {
     setError(null);
@@ -33,6 +36,7 @@ export function YouTubeTagsExtractor() {
     }
 
     setLoading(true);
+    const controller = cancellation.start();
     try {
       const videoUrl = `https://www.youtube.com/watch?v=${id}`;
       let response: Response;
@@ -43,8 +47,10 @@ export function YouTubeTagsExtractor() {
           cache: "no-store",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ url: videoUrl }),
+          signal: controller.signal,
         });
-      } catch {
+      } catch (err) {
+        if (controller.signal.aborted) throw err;
         throw new Error(
           "Could not reach the tag service. Check your connection and try again.",
         );
@@ -52,7 +58,8 @@ export function YouTubeTagsExtractor() {
       let payload: { error?: unknown; tags?: unknown };
       try {
         payload = await response.json();
-      } catch {
+      } catch (err) {
+        if (controller.signal.aborted) throw err;
         throw new Error("The server returned an unreadable response. Please try again.");
       }
       if (!response.ok) {
@@ -77,12 +84,13 @@ export function YouTubeTagsExtractor() {
         setError("No public tags were found for this video.");
       }
     } catch (err) {
-      setError(
-        err instanceof Error
+      setError(controller.signal.aborted
+        ? "Lookup cancelled."
+        : err instanceof Error
           ? err.message
-          : "Failed to extract tags. Please try again."
-      );
+          : "Failed to extract tags. Please try again.");
     } finally {
+      cancellation.finish(controller);
       setLoading(false);
     }
   };
@@ -115,6 +123,12 @@ export function YouTubeTagsExtractor() {
             {loading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Search className="mr-1.5 h-4 w-4" />}
             Extract Tags
           </Button>
+          {loading && (
+            <CancelOperationButton
+              onCancel={cancellation.cancel}
+              isCancelling={cancellation.isCancelling}
+            />
+          )}
         </div>
         <p className="text-xs text-muted-foreground">
           Only the video URL is sent to our server to fetch public tags.
@@ -122,7 +136,7 @@ export function YouTubeTagsExtractor() {
       </div>
 
       {error && !tags.length && (
-        <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
           <AlertCircle className="mt-0.5 h-4 w-4 flex-none" />
           <span>{error}</span>
         </div>
@@ -160,7 +174,7 @@ export function YouTubeTagsExtractor() {
             ))}
           </div>
           {error && (
-            <p className="text-xs text-muted-foreground">{error}</p>
+            <p className="text-xs text-muted-foreground" role="alert">{error}</p>
           )}
         </div>
       )}

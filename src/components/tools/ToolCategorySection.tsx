@@ -1,46 +1,23 @@
 import Link from "next/link";
-import { Search, Image, FileText, Download, Youtube } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ArrowUpRight, FileText, Image, Youtube } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { TOOLS, type Tool } from "@/lib/tools";
 import { ToolPrivacyBadge } from "./ToolPrivacyBadge";
 
-/**
- * Get unique categories from tools, ordered by appearance.
- */
-export function getCategories(): Array<{ id: Tool["category"]; label: string; icon: React.ReactNode }> {
-  const seen = new Set<Tool["category"]>();
-  const ordered: Tool["category"][] = [];
+export type ToolDisplayCategory = "Image" | "PDF" | "YouTube";
 
-  for (const tool of TOOLS) {
-    if (!seen.has(tool.category)) {
-      seen.add(tool.category);
-      ordered.push(tool.category);
-    }
-  }
-
-  const icons: Record<Tool["category"], React.ReactNode> = {
-    Image: <Image className="h-4 w-4" aria-label="Image category" role="img" />,
-    PDF: <FileText className="h-4 w-4" aria-label="PDF category" role="img" />,
-    Conversion: <Download className="h-4 w-4" aria-label="Conversion category" role="img" />,
-    YouTube: <Youtube className="h-4 w-4" aria-label="YouTube category" role="img" />,
-  };
-
-  return ordered.map((id) => ({ id, label: id, icon: icons[id] }));
-}
-
-/**
- * Get tools filtered by category.
- */
 export function getToolsByCategory(category: Tool["category"] | "all"): Tool[] {
   if (category === "all") return TOOLS;
   return TOOLS.filter((t) => t.category === category);
 }
 
-/**
- * Props for ToolCategorySection
- */
+export function getToolDisplayCategory(tool: Tool): ToolDisplayCategory {
+  if (tool.category === "YouTube") return "YouTube";
+  if (tool.category === "PDF" || tool.slug.includes("pdf")) return "PDF";
+  return "Image";
+}
+
 export interface ToolCategorySectionProps {
   category: string;
   title: string;
@@ -48,57 +25,53 @@ export interface ToolCategorySectionProps {
   badge?: string;
 }
 
-/**
- * Single tool card with category badge and icon.
- */
-export function ToolCard({ tool, index }: { tool: Tool; index: number }) {
-  const categoryIcon =
-    tool.category === "Image" ? <Image className="h-4 w-4" aria-label="Image tool" role="img" /> :
-    tool.category === "PDF" ? <FileText className="h-4 w-4" aria-label="PDF tool" role="img" /> :
-    tool.category === "Conversion" ? <Download className="h-4 w-4" aria-label="Conversion tool" role="img" /> :
-    <Youtube className="h-4 w-4" aria-label="YouTube tool" role="img" />;
+export function ToolCard({ tool }: { tool: Tool }) {
+  const category = getToolDisplayCategory(tool);
+  const CategoryIcon =
+    category === "Image" ? Image : category === "PDF" ? FileText : Youtube;
 
   return (
-    <Card
-      className="group hover:border-primary/40 transition-all duration-200 hover:shadow-md"
-      style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }}
+    <Link
+      href={`/tools/${tool.slug}`}
+      aria-labelledby={`tool-name-${tool.slug}`}
+      aria-describedby={`tool-privacy-${tool.slug}`}
+      className="group block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
     >
-      <CardHeader className="flex flex-row items-center gap-3 p-4 pb-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary" aria-label={`${tool.name} icon`}>
-        {tool.keywords[0] ? (
-          <span className="block text-center text-xs font-medium text-primary">{tool.keywords[0].charAt(0)}</span>
-        ) : (
-          categoryIcon
-        )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-semibold">{tool.name}</h3>
-          <p className="truncate text-xs text-muted-foreground">{tool.description}</p>
-        </div>
-        {tool.category && (
-          <Badge variant="secondary" className="text-xs">
-            {tool.category}
-          </Badge>
-        )}
-      </CardHeader>
-      <CardContent className="p-4 pt-2">
-        <ToolPrivacyBadge mode={tool.privacyMode} />
-        <Button asChild variant="ghost" size="sm" className="w-full justify-start py-2 text-sm">
-          <Link href={`/tools/${tool.slug}`}>
-            Open Tool
-            <svg
-              className="ml-1.5 h-3.5 w-3.5 transition-transform group-hover:translate-x-1"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
+      <Card className="h-full gap-0 border-border bg-card py-0 transition-[transform,border-color,box-shadow] duration-normal group-hover:-translate-y-0.5 group-hover:border-primary/50 group-hover:shadow-card">
+        <CardContent className="flex h-full min-h-52 flex-col p-5">
+          <div className="mb-5 flex items-center justify-between">
+            <span className="flex size-11 items-center justify-center rounded-xl bg-accent text-primary">
+              <CategoryIcon className="size-5" aria-hidden="true" />
+            </span>
+            <Badge variant="secondary" className="text-xs font-normal">
+              {category}
+            </Badge>
+          </div>
+          <div className="flex items-start justify-between gap-2">
+            <h3
+              id={`tool-name-${tool.slug}`}
+              className="truncate text-base font-semibold tracking-tight"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-        </Button>
-      </CardContent>
-    </Card>
+              {tool.name}
+            </h3>
+            <ArrowUpRight
+              className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform duration-fast group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary"
+              aria-hidden="true"
+            />
+          </div>
+          <p className="mt-2 truncate text-sm text-muted-foreground">
+            {tool.description}
+          </p>
+          <div className="mt-auto pt-5">
+            <ToolPrivacyBadge
+              mode={tool.privacyMode}
+              compact
+              descriptionId={`tool-privacy-${tool.slug}`}
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
 
@@ -128,9 +101,9 @@ export function ToolCategorySection({ category, title, icon, badge }: ToolCatego
       </div>
 
       {tools.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {tools.map((tool, index) => (
-            <ToolCard key={tool.slug} tool={tool} index={index} />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {tools.map((tool) => (
+            <ToolCard key={tool.slug} tool={tool} />
           ))}
         </div>
       ) : (

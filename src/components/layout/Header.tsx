@@ -1,77 +1,80 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { Menu } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Menu, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { ThemeToggle } from "./ThemeToggle";
 import { AdPreferencesToggle } from "@/components/ads/AdPreferencesToggle";
 import { TOOLS } from "@/lib/tools";
+import { BrandMark } from "./BrandMark";
 
-/**
- * Site header — sticky, glassy, minimal.
- *
- * Brand mark is a custom geometric "C" inside a rounded square. Logo + wordmark
- * sit on the left, primary nav in the center-right, theme toggle + mobile menu
- * on the right.
- */
+const categories = ["Image", "PDF", "YouTube"] as const;
+
 export function Header() {
   const [open, setOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const updateScrolledState = () => setIsScrolled(window.scrollY > 8);
+
+    updateScrolledState();
+    window.addEventListener("scroll", updateScrolledState, { passive: true });
+    return () => window.removeEventListener("scroll", updateScrolledState);
+  }, []);
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/70 backdrop-blur-lg supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-6">
-        {/* Brand */}
+    <header
+      className={`sticky top-0 z-40 w-full border-b bg-background/90 backdrop-blur-md transition-[border-color,box-shadow] duration-normal supports-[backdrop-filter]:bg-background/75 ${
+        isScrolled ? "border-border shadow-sm" : "border-transparent"
+      }`}
+    >
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link
           href="/"
-          className="group flex items-center gap-2.5"
+          className="group flex shrink-0 items-center gap-2.5"
           aria-label="Convaudit home"
         >
-          <span
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-foreground text-background transition-transform group-hover:scale-105"
-            aria-hidden
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              className="h-4 w-4"
-              stroke="currentColor"
-              strokeWidth={2.5}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M19 5.5a9 9 0 1 0 0 13" />
-            </svg>
+          <span className="flex size-9 items-center justify-center rounded-xl bg-accent text-primary transition-transform duration-fast group-hover:scale-105">
+            <BrandMark className="size-6" />
           </span>
-          <span className="text-[17px] font-semibold tracking-tight">
+          <span className="text-base font-semibold tracking-tight">
             Convaudit
           </span>
         </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden items-center gap-0.5 md:flex">
-          <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-            <Link href="/">Home</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-            <Link href="/#tools">Tools</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-            <Link href="/blog">Blog</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-            <Link href="/about">About</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-            <Link href="/privacy">Privacy</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-            <Link href="/terms">Terms</Link>
-          </Button>
+        <nav aria-label="Tool categories" className="hidden items-center gap-1 md:flex">
+          {categories.map((category) => (
+            <Button
+              key={category}
+              asChild
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <Link href={`/search?q=${category}`}>{category}</Link>
+            </Button>
+          ))}
         </nav>
 
         <div className="flex items-center gap-1">
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="hidden sm:inline-flex"
+          >
+            <Link href="/search" aria-label="Search tools">
+              <Search aria-hidden="true" />
+              <span>Search</span>
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" size="icon" className="sm:hidden">
+            <Link href="/search" aria-label="Search tools">
+              <Search aria-hidden="true" />
+            </Link>
+          </Button>
           <AdPreferencesToggle />
           <ThemeToggle />
           <Sheet open={open} onOpenChange={setOpen}>
@@ -90,6 +93,21 @@ export function Header() {
                 Navigation
               </SheetTitle>
               <div className="mt-4 flex flex-col gap-1">
+                <p className="px-2 pb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Categories
+                </p>
+                {categories.map((category) => (
+                  <Button
+                    key={category}
+                    asChild
+                    variant="ghost"
+                    className="justify-start"
+                    onClick={() => setOpen(false)}
+                  >
+                    <Link href={`/search?q=${category}`}>{category} tools</Link>
+                  </Button>
+                ))}
+                <div className="my-2 border-t border-border" />
                 <Button asChild variant="ghost" className="justify-start" onClick={() => setOpen(false)}>
                   <Link href="/">Home</Link>
                 </Button>

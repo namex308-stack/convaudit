@@ -13,6 +13,8 @@ import {
   type ThumbnailSet,
 } from "@/lib/youtube";
 import { downloadBlob } from "@/lib/download";
+import { CancelOperationButton } from "../CancelOperationButton";
+import { useOperationCancellation } from "../useOperationCancellation";
 
 type ThumbVariant = {
   key: keyof ThumbnailSet;
@@ -43,6 +45,10 @@ export function YouTubeThumbnailDownloader() {
   const [meta, setMeta] = useState<YouTubeOEmbed | null>(null);
   const [videoId, setVideoId] = useState<string | null>(null);
   const [brokenUrls, setBrokenUrls] = useState<Set<string>>(new Set());
+  const [downloadingVariant, setDownloadingVariant] =
+    useState<keyof ThumbnailSet | null>(null);
+  const metadataCancellation = useOperationCancellation();
+  const downloadCancellation = useOperationCancellation();
 
   const handleFetch = async () => {
     setError(null);
@@ -58,36 +64,56 @@ export function YouTubeThumbnailDownloader() {
 
     setVideoId(id);
     setLoading(true);
+    const controller = metadataCancellation.start();
     try {
-      const oembed = await fetchOEmbed(`https://www.youtube.com/watch?v=${id}`);
+      const oembed = await fetchOEmbed(
+        `https://www.youtube.com/watch?v=${id}`,
+        controller.signal
+      );
       setMeta(oembed);
     } catch (err) {
-      setError(
-        err instanceof Error
+      setError(controller.signal.aborted
+        ? "Lookup cancelled."
+        : err instanceof Error
           ? err.message
-          : "Failed to fetch video metadata. Check the URL and try again."
-      );
+          : "Failed to fetch video metadata. Check the URL and try again.");
     } finally {
+      metadataCancellation.finish(controller);
       setLoading(false);
     }
   };
 
   const handleDownload = async (variant: ThumbVariant) => {
     if (!videoId) return;
+    if (downloadingVariant) return;
     const thumbs = getThumbnailUrls(videoId);
     const thumbUrl = thumbs[variant.key];
+    const controller = downloadCancellation.start();
+    setDownloadingVariant(variant.key);
 
     try {
       // Fetch the image and trigger a download (avoids opening in a new tab).
-      const res = await fetch(thumbUrl);
+      const res = await fetch(thumbUrl, { signal: controller.signal });
       if (!res.ok) throw new Error("Not found");
       const blob = await res.blob();
+      if (controller.signal.aborted) return;
       const filename = `youtube-${videoId}-${variant.key}.jpg`;
       downloadBlob(blob, filename);
     } catch {
       // Mark this resolution as unavailable (e.g. maxres missing on old videos)
-      setBrokenUrls((prev) => new Set(prev).add(thumbUrl));
+      if (controller.signal.aborted) {
+        setError("Download cancelled.");
+      } else {
+        setBrokenUrls((prev) => new Set(prev).add(thumbUrl));
+      }
+    } finally {
+      downloadCancellation.finish(controller);
+      setDownloadingVariant(null);
     }
+  };
+
+  const cancelDownload = () => {
+    downloadCancellation.cancel();
   };
 
   const markBroken = (thumbUrl: string) => {
@@ -112,6 +138,12 @@ export function YouTubeThumbnailDownloader() {
             {loading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Youtube className="mr-1.5 h-4 w-4" />}
             Fetch Thumbnails
           </Button>
+          {loading && (
+            <CancelOperationButton
+              onCancel={metadataCancellation.cancel}
+              isCancelling={metadataCancellation.isCancelling}
+            />
+          )}
         </div>
         <p className="text-xs text-muted-foreground">
           Paste any YouTube URL — watch, youtu.be, shorts, or embed links all work.
@@ -119,7 +151,7 @@ export function YouTubeThumbnailDownloader() {
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
           <AlertCircle className="mt-0.5 h-4 w-4 flex-none" />
           <span>{error}</span>
         </div>
@@ -168,14 +200,27 @@ export function YouTubeThumbnailDownloader() {
                         {variant.width}×{variant.height}
                       </p>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isBroken}
-                      onClick={() => handleDownload(variant)}
-                    >
-                      <Download className="mr-1 h-3.5 w-3.5" /> Download
-                    </Button>
+                    {downloadingVariant === variant.key ? (
+                      <div className="flex items-center gap-1.5">
+                        <Button size="sm" variant="outline" disabled>
+                          <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                          Downloading
+                        </Button>
+                        <CancelOperationButton
+                          onCancel={cancelDownload}
+                          isCancelling={downloadCancellation.isCancelling}
+                        />
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={isBroken || downloadingVariant !== null}
+                        onClick={() => handleDownload(variant)}
+                      >
+                        <Download className="mr-1 h-3.5 w-3.5" /> Download
+                      </Button>
+                    )}
                   </div>
                 </div>
               );

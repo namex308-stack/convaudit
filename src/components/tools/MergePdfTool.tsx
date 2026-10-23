@@ -4,8 +4,12 @@ import { useState } from "react";
 import { PDFDocument } from "pdf-lib";
 import { ArrowDown, ArrowUp, Download, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { FileUploader, type UploadedFile } from "./FileUploader";
-import { downloadBytes, shortId } from "@/lib/download";
+import { CancelOperationButton } from "./CancelOperationButton";
+import { useOperationCancellation } from "./useOperationCancellation";
+import { downloadBytes, formatBytes, shortId } from "@/lib/download";
+import { throwIfCancelled } from "@/lib/file-validation";
 
 type PdfEntry = UploadedFile & { pageCount: number };
 
@@ -18,7 +22,10 @@ export function MergePdfTool() {
   const [files, setFiles] = useState<PdfEntry[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [outputUrl, setOutputUrl] = useState<string | null>(null);
+  const [outputSize, setOutputSize] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const cancellation = useOperationCancellation();
 
   const handleFilesAdded = async (newFiles: File[]) => {
     const pdfs = newFiles.filter(
@@ -45,11 +52,24 @@ export function MergePdfTool() {
       }
     }
     setFiles((prev) => [...prev, ...entries]);
-    setOutputUrl(null);
+    setOutputUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setOutputSize(null);
   };
 
   const handleRemove = (id: string) =>
     setFiles((prev) => prev.filter((f) => f.id !== id));
+
+  const handleProcessAnotherFile = () => {
+    if (outputUrl) URL.revokeObjectURL(outputUrl);
+    setFiles([]);
+    setOutputUrl(null);
+    setOutputSize(null);
+    setError(null);
+    setProgress(0);
+  };
 
   const move = (index: number, direction: "up" | "down") => {
     setFiles((prev) => {
@@ -68,25 +88,42 @@ export function MergePdfTool() {
     }
     setIsProcessing(true);
     setError(null);
+    setProgress(0);
+    const controller = cancellation.start();
     setOutputUrl((prev) => {
       if (prev) URL.revokeObjectURL(prev);
       return null;
     });
+    setOutputSize(null);
     try {
       const merged = await PDFDocument.create();
-      for (const entry of files) {
+      for (let i = 0; i < files.length; i++) {
+        throwIfCancelled(controller.signal);
+        const entry = files[i];
         const buf = await entry.file.arrayBuffer();
+        throwIfCancelled(controller.signal);
         const doc = await PDFDocument.load(buf, { ignoreEncryption: true });
+        throwIfCancelled(controller.signal);
         const pages = await merged.copyPages(doc, doc.getPageIndices());
+        throwIfCancelled(controller.signal);
         pages.forEach((p) => merged.addPage(p));
+        setProgress(Math.round(((i + 1) / files.length) * 100));
       }
+      throwIfCancelled(controller.signal);
       const bytes = await merged.save();
+      throwIfCancelled(controller.signal);
       const blob = new Blob([bytes as BlobPart], { type: "application/pdf" });
       setOutputUrl(URL.createObjectURL(blob));
+      setOutputSize(blob.size);
     } catch (err) {
-      console.error(err);
-      setError("Failed to merge PDFs. One of the files may be corrupted or encrypted.");
+      if (controller.signal.aborted) {
+        setError("Merge cancelled. No partial result was saved.");
+      } else {
+        console.error(err);
+        setError("Failed to merge PDFs. One of the files may be corrupted or encrypted.");
+      }
     } finally {
+      cancellation.finish(controller);
       setIsProcessing(false);
     }
   };
@@ -160,9 +197,28 @@ export function MergePdfTool() {
       )}
 
       {error && (
-        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
           {error}
         </p>
+      )}
+
+      {isProcessing && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              {cancellation.isCancelling
+                ? "Stopping after the current PDF..."
+                : `Preparing PDFs... ${progress}%`}
+            </p>
+            <CancelOperationButton
+              onCancel={cancellation.cancel}
+              isCancelling={cancellation.isCancelling}
+              cancelLabel="Cancel after this PDF"
+              cancellingLabel="Stopping after this PDF..."
+            />
+          </div>
+          <Progress value={progress} />
+        </div>
       )}
 
       <Button
@@ -179,13 +235,22 @@ export function MergePdfTool() {
         <div className="rounded-lg border bg-card p-4 text-sm">
           <p className="font-medium">Merged PDF ready!</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Click below to download your merged document.
+            {outputSize ? `${formatBytes(outputSize)} · ` : ""}Click below to download your merged document.
           </p>
-          <Button asChild className="mt-3" size="sm">
-            <a href={outputUrl} download="merged.pdf">
-              <Download className="mr-1 h-3.5 w-3.5" /> Download merged.pdf
-            </a>
-          </Button>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button asChild size="sm">
+              <a href={outputUrl} download="merged.pdf">
+                <Download className="mr-1 h-3.5 w-3.5" /> Download merged.pdf
+              </a>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleProcessAnotherFile}
+            >
+              Process another file
+            </Button>
+          </div>
         </div>
       )}
     </div>

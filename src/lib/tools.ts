@@ -71,7 +71,7 @@ export const TOOLS: Tool[] = [
       },
       {
         q: "What is the maximum file size I can compress?",
-        a: "There is no hard limit imposed by the tool, but very large files (over 100 MB) may take longer or be limited by your device's available memory.",
+        a: "There is no fixed file size limit. Very large images may still be limited by your device's available memory.",
       },
       {
         q: "Which formats are supported?",
@@ -212,7 +212,7 @@ export const TOOLS: Tool[] = [
       },
       {
         q: "What's the largest PDF I can split?",
-        a: "There's no hard limit, but extremely large PDFs may be limited by browser memory. Files under 100 MB work comfortably.",
+        a: "There is no fixed file size limit. Very large or complex PDFs may still be limited by your device's available memory.",
       },
       {
         q: "Can I split a password-protected PDF?",
@@ -302,7 +302,7 @@ export const TOOLS: Tool[] = [
       },
       {
         q: "Is there a file size limit?",
-        a: "There's no fixed limit, but very large images or many images may be limited by browser memory.",
+        a: "There is no fixed file size limit. Very large images or batches may still be limited by your device's available memory.",
       },
     ],
     howToSteps: [
@@ -387,7 +387,7 @@ export const TOOLS: Tool[] = [
       },
       {
         q: "Is there a file size limit?",
-        a: "There's no hard limit, but extremely large images may be constrained by browser memory.",
+        a: "There is no fixed file size limit. Very large images may still be constrained by your device's available memory.",
       },
     ],
     howToSteps: [

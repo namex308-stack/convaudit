@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +13,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { FileUploader, type UploadedFile } from "./FileUploader";
+import { CancelOperationButton } from "./CancelOperationButton";
+import { useOperationCancellation } from "./useOperationCancellation";
 import { downloadBytes, formatBytes, shortId } from "@/lib/download";
+import { throwIfCancelled } from "@/lib/file-validation";
 
 type Quality = "low" | "medium" | "high";
 
@@ -40,6 +43,8 @@ export function CompressPdfTool() {
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState<{ bytes: Uint8Array; size: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const renderTaskRef = useRef<{ cancel: () => void } | null>(null);
+  const cancellation = useOperationCancellation();
 
   const handleFilesAdded = (newFiles: File[]) => {
     if (newFiles.length === 0) return;
@@ -58,13 +63,23 @@ export function CompressPdfTool() {
     setResult(null);
   };
 
+  const handleProcessAnotherFile = () => {
+    setFile(null);
+    setResult(null);
+    setError(null);
+    setProgress(0);
+    setQuality("medium");
+  };
+
   const handleCompress = async () => {
     if (!file) return;
     setIsProcessing(true);
     setError(null);
     setProgress(0);
     setResult(null);
+    const controller = cancellation.start();
     try {
+      throwIfCancelled(controller.signal);
       const pdfjs = await import("pdfjs-dist/build/pdf.mjs");
       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
         "pdfjs-dist/build/pdf.worker.mjs",
@@ -74,11 +89,13 @@ export function CompressPdfTool() {
       const { PDFDocument } = await import("pdf-lib");
 
       const buf = await file.file.arrayBuffer();
+      throwIfCancelled(controller.signal);
       const src = await pdfjs.getDocument({ data: buf }).promise;
       const out = await PDFDocument.create();
       const cfg = QUALITY_MAP[quality];
 
       for (let i = 1; i <= src.numPages; i++) {
+        throwIfCancelled(controller.signal);
         const page = await src.getPage(i);
         const viewport = page.getViewport({ scale: cfg.scale * 1.5 });
         const canvas = document.createElement("canvas");
@@ -89,7 +106,14 @@ export function CompressPdfTool() {
         // White background so transparent areas don't go black in JPEG
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+        const renderTask = page.render({ canvasContext: ctx, viewport, canvas });
+        renderTaskRef.current = renderTask;
+        try {
+          await renderTask.promise;
+        } finally {
+          if (renderTaskRef.current === renderTask) renderTaskRef.current = null;
+        }
+        throwIfCancelled(controller.signal);
         const blob = await new Promise<Blob>((resolve, reject) =>
           canvas.toBlob(
             (b) => (b ? resolve(b) : reject(new Error("Failed to encode page"))),
@@ -107,12 +131,19 @@ export function CompressPdfTool() {
         setProgress(Math.round((i / src.numPages) * 100));
       }
 
+      throwIfCancelled(controller.signal);
       const bytes = await out.save();
       setResult({ bytes, size: bytes.byteLength });
     } catch (err) {
-      console.error(err);
-      setError("Failed to compress PDF. The file may be corrupted or encrypted.");
+      if (controller.signal.aborted) {
+        setError("Compression cancelled. No partial result was saved.");
+      } else {
+        console.error(err);
+        setError("Failed to compress PDF. The file may be corrupted or encrypted.");
+      }
     } finally {
+      renderTaskRef.current = null;
+      cancellation.finish(controller);
       setIsProcessing(false);
     }
   };
@@ -148,17 +179,26 @@ export function CompressPdfTool() {
       </div>
 
       {error && (
-        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
           {error}
         </p>
       )}
 
       {isProcessing && (
         <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              {cancellation.isCancelling ? "Cancelling..." : `Rendering pages... ${progress}%`}
+            </p>
+            <CancelOperationButton
+              onCancel={() => {
+                cancellation.cancel();
+                renderTaskRef.current?.cancel();
+              }}
+              isCancelling={cancellation.isCancelling}
+            />
+          </div>
           <Progress value={progress} />
-          <p className="text-xs text-muted-foreground">
-            Rendering pages... {progress}%
-          </p>
         </div>
       )}
 
@@ -182,16 +222,24 @@ export function CompressPdfTool() {
             </span>{" "}
             ({Math.max(0, Math.round((1 - result.size / file.file.size) * 100))}% smaller)
           </p>
-          <Button
-            className="mt-3"
-            size="sm"
-            onClick={() => {
-              const baseName = file.file.name.replace(/\.pdf$/i, "");
-              downloadBytes(result.bytes, `${baseName}-compressed.pdf`, "application/pdf");
-            }}
-          >
-            <Download className="mr-1 h-3.5 w-3.5" /> Download compressed PDF
-          </Button>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              onClick={() => {
+                const baseName = file.file.name.replace(/\.pdf$/i, "");
+                downloadBytes(result.bytes, `${baseName}-compressed.pdf`, "application/pdf");
+              }}
+            >
+              <Download className="mr-1 h-3.5 w-3.5" /> Download compressed PDF
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleProcessAnotherFile}
+            >
+              Process another file
+            </Button>
+          </div>
         </div>
       )}
     </div>

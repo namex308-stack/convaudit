@@ -108,11 +108,14 @@ export function getThumbnailUrls(videoId: string): ThumbnailSet {
  * The oEmbed endpoint supports CORS and requires no API key.
  * Throws on network error or non-OK response.
  */
-export async function fetchOEmbed(videoUrl: string): Promise<YouTubeOEmbed> {
+export async function fetchOEmbed(
+  videoUrl: string,
+  signal?: AbortSignal
+): Promise<YouTubeOEmbed> {
   const endpoint = `https://www.youtube.com/oembed?url=${encodeURIComponent(
     videoUrl
   )}&format=json`;
-  const res = await fetch(endpoint);
+  const res = await fetch(endpoint, { signal });
   if (!res.ok) {
     throw new Error(
       res.status === 404

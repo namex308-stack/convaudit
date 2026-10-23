@@ -6,7 +6,10 @@ import { Download, Loader2, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { FileUploader, type UploadedFile } from "./FileUploader";
+import { CancelOperationButton } from "./CancelOperationButton";
+import { useOperationCancellation } from "./useOperationCancellation";
 import { downloadBlob, formatBytes, shortId } from "@/lib/download";
+import { throwIfCancelled } from "@/lib/file-validation";
 
 type Props = {
   /** Source MIME prefix filter, e.g. "image/webp" */
@@ -27,6 +30,7 @@ type ResultItem = {
   name: string;
   blob: Blob;
   size: number;
+  originalSize: number;
 };
 
 /**
@@ -49,6 +53,7 @@ export function ImageFormatConverter({
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<ResultItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const cancellation = useOperationCancellation();
 
   const handleFilesAdded = (newFiles: File[]) => {
     // Fall back to extension matching: some browsers report an empty
@@ -70,24 +75,45 @@ export function ImageFormatConverter({
   const handleRemove = (id: string) =>
     setFiles((prev) => prev.filter((f) => f.id !== id));
 
+  const handleProcessAnotherFile = () => {
+    setFiles([]);
+    setResults([]);
+    setError(null);
+    setProgress(0);
+  };
+
   const handleConvert = async () => {
     if (files.length === 0) return;
     setIsProcessing(true);
     setProgress(0);
     setError(null);
     setResults([]);
+    const controller = cancellation.start();
     try {
       const out: ResultItem[] = [];
       for (let i = 0; i < files.length; i++) {
+        throwIfCancelled(controller.signal);
         const f = files[i].file;
         const url = URL.createObjectURL(f);
         try {
           const img = await new Promise<HTMLImageElement>((resolve, reject) => {
             const im = new Image();
-            im.onload = () => resolve(im);
-            im.onerror = () => reject(new Error("Failed to load image"));
+            const onAbort = () => {
+              im.src = "";
+              reject(new DOMException("Operation cancelled.", "AbortError"));
+            };
+            im.onload = () => {
+              controller.signal.removeEventListener("abort", onAbort);
+              resolve(im);
+            };
+            im.onerror = () => {
+              controller.signal.removeEventListener("abort", onAbort);
+              reject(new Error("Failed to load image"));
+            };
+            controller.signal.addEventListener("abort", onAbort, { once: true });
             im.src = url;
           });
+          throwIfCancelled(controller.signal);
           const canvas = document.createElement("canvas");
           canvas.width = img.naturalWidth;
           canvas.height = img.naturalHeight;
@@ -108,18 +134,30 @@ export function ImageFormatConverter({
               quality
             )
           );
+          throwIfCancelled(controller.signal);
           const baseName = f.name.replace(/\.[^.]+$/, "");
-          out.push({ name: `${baseName}.${outputExtension}`, blob, size: blob.size });
+          out.push({
+            name: `${baseName}.${outputExtension}`,
+            blob,
+            size: blob.size,
+            originalSize: f.size,
+          });
         } finally {
           URL.revokeObjectURL(url);
         }
         setProgress(Math.round(((i + 1) / files.length) * 100));
       }
+      throwIfCancelled(controller.signal);
       setResults(out);
     } catch (err) {
-      console.error(err);
-      setError("Failed to convert one or more images.");
+      if (controller.signal.aborted) {
+        setError("Conversion cancelled. No partial results were saved.");
+      } else {
+        console.error(err);
+        setError("Failed to convert one or more images.");
+      }
     } finally {
+      cancellation.finish(controller);
       setIsProcessing(false);
     }
   };
@@ -137,17 +175,25 @@ export function ImageFormatConverter({
       />
 
       {error && (
-        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
           {error}
         </p>
       )}
 
       {isProcessing && (
         <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              {cancellation.isCancelling ? "Cancelling..." : `Converting... ${progress}%`}
+            </p>
+            <CancelOperationButton
+              onCancel={cancellation.cancel}
+              isCancelling={cancellation.isCancelling}
+              cancelLabel="Cancel after this image"
+              cancellingLabel="Stopping after this image..."
+            />
+          </div>
           <Progress value={progress} />
-          <p className="text-xs text-muted-foreground">
-            Converting... {progress}%
-          </p>
         </div>
       )}
 
@@ -163,22 +209,27 @@ export function ImageFormatConverter({
 
       {results.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold">Results</h3>
-            {results.length > 1 && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={async () => {
-                  const zip = new JSZip();
-                  for (const r of results) zip.file(r.name, r.blob);
-                  const blob = await zip.generateAsync({ type: "blob" });
-                  downloadBlob(blob, `convaudit-converted-${outputExtension}.zip`);
-                }}
-              >
-                <Archive className="mr-1 h-3.5 w-3.5" /> Download all as ZIP
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" variant="outline" onClick={handleProcessAnotherFile}>
+                Process another file
               </Button>
-            )}
+              {results.length > 1 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    const zip = new JSZip();
+                    for (const r of results) zip.file(r.name, r.blob);
+                    const blob = await zip.generateAsync({ type: "blob" });
+                    downloadBlob(blob, `convaudit-converted-${outputExtension}.zip`);
+                  }}
+                >
+                  <Archive className="mr-1 h-3.5 w-3.5" /> Download all as ZIP
+                </Button>
+              )}
+            </div>
           </div>
           <ul className="space-y-2">
             {results.map((r, i) => (
@@ -189,7 +240,7 @@ export function ImageFormatConverter({
                 <div className="min-w-0">
                   <p className="truncate font-medium">{r.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {formatBytes(r.size)}
+                    {formatBytes(r.originalSize)} → {formatBytes(r.size)}
                   </p>
                 </div>
                 <Button size="sm" variant="outline" onClick={() => downloadBlob(r.blob, r.name)}>

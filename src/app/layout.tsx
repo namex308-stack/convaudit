@@ -39,7 +39,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#0f172a",
+  themeColor: "#4F46E5",
 };
 
 export const metadata: Metadata = {
@@ -49,8 +49,11 @@ export const metadata: Metadata = {
     template: "%s | Convaudit",
   },
   icons: {
-    icon: "/logo.svg",
-    shortcut: "/logo.svg",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "16x16 32x32" },
+    ],
+    shortcut: "/favicon.ico",
   },
   description: SITE_CONFIG.description,
   authors: [{ name: SITE_CONFIG.name }],
@@ -62,10 +65,7 @@ export const metadata: Metadata = {
       "application/rss+xml": `${SITE_CONFIG.url}/rss.xml`,
       "text/plain": `${SITE_CONFIG.url}/llms.txt`,
     },
-    languages: {
-      en: SITE_CONFIG.url,
-      ar: SITE_CONFIG.url,
-    },
+    languages: { en: SITE_CONFIG.url },
   },
   other: {
     "llms.txt": `${SITE_CONFIG.url}/llms.txt`,
@@ -77,7 +77,6 @@ export const metadata: Metadata = {
     siteName: SITE_CONFIG.name,
     type: "website",
     locale: "en_US",
-    alternateLocale: ["ar_AR"],
   },
   twitter: {
     card: "summary_large_image",

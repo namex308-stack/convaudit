@@ -8,15 +8,20 @@ export default function manifest(): MetadataRoute.Manifest {
       "Free tools for images, PDFs and YouTube creator workflows. Processing varies by tool.",
     start_url: "/",
     display: "standalone",
-    background_color: "#0b0f19",
-    theme_color: "#0f172a",
+    background_color: "#f8fafc",
+    theme_color: "#4F46E5",
     orientation: "portrait-primary",
     icons: [
       {
-        src: "/logo.svg",
+        src: "/favicon.svg",
         sizes: "any",
         type: "image/svg+xml",
         purpose: "maskable",
+      },
+      {
+        src: "/favicon.ico",
+        sizes: "16x16 32x32",
+        type: "image/x-icon",
       },
     ],
   };

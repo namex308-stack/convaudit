@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import JSZip from "jszip";
 import {
   Download,
@@ -27,7 +27,10 @@ import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { FileUploader, type UploadedFile } from "./FileUploader";
+import { CancelOperationButton } from "./CancelOperationButton";
+import { useOperationCancellation } from "./useOperationCancellation";
 import { downloadBlob, formatBytes, shortId } from "@/lib/download";
+import { throwIfCancelled } from "@/lib/file-validation";
 
 type ImageFormat = "png" | "jpeg" | "webp";
 type DpiPreset = "72" | "150" | "200" | "300" | "400" | "custom";
@@ -54,6 +57,8 @@ export function PdfToImageTool() {
   const [currentPage, setCurrentPage] = useState(0);
   const [renderedPages, setRenderedPages] = useState<RenderedPage[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const renderTaskRef = useRef<{ cancel: () => void } | null>(null);
+  const cancellation = useOperationCancellation();
 
   const getEffectiveScale = (): number => {
     switch (dpiPreset) {
@@ -146,6 +151,16 @@ export function PdfToImageTool() {
     setRenderedPages([]);
     setError(null);
     setProgress(0);
+    setCurrentPage(0);
+  };
+
+  const handleProcessAnotherFile = () => {
+    handleRemove();
+    setDpiPreset("300");
+    setCustomScale(3.0);
+    setFormat("png");
+    setJpegQuality(95);
+    setPageRange("");
   };
 
   const handleConvert = async () => {
@@ -154,11 +169,14 @@ export function PdfToImageTool() {
     setError(null);
     setProgress(0);
     setCurrentPage(0);
+    const controller = cancellation.start();
 
     renderedPages.forEach((p) => URL.revokeObjectURL(p.previewUrl));
     setRenderedPages([]);
+    const results: RenderedPage[] = [];
 
     try {
+      throwIfCancelled(controller.signal);
       const pdfjs = await import("pdfjs-dist/build/pdf.mjs");
       pdfjs.GlobalWorkerOptions.workerSrc = new URL(
         "pdfjs-dist/build/pdf.worker.mjs",
@@ -166,7 +184,9 @@ export function PdfToImageTool() {
       ).toString();
 
       const buf = await file.file.arrayBuffer();
+      throwIfCancelled(controller.signal);
       const doc = await pdfjs.getDocument({ data: buf }).promise;
+      throwIfCancelled(controller.signal);
       const totalPages = doc.numPages;
       const targetPages = parseTargetPages(totalPages, pageRange);
 
@@ -174,9 +194,8 @@ export function PdfToImageTool() {
       const mime = format === "png" ? "image/png" : format === "webp" ? "image/webp" : "image/jpeg";
       const quality = format === "png" ? undefined : jpegQuality / 100;
 
-      const results: RenderedPage[] = [];
-
       for (let idx = 0; idx < targetPages.length; idx++) {
+        throwIfCancelled(controller.signal);
         const pageNum = targetPages[idx];
         setCurrentPage(pageNum);
 
@@ -194,11 +213,18 @@ export function PdfToImageTool() {
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        await page.render({
+        const renderTask = page.render({
           canvasContext: ctx,
           viewport,
           canvas,
-        }).promise;
+        });
+        renderTaskRef.current = renderTask;
+        try {
+          await renderTask.promise;
+        } finally {
+          if (renderTaskRef.current === renderTask) renderTaskRef.current = null;
+        }
+        throwIfCancelled(controller.signal);
 
         const blob = await new Promise<Blob>((resolve, reject) => {
           canvas.toBlob(
@@ -207,6 +233,7 @@ export function PdfToImageTool() {
             quality
           );
         });
+        throwIfCancelled(controller.signal);
 
         const previewUrl = URL.createObjectURL(blob);
         results.push({
@@ -221,11 +248,19 @@ export function PdfToImageTool() {
         setProgress(Math.round(((idx + 1) / targetPages.length) * 100));
       }
 
+      throwIfCancelled(controller.signal);
       setRenderedPages(results);
     } catch (err) {
-      console.error(err);
-      setError(err instanceof Error ? err.message : "Failed to convert PDF pages to images.");
+      results.forEach((page) => URL.revokeObjectURL(page.previewUrl));
+      if (controller.signal.aborted) {
+        setError("Conversion cancelled. No partial images were saved.");
+      } else {
+        console.error(err);
+        setError(err instanceof Error ? err.message : "Failed to convert PDF pages to images.");
+      }
     } finally {
+      renderTaskRef.current = null;
+      cancellation.finish(controller);
       setIsProcessing(false);
     }
   };
@@ -295,6 +330,16 @@ export function PdfToImageTool() {
                 )}
               </Button>
 
+              {isProcessing && (
+                <CancelOperationButton
+                  onCancel={() => {
+                    cancellation.cancel();
+                    renderTaskRef.current?.cancel();
+                  }}
+                  isCancelling={cancellation.isCancelling}
+                />
+              )}
+
               {renderedPages.length > 0 && (
                 <Button
                   variant="outline"
@@ -317,6 +362,7 @@ export function PdfToImageTool() {
               <Select
                 value={dpiPreset}
                 onValueChange={(v: DpiPreset) => setDpiPreset(v)}
+                disabled={isProcessing}
               >
                 <SelectTrigger id="dpi-preset" className="h-9">
                   <SelectValue placeholder="Preset" />
@@ -340,6 +386,7 @@ export function PdfToImageTool() {
               <Select
                 value={format}
                 onValueChange={(v: ImageFormat) => setFormat(v)}
+                disabled={isProcessing}
               >
                 <SelectTrigger id="img-format" className="h-9">
                   <SelectValue placeholder="Format" />
@@ -363,6 +410,7 @@ export function PdfToImageTool() {
                 value={pageRange}
                 onChange={(e) => setPageRange(e.target.value)}
                 className="h-9 text-xs"
+                disabled={isProcessing}
               />
             </div>
 
@@ -380,6 +428,7 @@ export function PdfToImageTool() {
                   step={0.5}
                   onValueChange={(val) => setCustomScale(val[0])}
                   className="py-1"
+                  disabled={isProcessing}
                 />
               </div>
             ) : format !== "png" ? (
@@ -395,6 +444,7 @@ export function PdfToImageTool() {
                   step={1}
                   onValueChange={(val) => setJpegQuality(val[0])}
                   className="py-1"
+                  disabled={isProcessing}
                 />
               </div>
             ) : (
@@ -410,8 +460,12 @@ export function PdfToImageTool() {
 
           {isProcessing && (
             <div className="space-y-2 pt-2">
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Rendering high-resolution images...</span>
+              <div className="flex justify-between gap-3 text-xs text-muted-foreground">
+                <span>
+                  {cancellation.isCancelling
+                    ? "Stopping after the current page..."
+                    : `Rendering page ${currentPage}...`}
+                </span>
                 <span>{progress}%</span>
               </div>
               <Progress value={progress} className="h-2" />
@@ -419,7 +473,9 @@ export function PdfToImageTool() {
           )}
 
           {error && (
-            <p className="text-xs font-medium text-destructive">{error}</p>
+            <p className="text-xs font-medium text-destructive" role="alert">
+              {error}
+            </p>
           )}
         </div>
       )}
@@ -427,20 +483,31 @@ export function PdfToImageTool() {
       {/* Results Gallery */}
       {renderedPages.length > 0 && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
               <Layers className="h-4 w-4" />
               Converted Images ({renderedPages.length} {renderedPages.length === 1 ? "page" : "pages"})
             </h3>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDownloadAllZip}
-              className="gap-1.5 text-xs"
-            >
-              <Archive className="h-3.5 w-3.5" />
-              Download All as ZIP
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleProcessAnotherFile}
+                className="text-xs"
+              >
+                Process another file
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadAllZip}
+                disabled={isProcessing}
+                className="gap-1.5 text-xs"
+              >
+                <Archive className="h-3.5 w-3.5" />
+                Download All as ZIP
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -475,6 +542,7 @@ export function PdfToImageTool() {
                   <Button
                     size="sm"
                     onClick={() => handleDownloadSingle(page)}
+                    disabled={isProcessing}
                     className="h-8 gap-1.5 text-xs"
                   >
                     <Download className="h-3.5 w-3.5" />

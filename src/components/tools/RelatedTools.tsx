@@ -8,6 +8,8 @@ type RelatedToolsProps = {
   currentSlug: string;
   /** Category to prioritize when picking related tools */
   category: Tool["category"];
+  /** Render the compact format used in tool-page sidebars. */
+  compact?: boolean;
 };
 
 /**
@@ -21,7 +23,11 @@ type RelatedToolsProps = {
  * relevant pages, which helps search engines crawl the site and understand
  * topical relationships.
  */
-export function RelatedTools({ currentSlug, category }: RelatedToolsProps) {
+export function RelatedTools({
+  currentSlug,
+  category,
+  compact = false,
+}: RelatedToolsProps) {
   // Get 3 related tools: prefer same category, fall back to others
   const sameCategory = TOOLS.filter(
     (t) => t.slug !== currentSlug && t.category === category
@@ -35,6 +41,56 @@ export function RelatedTools({ currentSlug, category }: RelatedToolsProps) {
   const blogPost = getRecentPosts(1)[0];
 
   if (related.length === 0 && !blogPost) return null;
+
+  if (compact) {
+    return (
+      <section
+        className="rounded-2xl border border-border/70 bg-card p-5 shadow-xs"
+        aria-labelledby="related-heading"
+      >
+        <h2 id="related-heading" className="text-sm font-semibold">
+          Related tools &amp; guides
+        </h2>
+        <ul className="mt-3 space-y-2">
+          {related.map((tool) => (
+            <li key={tool.slug}>
+              <Link
+                href={`/tools/${tool.slug}`}
+                className="group flex items-start justify-between gap-2 rounded-lg p-2 text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <span className="min-w-0">
+                  <span className="block font-medium">{tool.name}</span>
+                  <span className="mt-0.5 block line-clamp-2 text-xs text-muted-foreground">
+                    {tool.description}
+                  </span>
+                </span>
+                <ArrowRight
+                  className="mt-0.5 size-4 flex-none text-muted-foreground transition-transform group-hover:translate-x-0.5"
+                  aria-hidden
+                />
+              </Link>
+            </li>
+          ))}
+        </ul>
+        {blogPost && (
+          <Link
+            href={`/blog/${blogPost.slug}`}
+            className="mt-3 flex items-start gap-2 border-t border-border/70 pt-3 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <FileText className="mt-0.5 size-3.5 flex-none" aria-hidden />
+            <span>
+              <span className="block font-medium text-foreground">
+                {blogPost.title}
+              </span>
+              <span className="mt-1 block">
+                {formatDate(blogPost.date)} · {blogPost.readingTime} min read
+              </span>
+            </span>
+          </Link>
+        )}
+      </section>
+    );
+  }
 
   return (
     <section className="mt-16" aria-labelledby="related-heading">

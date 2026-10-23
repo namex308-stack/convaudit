@@ -1,9 +1,13 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
 import { UploadCloud, X, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  FILE_SIZE_GUIDANCE,
+  validateToolFile,
+} from "@/lib/file-validation";
 
 export type UploadedFile = {
   file: File;
@@ -45,7 +49,26 @@ export function FileUploader({
   disabled = false,
 }: FileUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const validationErrorId = useId();
   const [isDragging, setIsDragging] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const addFiles = useCallback(
+    (selectedFiles: File[]) => {
+      const validFiles: File[] = [];
+      const errors: string[] = [];
+      for (const file of selectedFiles) {
+        const error = validateToolFile(file, accept);
+        if (error) errors.push(error);
+        else validFiles.push(file);
+      }
+      setValidationError(errors.length ? errors.join(" ") : null);
+      if (validFiles.length > 0 && onFilesAdded) {
+        onFilesAdded(multiple ? validFiles : [validFiles[0]]);
+      }
+    },
+    [accept, multiple, onFilesAdded]
+  );
 
   const handleDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>) => {
@@ -53,19 +76,15 @@ export function FileUploader({
       setIsDragging(false);
       if (disabled) return;
       const dropped = Array.from(e.dataTransfer.files);
-      if (dropped.length > 0 && onFilesAdded) {
-        onFilesAdded(multiple ? dropped : [dropped[0]]);
-      }
+      addFiles(multiple ? dropped : dropped.slice(0, 1));
     },
-    [disabled, multiple, onFilesAdded]
+    [addFiles, disabled, multiple]
   );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (disabled) return;
     const selected = e.target.files ? Array.from(e.target.files) : [];
-    if (selected.length > 0 && onFilesAdded) {
-      onFilesAdded(selected);
-    }
+    if (selected.length > 0) addFiles(selected);
     // Reset so the same file can be re-selected later
     if (inputRef.current) inputRef.current.value = "";
   };
@@ -81,6 +100,8 @@ export function FileUploader({
       <div
         role="button"
         tabIndex={0}
+        aria-label={`Upload files. ${hint ?? ""} ${FILE_SIZE_GUIDANCE}`}
+        aria-describedby={validationError ? validationErrorId : undefined}
         aria-disabled={disabled}
         onClick={() => !disabled && inputRef.current?.click()}
         onKeyDown={(e) => {
@@ -96,7 +117,7 @@ export function FileUploader({
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         className={cn(
-          "flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center transition-colors",
+          "flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           isDragging
             ? "border-primary bg-primary/5"
             : "border-border hover:border-primary/50 hover:bg-muted/30",
@@ -108,6 +129,7 @@ export function FileUploader({
           Drop files here, or click to browse
         </p>
         {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
+        <p className="mt-2 text-xs text-muted-foreground">{FILE_SIZE_GUIDANCE}</p>
       </div>
       <input
         ref={inputRef}
@@ -119,6 +141,16 @@ export function FileUploader({
         tabIndex={-1}
         disabled={disabled}
       />
+
+      {validationError && (
+        <p
+          id={validationErrorId}
+          className="mt-3 rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+          role="alert"
+        >
+          {validationError}
+        </p>
+      )}
 
       {files.length > 0 && (
         <ul className="mt-4 space-y-2">

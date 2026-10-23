@@ -7,7 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { FileUploader, type UploadedFile } from "./FileUploader";
+import { CancelOperationButton } from "./CancelOperationButton";
+import { useOperationCancellation } from "./useOperationCancellation";
 import { downloadBlob, formatBytes, shortId } from "@/lib/download";
+import { throwIfCancelled } from "@/lib/file-validation";
 
 type ResultItem = {
   name: string;
@@ -23,6 +26,7 @@ export function CompressImageTool() {
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<ResultItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const cancellation = useOperationCancellation();
 
   const handleFilesAdded = (newFiles: File[]) => {
     // Browsers may report an empty MIME type for some formats (notably
@@ -45,10 +49,21 @@ export function CompressImageTool() {
     setFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
-  const compressInBrowser = async (): Promise<ResultItem[]> => {
+  const handleProcessAnotherFile = () => {
+    setFiles([]);
+    setResults([]);
+    setError(null);
+    setProgress(0);
+    setQuality(70);
+  };
+
+  const compressInBrowser = async (
+    signal: AbortSignal
+  ): Promise<ResultItem[]> => {
     const imageCompression = (await import("browser-image-compression")).default;
     const out: ResultItem[] = [];
     for (let i = 0; i < files.length; i++) {
+      throwIfCancelled(signal);
       const f = files[i].file;
       const targetMb = Math.max(
         0.05,
@@ -59,7 +74,9 @@ export function CompressImageTool() {
         maxWidthOrHeight: 4096,
         useWebWorker: true,
         initialQuality: quality / 100,
+        signal,
       });
+      throwIfCancelled(signal);
       const baseName = f.name.replace(/\.[^.]+$/, "");
       const ext = f.name.split(".").pop()?.toLowerCase() || "jpg";
       out.push({
@@ -79,13 +96,19 @@ export function CompressImageTool() {
     setProgress(0);
     setError(null);
     setResults([]);
+    const controller = cancellation.start();
 
     try {
-      setResults(await compressInBrowser());
+      setResults(await compressInBrowser(controller.signal));
     } catch (err) {
-      console.error(err);
-      setError("Failed to compress one or more images. Please try again.");
+      if (controller.signal.aborted) {
+        setError("Compression cancelled. No partial results were saved.");
+      } else {
+        console.error(err);
+        setError("Failed to compress one or more images. Please try again.");
+      }
     } finally {
+      cancellation.finish(controller);
       setIsProcessing(false);
     }
   };
@@ -98,12 +121,12 @@ export function CompressImageTool() {
       </div>
 
       <FileUploader
-        accept="image/*"
+        accept="image/*,.heic,.heif,.tiff,.tif,.bmp,.gif,.avif"
         multiple
         files={files}
         onFilesAdded={handleFilesAdded}
         onFileRemove={handleRemove}
-        hint="Supports JPG, PNG, WebP. Batch processing is supported."
+        hint="Supports common image formats. Batch processing is supported."
         disabled={isProcessing}
       />
 
@@ -128,18 +151,24 @@ export function CompressImageTool() {
       </div>
 
       {error && (
-        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
           {error}
         </p>
       )}
 
       {isProcessing && (
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center justify-between gap-3 text-xs">
             <span className="flex items-center gap-1.5 text-muted-foreground">
               <Loader2 className="h-3 w-3 animate-spin" />
-              Compressing... {progress}%
+              {cancellation.isCancelling
+                ? "Stopping compression..."
+                : `Compressing... ${progress}%`}
             </span>
+            <CancelOperationButton
+              onCancel={cancellation.cancel}
+              isCancelling={cancellation.isCancelling}
+            />
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-muted">
             <div
@@ -168,22 +197,27 @@ export function CompressImageTool() {
 
       {results.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold">Results</h3>
-            {results.length > 1 && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={async () => {
-                  const zip = new JSZip();
-                  for (const r of results) zip.file(r.name, r.blob);
-                  const blob = await zip.generateAsync({ type: "blob" });
-                  downloadBlob(blob, "convaudit-compressed-images.zip");
-                }}
-              >
-                <Archive className="mr-1 h-3.5 w-3.5" /> Download all as ZIP
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" variant="outline" onClick={handleProcessAnotherFile}>
+                Process another file
               </Button>
-            )}
+              {results.length > 1 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    const zip = new JSZip();
+                    for (const r of results) zip.file(r.name, r.blob);
+                    const blob = await zip.generateAsync({ type: "blob" });
+                    downloadBlob(blob, "convaudit-compressed-images.zip");
+                  }}
+                >
+                  <Archive className="mr-1 h-3.5 w-3.5" /> Download all as ZIP
+                </Button>
+              )}
+            </div>
           </div>
           <ul className="space-y-2">
             {results.map((r, i) => {

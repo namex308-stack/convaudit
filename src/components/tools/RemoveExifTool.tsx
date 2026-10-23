@@ -30,7 +30,10 @@ import {
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { FileUploader, type UploadedFile } from "./FileUploader";
+import { CancelOperationButton } from "./CancelOperationButton";
+import { useOperationCancellation } from "./useOperationCancellation";
 import { downloadBlob, formatBytes, shortId } from "@/lib/download";
+import { throwIfCancelled } from "@/lib/file-validation";
 
 interface ExifDetails {
   make?: string;
@@ -58,7 +61,7 @@ interface ImageItem extends UploadedFile {
   cleanedBlob: Blob | null;
   cleanedSize?: number;
   tagsRemoved?: number;
-  status: "idle" | "parsing" | "ready" | "cleaning" | "done" | "error";
+  status: "idle" | "parsing" | "ready" | "cleaning" | "done" | "error" | "cancelled";
   errorMsg?: string;
 }
 
@@ -67,8 +70,10 @@ export function RemoveExifTool() {
   const [outputFormat, setOutputFormat] = useState<"original" | "image/jpeg" | "image/png" | "image/webp">("original");
   const [jpegQuality, setJpegQuality] = useState<number>(95);
   const [isProcessingAll, setIsProcessingAll] = useState(false);
+  const [activeCleanId, setActiveCleanId] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [activeExifModal, setActiveExifModal] = useState<ImageItem | null>(null);
+  const cancellation = useOperationCancellation();
 
   const parseExifData = async (file: File): Promise<ExifDetails> => {
     try {
@@ -181,11 +186,29 @@ export function RemoveExifTool() {
     });
   };
 
-  const cleanSingleImage = async (item: ImageItem): Promise<Blob> => {
+  const handleProcessAnotherFile = () => {
+    files.forEach((item) => URL.revokeObjectURL(item.objectUrl));
+    setFiles([]);
+    setActiveExifModal(null);
+    setProgress(0);
+    setOutputFormat("original");
+    setJpegQuality(95);
+  };
+
+  const cleanSingleImage = async (
+    item: ImageItem,
+    signal: AbortSignal
+  ): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
+      const onAbort = () => {
+        img.src = "";
+        reject(new DOMException("Operation cancelled.", "AbortError"));
+      };
       img.onload = () => {
+        signal.removeEventListener("abort", onAbort);
         try {
+          throwIfCancelled(signal);
           const canvas = document.createElement("canvas");
           canvas.width = img.naturalWidth || img.width;
           canvas.height = img.naturalHeight || img.height;
@@ -209,7 +232,9 @@ export function RemoveExifTool() {
 
           canvas.toBlob(
             (blob) => {
-              if (blob) {
+              if (signal.aborted) {
+                reject(new DOMException("Operation cancelled.", "AbortError"));
+              } else if (blob) {
                 resolve(blob);
               } else {
                 reject(new Error("Failed to export cleaned image"));
@@ -222,21 +247,28 @@ export function RemoveExifTool() {
           reject(err);
         }
       };
-      img.onerror = () => reject(new Error("Failed to load image into memory"));
+      img.onerror = () => {
+        signal.removeEventListener("abort", onAbort);
+        reject(new Error("Failed to load image into memory"));
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
       img.src = item.objectUrl;
     });
   };
 
   const handleCleanOne = async (id: string) => {
     const item = files.find((f) => f.id === id);
-    if (!item) return;
+    if (!item || isProcessingAll || activeCleanId) return;
+    const controller = cancellation.start();
+    setActiveCleanId(id);
 
     setFiles((prev) =>
       prev.map((it) => (it.id === id ? { ...it, status: "cleaning" } : it))
     );
 
     try {
-      const cleaned = await cleanSingleImage(item);
+      const cleaned = await cleanSingleImage(item, controller.signal);
+      throwIfCancelled(controller.signal);
       const tagsCount = item.exif?.tagCount || 0;
 
       setFiles((prev) =>
@@ -258,27 +290,37 @@ export function RemoveExifTool() {
           it.id === id
             ? {
                 ...it,
-                status: "error",
-                errorMsg: err instanceof Error ? err.message : "Cleaning failed",
+                status: controller.signal.aborted ? "cancelled" : "error",
+                errorMsg: controller.signal.aborted
+                  ? "Cleaning cancelled. You can try again."
+                  : err instanceof Error
+                    ? err.message
+                    : "Cleaning failed",
               }
             : it
         )
       );
+    } finally {
+      cancellation.finish(controller);
+      setActiveCleanId(null);
     }
   };
 
   const handleCleanAll = async () => {
-    if (files.length === 0) return;
+    if (files.length === 0 || activeCleanId) return;
     setIsProcessingAll(true);
     setProgress(0);
+    const controller = cancellation.start();
 
     for (let i = 0; i < files.length; i++) {
       const item = files[i];
+      if (controller.signal.aborted) break;
       try {
         setFiles((prev) =>
           prev.map((it) => (it.id === item.id ? { ...it, status: "cleaning" } : it))
         );
-        const cleaned = await cleanSingleImage(item);
+        const cleaned = await cleanSingleImage(item, controller.signal);
+        throwIfCancelled(controller.signal);
         const tagsCount = item.exif?.tagCount || 0;
 
         setFiles((prev) =>
@@ -300,16 +342,22 @@ export function RemoveExifTool() {
             it.id === item.id
               ? {
                   ...it,
-                  status: "error",
-                  errorMsg: err instanceof Error ? err.message : "Cleaning failed",
+                  status: controller.signal.aborted ? "cancelled" : "error",
+                  errorMsg: controller.signal.aborted
+                    ? "Cleaning cancelled. You can try again."
+                    : err instanceof Error
+                      ? err.message
+                      : "Cleaning failed",
                 }
               : it
           )
         );
+        if (controller.signal.aborted) break;
       }
       setProgress(Math.round(((i + 1) / files.length) * 100));
     }
 
+    cancellation.finish(controller);
     setIsProcessingAll(false);
   };
 
@@ -350,13 +398,13 @@ export function RemoveExifTool() {
     <div className="space-y-6">
       {/* Upload Zone */}
       <FileUploader
-        accept="image/*,.heic,.tiff,.tif"
+        accept="image/*,.heic,.heif,.tiff,.tif,.bmp,.avif"
         multiple
         files={files}
         onFilesAdded={handleFilesAdded}
         onFileRemove={handleRemove}
         hint="Upload JPG, PNG, WebP, or HEIC images to view and remove all EXIF, GPS location, and device metadata."
-        disabled={isProcessingAll}
+        disabled={isProcessingAll || Boolean(activeCleanId)}
       />
 
       {/* Global Alert if GPS Detected */}
@@ -386,6 +434,7 @@ export function RemoveExifTool() {
                 <Select
                   value={outputFormat}
                   onValueChange={(v: "original" | "image/jpeg" | "image/png" | "image/webp") => setOutputFormat(v)}
+                  disabled={isProcessingAll || Boolean(activeCleanId)}
                 >
                   <SelectTrigger id="output-format" className="w-45 h-9">
                     <SelectValue placeholder="Format" />
@@ -412,6 +461,7 @@ export function RemoveExifTool() {
                     step={1}
                     onValueChange={(val) => setJpegQuality(val[0])}
                     className="py-1"
+                    disabled={isProcessingAll || Boolean(activeCleanId)}
                   />
                 </div>
               )}
@@ -420,7 +470,7 @@ export function RemoveExifTool() {
             <div className="flex items-center gap-2">
               <Button
                 onClick={handleCleanAll}
-                disabled={isProcessingAll || files.length === 0}
+                disabled={isProcessingAll || Boolean(activeCleanId) || files.length === 0}
                 className="gap-2"
               >
                 {isProcessingAll ? (
@@ -437,22 +487,43 @@ export function RemoveExifTool() {
               </Button>
 
               {anyCleaned && (
-                <Button
-                  variant="outline"
-                  onClick={handleDownloadAllZip}
-                  className="gap-2"
-                >
-                  <Archive className="h-4 w-4" />
-                  Download ZIP
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleDownloadAllZip}
+                    className="gap-2"
+                  >
+                    <Archive className="h-4 w-4" />
+                    Download ZIP
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleProcessAnotherFile}
+                    disabled={isProcessingAll || Boolean(activeCleanId)}
+                  >
+                    Process another file
+                  </Button>
+                </>
               )}
             </div>
           </div>
 
           {isProcessingAll && (
-            <div className="space-y-1 pt-2">
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-muted-foreground">
+                  {cancellation.isCancelling
+                    ? "Stopping after the current image..."
+                    : `${progress}% completed`}
+                </p>
+                <CancelOperationButton
+                  onCancel={cancellation.cancel}
+                  isCancelling={cancellation.isCancelling}
+                  cancelLabel="Cancel after this image"
+                  cancellingLabel="Stopping after this image..."
+                />
+              </div>
               <Progress value={progress} className="h-2" />
-              <p className="text-xs text-muted-foreground text-right">{progress}% completed</p>
             </div>
           )}
         </div>
@@ -525,6 +596,7 @@ export function RemoveExifTool() {
                       variant="ghost"
                       size="sm"
                       onClick={() => setActiveExifModal(item)}
+                      disabled={isProcessingAll || Boolean(activeCleanId)}
                       className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
                     >
                       <Eye className="h-3.5 w-3.5" />
@@ -548,15 +620,26 @@ export function RemoveExifTool() {
                       </Button>
                     </div>
                   ) : item.status === "cleaning" ? (
-                    <Button size="sm" disabled className="h-8 gap-1.5 text-xs">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      Stripping...
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" disabled className="h-8 gap-1.5 text-xs">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Stripping...
+                      </Button>
+                      {!isProcessingAll && (
+                        <CancelOperationButton
+                          onCancel={cancellation.cancel}
+                          isCancelling={cancellation.isCancelling}
+                          cancelLabel="Cancel after this image"
+                          cancellingLabel="Stopping after this image..."
+                        />
+                      )}
+                    </div>
                   ) : (
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => handleCleanOne(item.id)}
+                      disabled={isProcessingAll || Boolean(activeCleanId)}
                       className="h-8 gap-1.5 text-xs"
                     >
                       <Sparkles className="h-3.5 w-3.5" />
@@ -568,11 +651,17 @@ export function RemoveExifTool() {
                     variant="ghost"
                     size="icon"
                     onClick={() => handleRemove(item.id)}
+                    disabled={isProcessingAll || Boolean(activeCleanId)}
                     className="h-8 w-8 text-muted-foreground hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
+                {item.errorMsg && (
+                  <p className="w-full text-xs text-destructive" role="status">
+                    {item.errorMsg}
+                  </p>
+                )}
               </div>
             );
           })}

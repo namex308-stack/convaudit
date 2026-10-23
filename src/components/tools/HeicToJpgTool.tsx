@@ -8,12 +8,16 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
 import { FileUploader, type UploadedFile } from "./FileUploader";
+import { CancelOperationButton } from "./CancelOperationButton";
+import { useOperationCancellation } from "./useOperationCancellation";
 import { downloadBlob, formatBytes, shortId } from "@/lib/download";
+import { throwIfCancelled } from "@/lib/file-validation";
 
 type ResultItem = {
   name: string;
   blob: Blob;
   size: number;
+  originalSize: number;
 };
 
 /**
@@ -28,6 +32,7 @@ export function HeicToJpgTool() {
   const [progress, setProgress] = useState(0);
   const [results, setResults] = useState<ResultItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const cancellation = useOperationCancellation();
 
   const handleFilesAdded = (newFiles: File[]) => {
     // Note: many browsers report HEIC files with an empty MIME type,
@@ -55,39 +60,57 @@ export function HeicToJpgTool() {
   const handleRemove = (id: string) =>
     setFiles((prev) => prev.filter((f) => f.id !== id));
 
+  const handleProcessAnotherFile = () => {
+    setFiles([]);
+    setResults([]);
+    setError(null);
+    setProgress(0);
+    setQuality(85);
+  };
+
   const handleConvert = async () => {
     if (files.length === 0) return;
     setIsProcessing(true);
     setProgress(0);
     setError(null);
     setResults([]);
+    const controller = cancellation.start();
 
     try {
       // Lazy-load heic2any — it touches `window` at import time, so we
       // can only import it from inside an event handler in the browser.
       const { default: heic2any } = await import("heic2any");
+      throwIfCancelled(controller.signal);
       const out: ResultItem[] = [];
       for (let i = 0; i < files.length; i++) {
+        throwIfCancelled(controller.signal);
         const f = files[i].file;
         const converted = (await heic2any({
           blob: f,
           toType: "image/jpeg",
           quality: quality / 100,
         })) as Blob | Blob[];
+        throwIfCancelled(controller.signal);
         const blob = Array.isArray(converted) ? converted[0] : converted;
         const baseName = f.name.replace(/\.[^.]+$/, "");
         out.push({
           name: `${baseName}.jpg`,
           blob,
           size: blob.size,
+          originalSize: f.size,
         });
         setProgress(Math.round(((i + 1) / files.length) * 100));
       }
       setResults(out);
     } catch (err) {
-      console.error(err);
-      setError("Failed to convert one or more HEIC files. They may be corrupted.");
+      if (controller.signal.aborted) {
+        setError("Conversion cancelled. No partial results were saved.");
+      } else {
+        console.error(err);
+        setError("Failed to convert one or more HEIC files. They may be corrupted.");
+      }
     } finally {
+      cancellation.finish(controller);
       setIsProcessing(false);
     }
   };
@@ -121,16 +144,29 @@ export function HeicToJpgTool() {
       </div>
 
       {error && (
-        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
           {error}
         </p>
       )}
 
       {isProcessing && (
         <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              {cancellation.isCancelling
+                ? "Stopping after the current image finishes..."
+                : `Converting... ${progress}%`}
+            </p>
+            <CancelOperationButton
+              onCancel={cancellation.cancel}
+              isCancelling={cancellation.isCancelling}
+              cancelLabel="Cancel after this image"
+              cancellingLabel="Stopping after this image..."
+            />
+          </div>
           <Progress value={progress} />
           <p className="text-xs text-muted-foreground">
-            Converting... {progress}% (HEIC decoding can take a few seconds per image)
+            HEIC decoding can take a few seconds per image.
           </p>
         </div>
       )}
@@ -149,22 +185,27 @@ export function HeicToJpgTool() {
 
       {results.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="text-sm font-semibold">Results</h3>
-            {results.length > 1 && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={async () => {
-                  const zip = new JSZip();
-                  for (const r of results) zip.file(r.name, r.blob);
-                  const blob = await zip.generateAsync({ type: "blob" });
-                  downloadBlob(blob, "convaudit-converted-jpgs.zip");
-                }}
-              >
-                <Archive className="mr-1 h-3.5 w-3.5" /> Download all as ZIP
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" variant="outline" onClick={handleProcessAnotherFile}>
+                Process another file
               </Button>
-            )}
+              {results.length > 1 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    const zip = new JSZip();
+                    for (const r of results) zip.file(r.name, r.blob);
+                    const blob = await zip.generateAsync({ type: "blob" });
+                    downloadBlob(blob, "convaudit-converted-jpgs.zip");
+                  }}
+                >
+                  <Archive className="mr-1 h-3.5 w-3.5" /> Download all as ZIP
+                </Button>
+              )}
+            </div>
           </div>
           <ul className="space-y-2">
             {results.map((r, i) => (
@@ -175,7 +216,7 @@ export function HeicToJpgTool() {
                 <div className="min-w-0">
                   <p className="truncate font-medium">{r.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {formatBytes(r.size)}
+                    {formatBytes(r.originalSize)} → {formatBytes(r.size)}
                   </p>
                 </div>
                 <Button
