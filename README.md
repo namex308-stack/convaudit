@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Deploy with Vercel](https://img.shields.io/badge/Deploy-Vercel-black?logo=vercel)](https://vercel.com/)
 
-**Live site:** [www.convaudit.com](https://www.convaudit.com)
+**Live site:** [convaudit.com](https://convaudit.com)
 
 ## Why Convaudit?
 
@@ -84,7 +84,7 @@ tests/                   Tests
 
 ## Privacy
 
-Image and PDF files handled by browser-based tools are processed locally and are not uploaded to Convaudit for those operations. Some YouTube tools request public information from YouTube or other services, and the YouTube Tags Extractor sends the video URL to the Convaudit server to retrieve public video-page data. Review the disclosure on each tool and the [privacy policy](https://www.convaudit.com/privacy) before use.
+Image and PDF files handled by browser-based tools are processed locally and are not uploaded to Convaudit for those operations. Some YouTube tools request public information from YouTube or other services, and the YouTube Tags Extractor sends the video URL to the Convaudit server to retrieve public video-page data. Review the disclosure on each tool and the [privacy policy](https://convaudit.com/privacy) before use.
 
 ## Contributing
 
