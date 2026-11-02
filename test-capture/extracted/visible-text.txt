@@ -1,0 +1,68 @@
+[span] Convaudit
+[span] Search
+[h1] Compress Images Online — Free, In-Browser
+[p] Compress Image reduces JPG, PNG, and WebP file sizes for easier sharing and storage. It is free, requires no account, and processes files locally in your browser, so image files are not sent to our server for compression. Add images, adjust quality, and download compressed files individually or together as a ZIP.
+[p] On this page
+[a] How does the free image compressor work?
+[a] Which image formats can you compress?
+[a] Are images processed privately in your browser?
+[a] How does this compare with online compressors?
+[a] What are common questions about image compression?
+[h2] How does the free image compressor work?
+[li] Select one or more JPG, PNG, or WebP images.
+[li] Set your preferred compression quality with the slider.
+[li] Start compression and wait for the progress indicator to finish.
+[li] Download each result individually or save them together as a ZIP file.
+[h2] Which image formats can you compress?
+[p] Compress JPG, PNG, and WebP images. The tool accepts most common image formats, though the output depends on the source format and browser support. Check the downloaded image to confirm it looks right and uses the format you expect.
+[h2] Are images processed privately in your browser?
+[p] Runs locally in browser. The selected image files are not uploaded or sent to our server for compression. The browser performs the work on your device, so available memory and processing speed can affect how quickly large images finish.
+[h2] How does this compare with online compressors?
+[th] Approach
+[th] Where processing happens
+[th] Consideration
+[th] Convaudit Compress Image
+[td] Locally in your browser
+[td] Uses your device's memory and processing capacity
+[th] Upload-based compressor
+[td] On the provider's service after upload
+[td] Requires sending image files to that provider
+[h2] What are common questions about image compression?
+[dt] Do my images leave my device during compression?
+[dd] No. Image compression happens on your device using browser-based processing; selected image files are not sent to our server for compression. The page still needs an internet connection to load, but the image contents remain in your browser during the compression operation.
+[dt] What does image compression cost?
+[dd] Nothing. The tool is free to use and does not require an account or subscription. Select images, adjust the quality setting, and download the compressed copies without paying. Your internet connection may be needed to load the page, but compression itself runs in your browser rather than sending the image files to a paid service.
+[dt] Which image formats can I compress?
+[dd] JPG, PNG, and WebP are the primary supported formats for compression. The tool also accepts most common image formats, but output behavior can depend on the source type and browser support. For reliable results, use JPG, PNG, or WebP images and check the downloaded file before sharing it.
+[dt] Will compressing an image reduce its quality?
+[dd] Yes. Lossy compression can reduce image detail, especially at lower quality settings. Use the quality control to balance smaller files against visual clarity, then preview the downloaded result. PNG may remain lossless depending on the source and output encoding, so compare the result rather than assuming every format behaves identically.
+[time] Last updated:
+[time] October 2026
+[address] Written by
+[a] Convaudit Team
+[div] Images are compressed in your browser; the image files are not sent to our server.
+[p] Drop files here, or click to browse
+[p] Supports common image formats. Batch processing is supported.
+[p] No fixed size limit. Very large files may be constrained by your device's available memory.
+[label] Quality
+[p] Lower quality = smaller file size. Try 60-80 for photos, 80-95 for screenshots.
+[button] Compress  Images
+[span] Convaudit
+[p] Free tools for everyday work. Image and PDF files stay on your device; YouTube tools clearly explain when a video URL is shared.
+[h3] Categories
+[h3] Information
+[a] Privacy Policy
+[button] Privacy settings
+[a] Terms of Service
+[h3] Popular tools
+[a] Compress Image
+[a] HEIC to JPG
+[a] Compress PDF
+[p] Convaudit
+[p] . Processing and data sharing vary by tool.
+[h2] Privacy choices
+[p] Optional analytics (
+[p] Google Analytics 4, Vercel Analytics, and Vercel Speed Insights
+[p] are off unless you allow them. This choice is saved in this browser and can be changed later with Privacy settings.
+[button] Reject optional
+[button] Allow optional

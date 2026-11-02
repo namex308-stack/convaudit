@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "historyId": "093b57ac-b8e7-463d-a181-1a0211cb96dc",
+  "currentRevision": null,
+  "pendingChanges": false,
+  "files": {
+    "AGENTS.md": {
+      "hash": "1b36171117cb7c18f4100a0db6a3782ff2e096115995733200445cc2e80a4060",
+      "content": "C:\\Users\\IT\\.cache\\hyperframes\\history\\093b57ac-b8e7-463d-a181-1a0211cb96dc\\blobs\\1b\\1b36171117cb7c18f4100a0db6a3782ff2e096115995733200445cc2e80a4060"
+    },
+    "CLAUDE.md": {
+      "hash": "1b36171117cb7c18f4100a0db6a3782ff2e096115995733200445cc2e80a4060",
+      "content": "C:\\Users\\IT\\.cache\\hyperframes\\history\\093b57ac-b8e7-463d-a181-1a0211cb96dc\\blobs\\1b\\1b36171117cb7c18f4100a0db6a3782ff2e096115995733200445cc2e80a4060"
+    },
+    "hyperframes.json": {
+      "hash": "53dbce1e19aa713cbb12ee0bc4d206143b45ab15e6ffbfcaa8f69572d4d24d50",
+      "content": "C:\\Users\\IT\\.cache\\hyperframes\\history\\093b57ac-b8e7-463d-a181-1a0211cb96dc\\blobs\\53\\53dbce1e19aa713cbb12ee0bc4d206143b45ab15e6ffbfcaa8f69572d4d24d50"
+    },
+    "index.html": {
+      "hash": "f647f277b2a0acb4998a7f79a757efbc20f620e4fc95407bd99ee36732764a62",
+      "content": "C:\\Users\\IT\\.cache\\hyperframes\\history\\093b57ac-b8e7-463d-a181-1a0211cb96dc\\blobs\\f6\\f647f277b2a0acb4998a7f79a757efbc20f620e4fc95407bd99ee36732764a62"
+    },
+    "meta.json": {
+      "hash": "062f64e91ec222e1f2b19bfdde40610646ca0292d505baecec293cdd560665c1",
+      "content": "C:\\Users\\IT\\.cache\\hyperframes\\history\\093b57ac-b8e7-463d-a181-1a0211cb96dc\\blobs\\06\\062f64e91ec222e1f2b19bfdde40610646ca0292d505baecec293cdd560665c1"
+    },
+    "package.json": {
+      "hash": "eded6cbf61d562c386c2b8943d305b598b387a145693a9d6da619c73643d5540",
+      "content": "C:\\Users\\IT\\.cache\\hyperframes\\history\\093b57ac-b8e7-463d-a181-1a0211cb96dc\\blobs\\ed\\eded6cbf61d562c386c2b8943d305b598b387a145693a9d6da619c73643d5540"
+    }
+  },
+  "revisions": {},
+  "checks": {
+    "latest": null,
+    "revisions": {},
+    "unversioned": []
+  },
+  "snapshots": {
+    "latest": null,
+    "revisions": {},
+    "unversioned": []
+  },
+  "renders": {
+    "latest": {
+      "id": "463adfca-1a8b-4d56-a543-e0584d2f79f7",
+      "completedAt": 1793114952847,
+      "output": "C:\\Users\\IT\\Downloads\\convaudit\\test-capture\\first-video.mp4",
+      "status": "completed",
+      "revision": null
+    },
+    "retainedRevisions": []
+  },
+  "pendingArtifactCleanup": []
+}
