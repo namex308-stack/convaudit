@@ -1,3 +1,4 @@
+const followerGrowthCalculator = {
 slug: "follower-growth-calculator",
 description: "Calculate follower growth or decline between two audience counts. Free calculator runs in your browser.",
 keywords: ["calculate follower growth percentage over time", "measure audience growth between two counts", "find net followers gained or lost", "social account growth rate calculator", "compare audience size across two dates", "calculate creator follower change percentage", "track monthly social audience growth", "check follower decline between periods", "free browser based follower growth tool", "calculate audience percentage change online", "compare follower growth across campaigns", "how to calculate follower growth rate"],
@@ -9,3 +10,6 @@ faqs: [
   { q: "Does the calculator connect to my social account?", a: "No. Enter the starting and ending counts yourself; the calculator does not connect to an account or fetch audience data. The calculation runs in your browser. Use counts from comparable dates and sources, since the result depends on the figures you enter." }
 ],
 howToSteps: ["Enter the follower count at the start of the period.", "Enter the follower count at the end of the period.", "Review the percentage growth rate and net follower change.", "Compare the result with a previous period measured in the same way."]
+};
+
+export default followerGrowthCalculator;
