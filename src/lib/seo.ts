@@ -40,7 +40,6 @@ export function buildToolMetadata(tool: Tool): Metadata {
       canonical,
       languages: {
         en: canonical,
-        ar: canonical,
       },
     },
     openGraph: {
@@ -87,7 +86,6 @@ export function buildCalculatorMetadata(calculator: {
       canonical,
       languages: {
         en: canonical,
-        ar: canonical,
       },
     },
     openGraph: {
@@ -138,7 +136,6 @@ export function buildBlogPostMetadata(post: {
       canonical,
       languages: {
         en: canonical,
-        ar: canonical,
       },
     },
     openGraph: {
@@ -190,7 +187,6 @@ export function buildStaticPageMetadata(options: {
       canonical,
       languages: {
         en: canonical,
-        ar: canonical,
       },
     },
     openGraph: {
