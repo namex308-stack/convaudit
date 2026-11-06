@@ -74,3 +74,8 @@ videos/
 *.mp4
 .env
 .env.local
+
+# local tooling / screenshots
+.playwright-mcp/
+download/
+*.tsbuildinfo

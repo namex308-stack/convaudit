@@ -1222,6 +1222,16 @@ export const TOOLS: Tool[] = [
   },
 ];
 
+/**
+ * Accepts only a real AdSense publisher ID (ca-pub- + 16 digits).
+ * Placeholder values such as "ca-pub-XXXXXXXXXXXXXXXX" are ignored so they
+ * never leak into the page HTML or load a broken ad script.
+ */
+function sanitizeAdsenseClient(value: string | undefined): string {
+  const client = (value || "").trim();
+  return /^ca-pub-\d{16}$/.test(client) ? client : "";
+}
+
 /** Site-wide config used for metadata, sitemap, and JSON-LD */
 export const SITE_CONFIG = {
   name: "Convaudit",
@@ -1229,7 +1239,7 @@ export const SITE_CONFIG = {
   description:
     "Free tools for images, PDFs and YouTube creator tasks. Processing and data sharing vary by tool; see each tool's privacy badge.",
   url: "https://convaudit.com",
-  adsenseClient: (process.env.NEXT_PUBLIC_ADSENSE_CLIENT || "").trim(),
+  adsenseClient: sanitizeAdsenseClient(process.env.NEXT_PUBLIC_ADSENSE_CLIENT),
   analyticsProvider:
     "Google Analytics 4, Vercel Analytics, and Vercel Speed Insights",
   analyticsMeasurementId: "G-MDR2NP5CJ3",

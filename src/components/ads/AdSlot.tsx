@@ -58,8 +58,11 @@ export function AdSlot({
   const [shouldRender, setShouldRender] = useState(false);
 
   // Hide non-essential ads when the user has enabled reduced-ads mode
+  // Slot IDs made of one repeated digit (e.g. "2222222222") are placeholders.
+  const isPlaceholderSlot = /^(\d)\1{9}$/.test(slot);
   const isHidden =
     !SITE_CONFIG.adsenseClient ||
+    isPlaceholderSlot ||
     !optionalAllowed ||
     (importance === "standard" && mode === "reduced");
 

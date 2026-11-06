@@ -27,7 +27,12 @@ const geistMono = Geist_Mono({
   display: "swap",
 });
 
-const googleSearchConsoleToken = (process.env.NEXT_PUBLIC_GSC_TOKEN || "").trim();
+const rawGscToken = (process.env.NEXT_PUBLIC_GSC_TOKEN || "").trim();
+// Ignore placeholder values (e.g. "GOOGLE_SEARCH_CONSOLE_VERIFICATION_TOKEN").
+const googleSearchConsoleToken = /^[A-Za-z0-9_-]{20,}$/.test(rawGscToken) &&
+  !/TOKEN|PLACEHOLDER|XXXX/i.test(rawGscToken)
+  ? rawGscToken
+  : "";
 
 /**
  * Global metadata — applies to every page unless overridden.
@@ -167,12 +172,6 @@ export default function RootLayout({
                 url: SITE_CONFIG.url,
                 logo: `${SITE_CONFIG.url}/logo.svg`,
                 description: SITE_CONFIG.description,
-                // Replace with your real social profiles when available.
-                sameAs: [
-                  "https://twitter.com/convaudit",
-                  "https://github.com/convaudit",
-                  "https://www.youtube.com/@convaudit",
-                ],
               }),
             }}
           />
