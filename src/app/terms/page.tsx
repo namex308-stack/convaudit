@@ -15,7 +15,7 @@ export default function TermsPage() {
         Terms of Use
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Last updated: October 19, 2026
+        Last updated: November 6, 2026
       </p>
 
       <div className="mt-10 space-y-8">
@@ -90,16 +90,11 @@ export default function TermsPage() {
 
         <section>
           <h2 className="text-lg font-semibold tracking-tight">
-            Changes and governing law
+            Changes
           </h2>
           <p className="mt-3 leading-relaxed text-muted-foreground">
             We may revise these terms by posting an updated version on this
-            page and changing the date above. These terms are governed by the
-            law of{" "}
-            <strong className="text-foreground">
-              [TODO_OWNER: jurisdiction]
-            </strong>
-            , subject to any mandatory rules that apply.
+            page and changing the date above.
           </p>
         </section>
 
@@ -117,17 +112,6 @@ export default function TermsPage() {
           </p>
         </section>
 
-        <section className="rounded-lg border border-dashed p-4">
-          <h2 className="font-semibold">
-            TODO_OWNER: confirm before publication
-          </h2>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-            <li>TODO_OWNER: Choose and verify the governing-law jurisdiction.</li>
-            <li>
-              TODO_OWNER: Confirm legal@convaudit.com is active and monitored.
-            </li>
-          </ul>
-        </section>
       </div>
     </article>
   );

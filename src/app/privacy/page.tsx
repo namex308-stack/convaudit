@@ -16,7 +16,7 @@ export default function PrivacyPage() {
         Privacy Policy
       </h1>
       <p className="mt-2 text-sm text-muted-foreground">
-        Last updated: October 19, 2026
+        Last updated: November 6, 2026
       </p>
 
       <div className="mt-10 space-y-8">
@@ -58,8 +58,8 @@ export default function PrivacyPage() {
             Like any website, our hosting provider receives connection and
             request information needed to serve the site, such as IP address,
             browser details, and requested URL. Hosting and network providers
-            may keep logs. We do not have confirmed retention details for
-            those logs yet; see the owner checklist below.
+            may keep logs. We do not have confirmed retention periods for
+            those logs.
           </p>
         </section>
 
@@ -162,29 +162,6 @@ export default function PrivacyPage() {
           </p>
         </section>
 
-        <section className="rounded-lg border border-dashed p-4">
-          <h2 className="font-semibold">
-            TODO_OWNER: confirm before publication
-          </h2>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-            <li>
-              TODO_OWNER: Confirm hosting and network providers, their log
-              fields, and retention periods.
-            </li>
-            <li>
-              TODO_OWNER: Confirm actual analytics and AdSense deployment,
-              consent requirements, and provider retention links.
-            </li>
-            <li>
-              TODO_OWNER: Confirm children&apos;s age scope and handling
-              procedure.
-            </li>
-            <li>
-              TODO_OWNER: Confirm privacy@convaudit.com is active and
-              monitored.
-            </li>
-          </ul>
-        </section>
       </div>
     </article>
   );

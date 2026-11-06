@@ -3,9 +3,9 @@ import { buildStaticPageMetadata } from "@/lib/seo";
 import { TOOLS, SITE_CONFIG, type ToolPrivacyMode } from "@/lib/tools";
 
 export const metadata: Metadata = buildStaticPageMetadata({
-  title: "About the Site",
+  title: "About",
   description:
-    "Learn who runs Convaudit, how its images, PDFs and YouTube creator tools work, and how to contact the site.",
+    "Meet Ali Hashim Ali, founder and lead developer of Convaudit, and learn how its free image, PDF and creator tools handle your data.",
   path: "/about",
 });
 
@@ -29,24 +29,40 @@ export default function AboutPage() {
         About {SITE_CONFIG.name}
       </h1>
       <p className="mt-4 leading-relaxed text-muted-foreground">
-        {SITE_CONFIG.name} is operated by{" "}
-        <strong className="text-foreground">
-          [TODO_OWNER: operator&apos;s name or registered brand]
-        </strong>
-        , based in{" "}
-        <strong className="text-foreground">[TODO_OWNER: country]</strong>.
-        The site offers practical tools for images, PDFs and YouTube creator
-        tasks without requiring an account.
+        {SITE_CONFIG.name} offers free online tools for processing images and
+        PDF files, along with utilities for YouTube and social media content
+        creators. Our goal is to make everyday digital tasks simpler and
+        faster with clear, easy-to-use tools that do not require an account.
       </p>
 
       <section className="mt-8 space-y-3">
         <h2 className="text-xl font-semibold tracking-tight">Our mission</h2>
         <p className="leading-relaxed text-muted-foreground">
-          Make everyday file and creator workflows straightforward, explain
-          what each tool does, and be clear about where its inputs are
-          processed. Image and PDF files are processed in your browser. Some
-          YouTube tools request public data from YouTube or another provider;
-          only the Tags Extractor sends a video URL to our server.
+          Privacy is central to what we do. Our image and PDF tools are
+          designed to work directly in your browser without requiring you to
+          upload files to external servers. We aim to explain clearly how data
+          is handled, so you know what happens to your files when you use our
+          tools. We value simplicity, transparency, and making useful tools
+          accessible to everyone.
+        </p>
+      </section>
+
+      <section className="mt-8 space-y-3">
+        <h2 className="text-xl font-semibold tracking-tight">
+          About the founder
+        </h2>
+        <p className="leading-relaxed text-muted-foreground">
+          I&apos;m Ali Hashim Ali, founder and lead developer of Convaudit. I
+          work in programming and web development, and I care about building
+          digital tools that are useful, easy to use, and respectful of the
+          privacy of the people who rely on them.
+        </p>
+        <p className="leading-relaxed text-muted-foreground">
+          I launched Convaudit to offer practical tools for images, PDF files,
+          and content creators while reducing the need to send personal files
+          to external services. I aim to develop the site to meet users&apos;
+          needs while remaining clear about how its tools work and what data
+          they handle.
         </p>
       </section>
 
@@ -60,7 +76,7 @@ export default function AboutPage() {
           the table calls those out where they apply.
         </p>
         <div className="overflow-x-auto rounded-lg border">
-          <table className="w-full min-w-[36rem] text-left text-sm">
+          <table className="w-full min-w-xl text-left text-sm">
             <thead className="bg-muted/50">
               <tr>
                 <th scope="col" className="px-4 py-3 font-semibold">
@@ -92,10 +108,9 @@ export default function AboutPage() {
           How the site is supported
         </h2>
         <p className="leading-relaxed text-muted-foreground">
-          The site is supported by advertising. Google AdSense is used when an
-          advertising account is configured and you allow optional
-          advertising. Optional analytics and advertising can be changed in
-          Privacy settings.
+          Optional advertising helps us continue to offer our tools for free.
+          Advertising and analytics preferences can be changed in Privacy
+          settings.
         </p>
       </section>
 
@@ -120,19 +135,6 @@ export default function AboutPage() {
         </p>
       </section>
 
-      <section className="mt-8 rounded-lg border border-dashed p-4">
-        <h2 className="font-semibold">TODO_OWNER: before publication</h2>
-        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-          <li>
-            TODO_OWNER: Replace the operator name/brand and country
-            placeholders.
-          </li>
-          <li>
-            TODO_OWNER: Confirm both contact addresses are active and
-            monitored.
-          </li>
-        </ul>
-      </section>
     </article>
   );
 }

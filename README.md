@@ -1,6 +1,6 @@
 # Convaudit
 
-Free browser-based tools and calculators for images, PDFs, social media, and YouTube — no sign-up.
+Free tools for processing images and PDFs, plus utilities for YouTube and social media creators — no account required.
 
 [![Next.js](https://img.shields.io/badge/Next.js-App_Router-black?logo=next.js)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript)](https://www.typescriptlang.org/)
@@ -93,6 +93,10 @@ tests/                   Tests
 ## Privacy
 
 Image and PDF files handled by browser-based tools are processed locally and are not uploaded to Convaudit for those operations. Some YouTube tools request public information from YouTube or other services, and the YouTube Tags Extractor sends the video URL to the Convaudit server to retrieve public video-page data. Review the disclosure on each tool and the [privacy policy](https://convaudit.com/privacy) before use.
+
+## About Convaudit
+
+Convaudit is founded and developed by Ali Hashim Ali. The site aims to make useful image, PDF, and creator tools simple to use while respecting user privacy and being clear about how each tool handles data. Learn more on the [About page](https://convaudit.com/about).
 
 ## Contributing
 

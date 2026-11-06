@@ -21,7 +21,6 @@ export const metadata: Metadata = {
     canonical: "/blog",
     languages: {
       en: `${SITE_CONFIG.url}/blog`,
-      ar: `${SITE_CONFIG.url}/blog`,
     },
   },
   openGraph: {
