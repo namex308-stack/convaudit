@@ -14,8 +14,11 @@ import {
 } from "@/components/ui/breadcrumb";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { JsonLd } from "@/components/JsonLd";
+import { ContentAttribution } from "@/components/seo/ContentAttribution";
+import { RelatedGuide } from "@/components/seo/RelatedGuide";
 import { getAllPosts, getPostBySlug, formatDate } from "@/lib/blog";
-import { SITE_CONFIG } from "@/lib/tools";
+import { SITE_CONFIG, getToolBySlug } from "@/lib/tools";
 import { buildBlogPostMetadata } from "@/lib/seo";
 import { AdSlot } from "@/components/ads/AdSlot";
 
@@ -59,6 +62,12 @@ export default async function BlogPostPage({
   const { slug } = await params;
   const post = getPostBySlug(slug);
   if (!post) notFound();
+  const primaryTool = post.toolSlug ? getToolBySlug(post.toolSlug) : undefined;
+  if (!primaryTool) {
+    throw new Error(`Missing primary tool for blog post: ${post.slug}`);
+  }
+  const [intro, ...bodySections] = post.content.trim().split(/\r?\n\s*\r?\n/);
+  const articleBody = bodySections.join("\n\n");
 
   // JSON-LD Article structured data for rich results.
   const articleLd = {
@@ -71,6 +80,7 @@ export default async function BlogPostPage({
     author: {
       "@type": "Organization",
       name: post.author,
+      url: `${SITE_CONFIG.url}/about`,
     },
     publisher: {
       "@type": "Organization",
@@ -93,17 +103,24 @@ export default async function BlogPostPage({
       { "@type": "ListItem", position: 3, name: post.title, item: `${SITE_CONFIG.url}/blog/${post.slug}` },
     ],
   };
+  const faqLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: post.faqs.map(({ question, answer }) => ({
+      "@type": "Question",
+      name: question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: answer,
+      },
+    })),
+  };
 
   return (
     <article className="mx-auto max-w-3xl px-5 py-12 sm:px-6 lg:px-8">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
-      />
+      <JsonLd data={articleLd} />
+      <JsonLd data={faqLd} />
+      <JsonLd data={breadcrumbLd} />
 
       <Breadcrumb className="mb-8">
         <BreadcrumbList>
@@ -151,7 +168,9 @@ export default async function BlogPostPage({
           <span aria-hidden>·</span>
           <span>{post.readingTime} min read</span>
           <span aria-hidden>·</span>
-          <span>{post.author}</span>
+          <Link href="/about" className="underline underline-offset-4">
+            {post.author}
+          </Link>
         </div>
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
           {post.title}
@@ -176,29 +195,42 @@ export default async function BlogPostPage({
       {/* Markdown body */}
       <div className="prose mt-10">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>
-          {post.content}
+          {intro}
         </ReactMarkdown>
+        <p>
+          Use the{" "}
+          <Link href={`/tools/${primaryTool.slug}`}>{primaryTool.name}</Link>{" "}
+          to follow the steps in this guide.
+        </p>
+      </div>
+
+      <div className="prose mt-6">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{articleBody}</ReactMarkdown>
       </div>
 
       {/* Ad below the body */}
       <AdSlot slot="8888888888" label="Advertisement" />
 
-      <aside className="mt-10 rounded-xl border border-border/70 bg-muted/30 p-5 sm:p-6">
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          About the author
+      <section className="mt-10 rounded-xl border border-primary/20 bg-primary/5 p-5 sm:p-6">
+        <h2 className="text-xl font-semibold tracking-tight">
+          Ready to use {primaryTool.name}?
+        </h2>
+        <p className="mt-2 leading-relaxed text-muted-foreground">
+          <Link
+            href={`/tools/${primaryTool.slug}`}
+            className="font-medium text-primary underline-offset-4 hover:underline"
+          >
+            Open the {primaryTool.name}
+          </Link>{" "}
+          to apply the steps in this guide.
         </p>
-        <p className="mt-1 font-semibold">{post.author}</p>
-        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          The Convaudit Team publishes practical guides to help readers choose
-          and use online tools with confidence.
-        </p>
-        <p className="mt-4 text-sm text-muted-foreground">
-          Last updated{" "}
-          <time dateTime={post.modifiedDate ?? post.date} className="font-medium text-foreground">
-            {formatDate(post.modifiedDate ?? post.date)}
-          </time>
-        </p>
-      </aside>
+      </section>
+
+      <RelatedGuide toolSlug={primaryTool.slug} toolName={primaryTool.name} />
+      <ContentAttribution
+        author={post.author}
+        lastUpdated={post.modifiedDate ?? post.date}
+      />
 
       <div className="mt-12 border-t border-border/60 pt-8">
         <Button asChild variant="outline" size="sm">

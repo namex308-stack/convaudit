@@ -478,7 +478,8 @@ export function RemoveBackgroundTool() {
         <section className="space-y-3" aria-label="Image processing queue">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-semibold">
-              Images ({completedCount} of {files.length} complete)
+              What is the image processing progress? ({completedCount} of{" "}
+              {files.length} complete)
             </h2>
             {completedCount > 1 && (
               <Button

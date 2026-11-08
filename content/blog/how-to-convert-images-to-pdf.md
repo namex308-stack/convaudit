@@ -2,7 +2,7 @@
 title: "Convert Images to PDF: Page Order, Size, and Quality"
 description: "Learn how to convert photos and scans to PDF, choose A4, Letter, or image-fit pages, set page order, and check readability and file size before sharing."
 date: "2026-02-20"
-modifiedDate: "2026-11-02"
+modifiedDate: "2026-11-08"
 author: "Convaudit Team"
 tags: ["convert images to PDF", "image to PDF", "photo PDF"]
 toolSlug: "image-to-pdf"
@@ -11,7 +11,7 @@ coverImage: ""
 
 Converting images to PDF is useful when a form, email, or document portal accepts one file instead of a collection of photos. Before exporting, decide the page order and whether each image should fill the page or sit on a standard paper size.
 
-## Prepare images before converting them to PDF
+## How should you prepare images before converting them to PDF?
 
 1. Choose the clearest version of each image. Retake blurry or unreadable pages instead of expecting PDF conversion to restore detail.
 2. Put the files in reading order. For a multipage scan, check that the first page comes first.
@@ -20,7 +20,7 @@ Converting images to PDF is useful when a form, email, or document portal accept
 
 For browser-based image resizing before creating the document, use the [Compress Image tool](/tools/compress-image). Review the exported image before adding it to a PDF.
 
-## Choose page size and fit
+## How do you choose PDF page size and image fit?
 
 - **Fit to image** keeps a page close to the image’s proportions, which can be useful for receipts and photographs.
 - **A4, Letter, or Legal** gives every page a standard paper size for printing or submission.
@@ -30,7 +30,7 @@ The best choice depends on where the PDF will be viewed or printed. Check any re
 
 For scanned documents, inspect a page at normal reading size after export. A page can look sharp when zoomed in but still be difficult to read on a phone or after printing.
 
-## Create one PDF from your images
+## How do you create one PDF from your images?
 
 1. Open the [Image to PDF tool](/tools/image-to-pdf).
 2. Add your supported image files and move them into the intended page order.
@@ -41,7 +41,7 @@ The tool creates the PDF in your browser. Photo pages remain image content in th
 
 If your goal is to turn an existing PDF into image files, use the [PDF to Image tool](/tools/pdf-to-image). To combine existing documents instead, use the [Merge PDF tool](/tools/merge-pdf). For an oversized result, see the guide to [reducing PDF file size](/blog/reduce-pdf-file-size).
 
-## Frequently Asked Questions
+## What are common questions about converting images to PDF?
 
 ### How do I combine multiple images into one PDF?
 

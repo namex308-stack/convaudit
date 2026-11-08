@@ -11,10 +11,14 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { AdSlot } from "@/components/ads/AdSlot";
+import { JsonLd } from "@/components/JsonLd";
+import { ContentAttribution } from "@/components/seo/ContentAttribution";
+import { RelatedGuide } from "@/components/seo/RelatedGuide";
 import { RelatedTools } from "./RelatedTools";
 import { getToolPrivacyDetail, ToolPrivacyBadge } from "./ToolPrivacyBadge";
 import { SITE_CONFIG, type Tool } from "@/lib/tools";
 import { getToolContent } from "@/lib/tool-content";
+import { SEO_CONTENT_UPDATED_DATE } from "@/lib/seo";
 
 type ToolLayoutProps = {
   tool: Tool;
@@ -45,7 +49,7 @@ export function ToolLayout({ tool, children }: ToolLayoutProps) {
     "@type": "SoftwareApplication",
     name: tool.name,
     applicationCategory: "UtilitiesApplication",
-    operatingSystem: "Any (web-based)",
+    operatingSystem: "Any",
     description: tool.description,
     url: toolUrl,
     offers: {
@@ -53,6 +57,10 @@ export function ToolLayout({ tool, children }: ToolLayoutProps) {
       price: "0",
       priceCurrency: "USD",
     },
+    featureList: [
+      ...(tool.privacyMode === "browser" ? ["Runs locally in browser"] : []),
+      ...tool.howToSteps,
+    ],
   };
 
   // FAQPage — eligible for rich results in Google search.
@@ -113,23 +121,10 @@ export function ToolLayout({ tool, children }: ToolLayoutProps) {
 
   return (
     <article className="mx-auto max-w-7xl px-5 py-10 sm:px-6 lg:px-8">
-      {/* Structured data for SEO */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
-      />
+      <JsonLd data={softwareAppLd} />
+      <JsonLd data={faqLd} />
+      <JsonLd data={howToLd} />
+      <JsonLd data={breadcrumbLd} />
 
       <Breadcrumb className="mb-6">
         <BreadcrumbList>
@@ -170,7 +165,9 @@ export function ToolLayout({ tool, children }: ToolLayoutProps) {
           {tool.name}
         </h1>
         <p className="mt-3 text-base leading-relaxed text-muted-foreground sm:text-lg">
-          {tool.description}
+          {tool.description} Use the controls below to run it online; this free tool
+          needs no account. Review the result and check the notes about support
+          and data handling before downloading or sharing it.
         </p>
         <div className="mt-3">
           <ToolPrivacyBadge mode={tool.privacyMode} />
@@ -201,7 +198,7 @@ export function ToolLayout({ tool, children }: ToolLayoutProps) {
             <div className="flex items-center gap-2">
               <ListChecks className="size-4 text-primary" aria-hidden />
               <h2 id="how-it-works-heading" className="text-sm font-semibold">
-                How it works
+                How do you use {tool.name}?
               </h2>
             </div>
             <ol className="mt-4 space-y-3">
@@ -226,7 +223,7 @@ export function ToolLayout({ tool, children }: ToolLayoutProps) {
             <div className="flex items-center gap-2">
               <ShieldCheck className="size-4 text-teal" aria-hidden />
               <h2 id="privacy-note-heading" className="text-sm font-semibold">
-                Privacy note
+                How does this tool handle your data?
               </h2>
             </div>
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
@@ -256,6 +253,8 @@ export function ToolLayout({ tool, children }: ToolLayoutProps) {
         </section>
       )}
 
+      <RelatedGuide toolSlug={tool.slug} toolName={tool.name} />
+
       <AdSlot slot="3333333333" label="Advertisement" />
 
       {/* FAQ */}
@@ -264,7 +263,7 @@ export function ToolLayout({ tool, children }: ToolLayoutProps) {
           id="faq-heading"
           className="text-xl font-semibold tracking-tight sm:text-2xl"
         >
-          Frequently Asked Questions
+          What do people ask about {tool.name}?
         </h2>
         <div className="mt-5 divide-y divide-border/60 rounded-lg border border-border/60">
           {tool.faqs.map((faq, i) => (
@@ -279,6 +278,11 @@ export function ToolLayout({ tool, children }: ToolLayoutProps) {
           ))}
         </div>
       </section>
+
+      <ContentAttribution
+        author="Convaudit Team"
+        lastUpdated={SEO_CONTENT_UPDATED_DATE}
+      />
     </article>
   );
 }

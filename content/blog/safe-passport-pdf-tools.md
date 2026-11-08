@@ -2,14 +2,14 @@
 title: "Is It Safe to Upload a Passport Scan to PDF Tools?"
 description: "Is uploading a passport PDF safe? Check a tool's privacy, file processing, and retention practices before using online PDF tools for identity documents."
 date: "2026-11-02"
-modifiedDate: "2026-11-02"
+modifiedDate: "2026-11-08"
 author: "Convaudit Team"
 tags: ["passport scan privacy", "PDF privacy", "local PDF processing", "document security"]
 toolSlug: "merge-pdf"
 coverImage: ""
 ---
 
-A passport scan can contain your full name, date of birth, passport number, photograph, and other identifying details. Before using an online PDF tool, ask where the file is processed, who can access it, how long it is retained, and whether you need to use an online service at all. The answer to “is uploading a passport PDF safe?” depends on the tool, the document, and your reason for handling it.
+Passport scans can contain your name, birth date, passport number, photo, and other identifying details. Before using an online PDF tool, check where the file is processed, who can access it, how long it is retained, and whether an online service is necessary. Safety depends on the tool, the document, and why you need to process it.
 
 There is no universal guarantee that any online service is safe for every passport document. A reputable provider may describe its security and retention practices, but you should assess those details against your own needs and any instructions from the organization requesting the document.
 
@@ -21,7 +21,7 @@ Treat both the original file and any copy you create as sensitive. Renaming a fi
 
 Before processing a scan, check whether you need the full document. If an organization requests a particular page or field, follow its instructions rather than sharing extra pages or details. Do not alter an official document in a way that could misrepresent it. If the recipient needs an unmodified scan, preserve the original and ask them what file format and handling method they accept.
 
-## Know the difference between browser processing and uploading
+## How does browser processing differ from uploading?
 
 “Online PDF tool” describes how you access a page, not necessarily where a selected document is processed. Some services send files to a server, where processing may take place. Other tools process the selected file locally in your browser and return the result without sending its contents to the site’s server for the PDF operation.
 
@@ -33,7 +33,7 @@ For example, the [Merge PDF tool](/tools/merge-pdf) processes selected PDFs in y
 
 **If you need to combine PDFs and browser-local processing fits your requirements, use the [Merge PDF tool](/tools/merge-pdf). Check its privacy details and your own document-handling requirements before using it.**
 
-## Questions to ask before using any PDF tool
+## What should you ask before using a PDF tool?
 
 Use these questions to assess a service before selecting a passport scan:
 
@@ -46,7 +46,7 @@ Use these questions to assess a service before selecting a passport scan:
 
 If a service does not explain the file workflow or its retention practices clearly, do not use it for an identity document. Choose a method whose data handling you can understand and accept.
 
-## Handle the scan more carefully
+## How can you handle the scan more carefully?
 
 Small steps can reduce unnecessary exposure, regardless of which tool you use:
 
@@ -59,7 +59,7 @@ Small steps can reduce unnecessary exposure, regardless of which tool you use:
 
 Local file processing can reduce the need to transfer document contents to a processing server, but it does not protect a file from malware on your device, someone looking over your shoulder, or an insecure place where you later save or share it. Consider the complete workflow, not only the moment you click a tool button.
 
-## After processing, verify the document
+## What should you verify after processing?
 
 Open the output in a PDF reader and inspect every page. Check for accidental omissions, duplicate pages, unexpected blank pages, and readable text. If you merged documents, confirm the order and make sure the result contains only material you intended to include.
 
@@ -67,7 +67,7 @@ Do not treat merging as a privacy feature for the page contents. If you need to 
 
 Once you have delivered the document, follow the recipient’s instructions for retaining or deleting your copy. Check device folders, recent downloads, and any backups or synchronized locations where you may have stored it. Be careful not to delete the only copy if you still need it.
 
-## Frequently Asked Questions
+## What are common questions about passport scans and PDF tools?
 
 ### Is uploading a passport PDF safe?
 

@@ -6,7 +6,7 @@ import { TOOLS } from "@/lib/tools";
 export const metadata: Metadata = buildStaticPageMetadata({
   title: `Compress, Convert & Create: ${TOOLS.length} Free Online Tools`,
   description:
-    "Fast, free tools for images, PDFs, YouTube, and social media. Process files securely in your browser—no sign-up required.",
+    "Explore 27+ Free online tools: Image tools, PDF tools, YouTube and social calculators. Files process locally for Privacy - no uploads or sign-up. Access now.",
   path: "/",
 });
 

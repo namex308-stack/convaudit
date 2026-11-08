@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { SITE_CONFIG, type Tool } from "./tools";
 
+export const SEO_CONTENT_UPDATED_DATE = "2026-11-08";
+
 /**
  * SEO helpers shared across all pages.
  *

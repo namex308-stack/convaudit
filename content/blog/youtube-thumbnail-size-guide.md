@@ -2,16 +2,16 @@
 title: "YouTube Thumbnail Size: Dimensions and File Specs"
 description: "Check YouTube thumbnail dimensions, aspect ratio, formats, and file-size guidance. Resize and preview your export, then verify requirements before you upload."
 date: "2026-03-04"
-modifiedDate: "2026-11-02"
+modifiedDate: "2026-11-08"
 author: "Convaudit Team"
 tags: ["YouTube thumbnail size", "thumbnail dimensions", "YouTube creator"]
 toolSlug: "youtube-thumbnail-downloader"
 coverImage: ""
 ---
 
-For a standard YouTube video thumbnail, use a **16:9 image at 1280 × 720 pixels**. YouTube lists a minimum width of 640 pixels and a maximum file size of 2 MB for video thumbnails. The platform’s accepted file types and requirements can change, so check its current [custom thumbnail instructions](https://support.google.com/youtube/answer/72431?hl=en) before preparing a time-sensitive upload.
+For a standard YouTube thumbnail, use **16:9 at 1280 × 720 pixels**. YouTube lists a 640-pixel minimum width and a 2 MB maximum file size. Requirements and accepted file types can change, so check the current [custom thumbnail instructions](https://support.google.com/youtube/answer/72431?hl=en) before a time-sensitive upload.
 
-## YouTube thumbnail dimensions and specifications
+## What are the YouTube thumbnail dimensions and specifications?
 
 | Requirement | Standard video thumbnail |
 | --- | --- |
@@ -24,7 +24,7 @@ For a standard YouTube video thumbnail, use a **16:9 image at 1280 × 720 pixels
 These figures apply to the standard video thumbnail requirements described by YouTube; they are not a guarantee that every account or upload will be accepted. Podcast thumbnail limits and other platform surfaces may differ. YouTube may also resize or recompress uploaded artwork.
 Because YouTube can revise upload requirements, use its linked help page as the final reference when preparing a thumbnail for a specific channel or feature.
 
-## Prepare a thumbnail that fits
+## How can you prepare a thumbnail that fits?
 
 1. Start with a 16:9 design and keep a copy of the editable original.
 2. Make the main subject and any short text legible when the image is displayed small.
@@ -34,7 +34,7 @@ Because YouTube can revise upload requirements, use its linked help page as the 
 
 There is no universal text count, color scheme, or layout that guarantees clicks. Make the artwork accurately represent the video and test it with your intended audience and channel analytics.
 
-## Resize an existing thumbnail
+## How can you resize an existing thumbnail?
 
 The [YouTube Thumbnail Resizer](/tools/youtube-thumbnail-resizer) crops an image to a 1280 × 720 PNG and lets you reposition it in the frame. PNG output can exceed YouTube’s file-size limit, so check the downloaded file and convert or compress it if necessary.
 
@@ -42,7 +42,7 @@ To view an existing video’s available artwork, use the [YouTube Thumbnail Down
 
 To check how artwork looks in different layouts, try the [YouTube Thumbnail Tester](/tools/youtube-thumbnail-tester). For file format changes, use the [PNG to JPG converter](/tools/png-to-jpg) only if the resulting format and quality suit the upload.
 
-## Frequently Asked Questions
+## What are common questions about YouTube thumbnail size?
 
 ### What size should a YouTube thumbnail be?
 

@@ -2,7 +2,7 @@
 title: "How to Compress Images for Faster Web Pages"
 description: "Compress images for web pages by resizing, choosing a format, and adjusting quality. Learn responsive image basics and how to compare visual results carefully."
 date: "2025-10-10"
-modifiedDate: "2026-11-02"
+modifiedDate: "2026-11-08"
 author: "Convaudit Team"
 tags: ["image compression", "web performance", "responsive images"]
 toolSlug: "compress-image"
@@ -11,7 +11,7 @@ coverImage: ""
 
 To make an image lighter for a website, first resize it to the largest dimensions it will actually be displayed at, then choose a format and compression level that still looks good at that size. Compare the exported file with the original: file-size savings vary with the image, dimensions, format, and settings.
 
-## How to compress images for the web
+## How can you compress images for the web?
 
 1. **Choose the display size.** A small card does not need the same pixel dimensions as a full-width banner. Keep a larger source copy in case the image is reused.
 2. **Pick a suitable format.** JPEG works well for photographs; PNG is useful for graphics that need lossless encoding or transparency; WebP supports lossy and lossless encoding, transparency, and animation. Not every publishing system accepts every format.
@@ -34,7 +34,7 @@ Avoid enlarging a small source image to fill a larger display area: upscaling ad
 
 Use `loading="lazy"` for images that are below the initial viewport and not otherwise needed immediately. Do not lazy-load the page’s main hero image by default; delaying a prominent image can make it appear later.
 
-## Choose a format based on the image
+## How should you choose an image format?
 
 - **Photographs:** Compare JPEG and WebP at the same display dimensions. Keep the version with acceptable detail and the right compatibility for your site.
 - **Screenshots and diagrams:** Try PNG or lossless WebP when sharp text or edges matter.
@@ -43,7 +43,7 @@ Use `loading="lazy"` for images that are below the initial viewport and not othe
 
 Format names alone do not guarantee a smaller file. An image that has already been compressed or contains simple graphics may not shrink when converted.
 
-## Compress images with Convaudit
+## How can you compress images with Convaudit?
 
 The [Compress Image tool](/tools/compress-image) processes selected images in your browser using the Canvas API and browser-image-compression. The image files are not sent to our server for compression.
 
@@ -51,7 +51,7 @@ The quality slider is a starting control, not a promised output size or visual-q
 
 For an explanation of format trade-offs, see [when WebP is a good choice](/blog/why-webp).
 
-## Frequently Asked Questions
+## What are common questions about image compression?
 
 ### How do I reduce an image's file size?
 

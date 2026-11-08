@@ -14,6 +14,7 @@ import {
   PrivacyConsentProvider,
 } from "@/components/ads/PrivacyConsent";
 import { SITE_CONFIG } from "@/lib/tools";
+import { JsonLd } from "@/components/JsonLd";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -62,7 +63,8 @@ export const metadata: Metadata = {
     ],
     shortcut: "/favicon.ico",
   },
-  description: SITE_CONFIG.description,
+  description:
+    "Explore 27+ Free online tools: Image tools, PDF tools, YouTube and social calculators. Files process locally for Privacy - no uploads or sign-up. Access now.",
   authors: [{ name: SITE_CONFIG.name }],
   creator: SITE_CONFIG.name,
   publisher: SITE_CONFIG.name,
@@ -79,7 +81,8 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: `${SITE_CONFIG.title} | ${SITE_CONFIG.name}`,
-    description: SITE_CONFIG.description,
+    description:
+      "Explore 27+ Free online tools: Image tools, PDF tools, YouTube and social calculators. Files process locally for Privacy - no uploads or sign-up. Access now.",
     url: SITE_CONFIG.url,
     siteName: SITE_CONFIG.name,
     type: "website",
@@ -88,7 +91,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: `${SITE_CONFIG.title} | ${SITE_CONFIG.name}`,
-    description: SITE_CONFIG.description,
+    description:
+      "Explore 27+ Free online tools: Image tools, PDF tools, YouTube and social calculators. Files process locally for Privacy - no uploads or sign-up. Access now.",
   },
   robots: {
     index: true,
@@ -118,6 +122,36 @@ export const metadata: Metadata = {
       }
     : {}),
   category: "utilities",
+};
+
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: SITE_CONFIG.name,
+  url: SITE_CONFIG.url,
+  logo: `${SITE_CONFIG.url}/logo.svg`,
+  description: SITE_CONFIG.description,
+};
+
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: SITE_CONFIG.name,
+  url: SITE_CONFIG.url,
+  description: SITE_CONFIG.description,
+  publisher: {
+    "@type": "Organization",
+    name: SITE_CONFIG.name,
+    url: SITE_CONFIG.url,
+  },
+  potentialAction: {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: `${SITE_CONFIG.url}/search?q={search_term_string}`,
+    },
+    "query-input": "required name=search_term_string",
+  },
 };
 
 export default function RootLayout({
@@ -160,47 +194,8 @@ export default function RootLayout({
             </PrivacyConsentProvider>
           </AdPreferencesProvider>
 
-          {/* Sitewide JSON-LD: Organization + WebSite with SearchAction.
-              These appear in the root layout so they're present on every page. */}
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify({
-                "@context": "https://schema.org",
-                "@type": "Organization",
-                name: SITE_CONFIG.name,
-                url: SITE_CONFIG.url,
-                logo: `${SITE_CONFIG.url}/logo.svg`,
-                description: SITE_CONFIG.description,
-              }),
-            }}
-          />
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify({
-                "@context": "https://schema.org",
-                "@type": "WebSite",
-                name: SITE_CONFIG.name,
-                url: SITE_CONFIG.url,
-                description: SITE_CONFIG.description,
-                publisher: {
-                  "@type": "Organization",
-                  name: SITE_CONFIG.name,
-                  url: SITE_CONFIG.url,
-                },
-                // Sitelinks search box for the on-site search route.
-                potentialAction: {
-                  "@type": "SearchAction",
-                  target: {
-                    "@type": "EntryPoint",
-                    urlTemplate: `${SITE_CONFIG.url}/search?q={search_term_string}`,
-                  },
-                  "query-input": "required name=search_term_string",
-                },
-              }),
-            }}
-          />
+          <JsonLd data={organizationSchema} />
+          <JsonLd data={websiteSchema} />
         </ThemeProvider>
       </body>
     </html>

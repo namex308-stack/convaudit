@@ -1,7 +1,10 @@
 import type { ReactNode } from "react";
 import { JsonLd } from "@/components/JsonLd";
+import { ContentAttribution } from "@/components/seo/ContentAttribution";
+import { RelatedGuide } from "@/components/seo/RelatedGuide";
 import { SITE_CONFIG } from "@/lib/tools";
 import type { CalculatorContent } from "@/lib/calculators";
+import { SEO_CONTENT_UPDATED_DATE } from "@/lib/seo";
 
 export function CalculatorPageContent({
   calculator,
@@ -35,6 +38,7 @@ export function CalculatorPageContent({
       price: "0",
       priceCurrency: "USD",
     },
+    featureList: ["Runs locally in browser"],
   };
 
   return (
@@ -74,7 +78,7 @@ export function CalculatorPageContent({
           id={`${calculator.slug}-faq`}
           className="text-2xl font-semibold tracking-tight"
         >
-          Frequently asked questions
+          What do people ask about {calculator.name}?
         </h2>
         {calculator.faqs.map(({ q, a }) => (
           <div key={q} className="space-y-2">
@@ -83,6 +87,11 @@ export function CalculatorPageContent({
           </div>
         ))}
       </section>
+      <RelatedGuide toolSlug={calculator.slug} toolName={calculator.name} />
+      <ContentAttribution
+        author="Convaudit Team"
+        lastUpdated={SEO_CONTENT_UPDATED_DATE}
+      />
     </article>
   );
 }

@@ -2,10 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { TOOLS, SITE_CONFIG, getToolBySlug, type Tool } from "@/lib/tools";
-import { buildToolMetadata } from "@/lib/seo";
+import {
+  buildToolMetadata,
+  SEO_CONTENT_UPDATED_DATE,
+} from "@/lib/seo";
 import { ToolLayout } from "@/components/tools/ToolLayout";
 import { ToolRenderer } from "@/components/tools/ToolRenderer";
 import { JsonLd } from "@/components/JsonLd";
+import { ContentAttribution } from "@/components/seo/ContentAttribution";
+import { RelatedGuide } from "@/components/seo/RelatedGuide";
 
 const compressImageFaqs = [
   {
@@ -34,13 +39,8 @@ const compressImageSteps = [
 ];
 
 function CompressImageCitationPage({ tool }: { tool: Tool }) {
-  const lastUpdated = new Date();
+  const lastUpdated = new Date(`${SEO_CONTENT_UPDATED_DATE}T00:00:00.000Z`);
   const date = lastUpdated.toISOString();
-  const formattedDate = lastUpdated.toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
   const headline = "Compress Images Online — Free, In-Browser";
 
   const articleSchema = {
@@ -79,6 +79,7 @@ function CompressImageCitationPage({ tool }: { tool: Tool }) {
     },
     featureList: [
       "Runs locally in browser",
+      "Adjust compression quality for JPG, PNG, and WebP files.",
       "Compress JPG, PNG, and WebP images.",
       "Select one or more JPG, PNG, or WebP images.",
       "Set your preferred compression quality with the slider.",
@@ -180,7 +181,7 @@ function CompressImageCitationPage({ tool }: { tool: Tool }) {
               How does this compare with online compressors?
             </h2>
             <div className="mt-4 overflow-x-auto rounded-lg border border-border/70">
-              <table className="w-full min-w-[36rem] text-left text-sm">
+              <table className="w-full min-w-xl text-left text-sm">
                 <thead className="bg-muted/50">
                   <tr>
                     <th scope="col" className="px-4 py-3 font-semibold">
@@ -237,17 +238,11 @@ function CompressImageCitationPage({ tool }: { tool: Tool }) {
           </section>
         </div>
 
-        <footer className="mt-10 border-t border-border/70 pt-5 text-sm text-muted-foreground">
-          <p>
-            <time dateTime={date}>Last updated: {formattedDate}</time>
-          </p>
-          <address className="mt-2 not-italic">
-            Written by{" "}
-            <Link className="text-primary underline-offset-4 hover:underline" href="/about">
-              Convaudit Team
-            </Link>
-          </address>
-        </footer>
+        <RelatedGuide toolSlug={tool.slug} toolName={tool.name} />
+        <ContentAttribution
+          author="Convaudit Team"
+          lastUpdated={SEO_CONTENT_UPDATED_DATE}
+        />
       </article>
 
       <section

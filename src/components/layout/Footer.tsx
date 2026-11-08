@@ -19,6 +19,14 @@ export function Footer() {
               Free tools for everyday work. Image and PDF processing stays on
               the device; YouTube tools explain when a video URL is shared.
             </p>
+            <a
+              href="https://www.tiktok.com/@convaudit?is_from_webapp=1&sender_device=pc"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-block text-sm text-muted-foreground transition-colors duration-fast hover:text-foreground"
+            >
+              Follow Convaudit on TikTok
+            </a>
           </div>
 
           <div>

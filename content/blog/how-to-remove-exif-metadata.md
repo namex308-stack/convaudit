@@ -2,7 +2,7 @@
 title: "How to Remove EXIF Data from Photos Before Sharing"
 description: "Learn how to check photo metadata, remove common EXIF and GPS tags, and compare the exported image. Selected photos are processed in your browser first."
 date: "2026-03-10"
-modifiedDate: "2026-11-02"
+modifiedDate: "2026-11-08"
 author: "Convaudit Team"
 tags: ["remove EXIF data", "photo privacy", "image metadata"]
 toolSlug: "remove-exif"
@@ -24,7 +24,7 @@ EXIF is a commonly used image metadata format. A file may include details such a
 
 The available tags vary by device and workflow. A camera model does not identify a person on its own, and GPS coordinates are only present when a location was recorded and retained. Still, location or timestamps can reveal more than intended when the original file is shared.
 
-## Check a photo before sharing it
+## How can you check a photo before sharing it?
 
 - **Windows:** In File Explorer, right-click the image, choose **Properties**, then open **Details**. Available fields depend on the file and Windows version.
 - **macOS:** Open the image in Preview and check **Tools → Show Inspector**. The information shown depends on the image.
@@ -32,7 +32,7 @@ The available tags vary by device and workflow. A camera model does not identify
 
 These viewers show selected fields; they do not necessarily display every metadata block in a file.
 
-## Remove metadata by exporting a new image
+## How can you remove metadata by exporting a new image?
 
 An image editor or metadata-removal tool can decode an image and export a new copy. Re-encoding is different from deleting a few EXIF tags: it creates new image data, and it may affect image quality, color information, or other file properties. The browser’s [`toBlob()` export](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toBlob) creates a new image from the canvas rather than preserving the original file’s metadata blocks.
 
@@ -46,13 +46,13 @@ To create a copy with Convaudit:
 The tool processes the image in the browser by drawing it to a canvas and exporting it again. That means the downloaded image is a re-encoded copy, not the untouched original. Browser support for opening formats such as HEIC can vary. If you need to verify removal for a legal, forensic, or organizational requirement, use a metadata inspection tool that checks the exact output format and fields you care about. For conversion options, see the [image-to-PDF tool](/tools/image-to-pdf) or [PDF-to-image tool](/tools/pdf-to-image) as relevant to your workflow.
 Re-encoding can affect more than metadata: compare the exported image with the source and check its dimensions, orientation, and color appearance before replacing the original.
 
-## Reduce location data in future photos
+## How can you reduce location data in future photos?
 
 You can disable camera location access in your device’s privacy settings. Menu names vary by operating-system version. On iPhone, review **Settings → Privacy & Security → Location Services → Camera**; on Android, look in the camera app’s settings for location tags. Disabling location recording only affects new captures and does not remove information already embedded in existing files.
 
 Removing metadata also does not hide information visible in the image itself. Crop or obscure a face, address, screen, or other sensitive detail before sharing when needed.
 
-## Frequently Asked Questions
+## What are common questions about removing photo metadata?
 
 ### Does removing EXIF remove GPS location?
 

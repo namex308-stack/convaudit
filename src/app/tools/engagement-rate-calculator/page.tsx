@@ -1,10 +1,15 @@
 import { CalculatorRenderer } from "@/components/tools/calculators/CalculatorRenderer";
 import { JsonLd } from "@/components/JsonLd";
+import { ContentAttribution } from "@/components/seo/ContentAttribution";
+import { RelatedGuide } from "@/components/seo/RelatedGuide";
 import {
   ENGAGEMENT_RATE_CALCULATOR,
   ENGAGEMENT_RATE_FAQS,
 } from "@/lib/calculators";
-import { buildCalculatorMetadata } from "@/lib/seo";
+import {
+  buildCalculatorMetadata,
+  SEO_CONTENT_UPDATED_DATE,
+} from "@/lib/seo";
 import { SITE_CONFIG } from "@/lib/tools";
 
 export const metadata = buildCalculatorMetadata(
@@ -37,6 +42,7 @@ const softwareSchema = {
     price: "0",
     priceCurrency: "USD",
   },
+  featureList: ["Runs locally in browser"],
 };
 
 export default function EngagementRateCalculatorPage() {
@@ -64,7 +70,7 @@ export default function EngagementRateCalculatorPage() {
 
       <section className="mt-10 space-y-3">
         <h2 className="text-2xl font-semibold tracking-tight">
-          Engagement rate formula
+          How do you calculate engagement rate?
         </h2>
         <p className="leading-relaxed text-muted-foreground">
           This calculator uses a follower-based formula. It combines the three
@@ -87,7 +93,7 @@ export default function EngagementRateCalculatorPage() {
 
       <section aria-labelledby="faq-title" className="mt-10 space-y-5">
         <h2 id="faq-title" className="text-2xl font-semibold tracking-tight">
-          Frequently asked questions
+          What questions do people ask about engagement rate?
         </h2>
         {ENGAGEMENT_RATE_FAQS.map(({ q, a }) => (
           <div key={q} className="space-y-2">
@@ -96,6 +102,14 @@ export default function EngagementRateCalculatorPage() {
           </div>
         ))}
       </section>
+      <RelatedGuide
+        toolSlug={ENGAGEMENT_RATE_CALCULATOR.slug}
+        toolName={ENGAGEMENT_RATE_CALCULATOR.name}
+      />
+      <ContentAttribution
+        author="Convaudit Team"
+        lastUpdated={SEO_CONTENT_UPDATED_DATE}
+      />
     </article>
   );
 }

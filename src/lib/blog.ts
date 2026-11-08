@@ -36,6 +36,13 @@ export type BlogPostMeta = {
 export type BlogPost = BlogPostMeta & {
   /** Raw markdown body (without frontmatter) */
   content: string;
+  /** FAQ entries parsed from the visible FAQ section */
+  faqs: BlogPostFaq[];
+};
+
+export type BlogPostFaq = {
+  question: string;
+  answer: string;
 };
 
 const POSTS_DIR = path.join(process.cwd(), "content", "blog");
@@ -57,6 +64,42 @@ function estimateReadingTime(markdown: string): number {
  */
 function filenameToSlug(filename: string): string {
   return filename.replace(/\.md$/i, "");
+}
+
+function extractFaqs(markdown: string, slug: string): BlogPostFaq[] {
+  const faqHeading = /^## ([^\r\n]*(?:frequently asked questions|common questions)[^\r\n]*)$/im.exec(
+    markdown,
+  );
+  if (!faqHeading || faqHeading.index === undefined) {
+    throw new Error(`Missing FAQ section in blog content: ${slug}`);
+  }
+
+  const sectionStart = faqHeading.index + faqHeading[0].length;
+  const nextSection = /^## /gm;
+  nextSection.lastIndex = sectionStart;
+  const nextHeading = nextSection.exec(markdown);
+  const section = markdown.slice(sectionStart, nextHeading?.index);
+  const questions = [...section.matchAll(/^### (.+)$/gm)];
+  const faqs = questions.map((question, index) => {
+    const answerStart = question.index! + question[0].length;
+    const answerEnd = questions[index + 1]?.index ?? section.length;
+    const answer = section
+      .slice(answerStart, answerEnd)
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
+      .replace(/^\s*[-*]\s+/gm, "")
+      .replace(/[*_`>#]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return { question: question[1].trim(), answer };
+  });
+
+  if (faqs.length < 3 || faqs.length > 5 || faqs.some((faq) => !faq.answer)) {
+    throw new Error(`Blog FAQ section must contain 3-5 answered questions: ${slug}`);
+  }
+
+  return faqs;
 }
 
 function requireContentDate(value: unknown, field: string, file: string): string {
@@ -134,7 +177,34 @@ export function getPostBySlug(slug: string): BlogPost | undefined {
     readingTime: estimateReadingTime(content),
     toolSlug: data.toolSlug ? String(data.toolSlug) : undefined,
     content,
+    faqs: extractFaqs(content, slug),
   };
+}
+
+const RELATED_GUIDE_FALLBACKS: Record<string, string> = {
+  "rotate-pdf": "how-to-split-pdf-pages",
+  "webp-to-png": "why-webp",
+  "png-to-jpg": "why-webp",
+  "youtube-thumbnail-resizer": "youtube-thumbnail-size-guide",
+  "youtube-tags-extractor": "youtube-hashtags-guide",
+  "youtube-money-calculator": "tiktok-earnings-views-rpm-estimate",
+  "youtube-thumbnail-tester": "youtube-thumbnail-size-guide",
+  "youtube-channel-id-finder": "youtube-video-description-guide",
+  "youtube-timestamp-link-generator": "youtube-video-description-guide",
+  "influencer-rate-calculator": "how-to-calculate-engagement-rate",
+  "roas-calculator": "how-to-calculate-engagement-rate",
+  "follower-growth-calculator": "how-to-calculate-engagement-rate",
+};
+
+export function getRelatedPostForTool(toolSlug: string): BlogPostMeta | undefined {
+  const posts = getAllPosts();
+  const directMatch = posts.find((post) => post.toolSlug === toolSlug);
+  if (directMatch) return directMatch;
+
+  const fallbackSlug = RELATED_GUIDE_FALLBACKS[toolSlug];
+  return fallbackSlug
+    ? posts.find((post) => post.slug === fallbackSlug)
+    : undefined;
 }
 
 /**

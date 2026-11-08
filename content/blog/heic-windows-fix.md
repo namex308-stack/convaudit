@@ -2,7 +2,7 @@
 title: "HEIC Photos Won't Open on Windows? Try These Fixes"
 description: "Fix HEIC photos that won't open on Windows by checking Microsoft's image extensions or converting copies to JPG in your browser, then verify the results."
 date: "2026-10-31"
-modifiedDate: "2026-11-02"
+modifiedDate: "2026-11-08"
 author: "Convaudit Team"
 tags: ["HEIC photos won't open on Windows", "HEIC to JPG", "Windows photos"]
 toolSlug: "heic-to-jpg"
@@ -11,13 +11,13 @@ coverImage: ""
 
 **Direct Answer:** If HEIC photos won’t open on Windows, install the HEIF Image Extensions from the Microsoft Store. Some HEIC files may also need the HEVC Video Extensions. For a quick workaround, convert the photos to JPG in your browser, download the new files, and open them in Photos to confirm they work.
 
-## Why HEIC photos won't open on Windows
+## Why won't HEIC photos open on Windows?
 
 HEIC is a photo format used by many iPhones. It can store images efficiently, but Windows does not decode every HEIC file out of the box. Whether a photo opens depends on your Windows version, installed extensions, and the app you use. You might see an error, a blank thumbnail, or a prompt to install a codec.
 
 Start by checking that the file really ends in `.heic` or `.heif`. If it does, try opening it with the Windows Photos app. If Photos reports that an extension is missing, use the Microsoft Store rather than downloading codec installers from unfamiliar websites.
 
-## Choose a fix: install support or convert to JPG
+## Should you install support or convert HEIC to JPG?
 
 ### Install the Windows extensions
 
@@ -29,7 +29,7 @@ This is a good choice if you regularly receive HEIC files and want to keep them 
 
 Choose JPG when you need to share a photo, upload it to a site that rejects HEIC, or open it in software that does not support the format. JPG is widely compatible with Windows apps, browsers, and printers. Conversion creates a new file, though, and can change compression, image quality, or some file information. Keep the original HEIC if you may need it later.
 
-## Convert HEIC photos in your browser
+## How can you convert HEIC photos in your browser?
 
 For a quick fix without installing Windows extensions, use Convaudit’s [HEIC to JPG converter](/tools/heic-to-jpg). It processes selected images in your browser; the photos are not sent to Convaudit’s server for conversion. If you are comparing formats first, read [HEIC vs JPG: key differences](/blog/heic-vs-jpg).
 
@@ -41,13 +41,13 @@ For a quick fix without installing Windows extensions, use Convaudit’s [HEIC t
 
 Browser conversion depends on your browser and device. Large batches or high-resolution images can use significant memory, so convert a few files at a time if the page becomes slow. For private or sensitive photos, you can also install Windows support or use a trusted offline converter instead of an online tool.
 
-## Verify the converted photos
+## How can you verify converted photos?
 
 Check that each downloaded file ends in `.jpg` or `.jpeg`, then open it in Photos. If you want to confirm the format in Windows, right-click the file, select **Properties**, and look for the file type on the **General** tab. When sharing, attach the JPG copy rather than the original HEIC file, and test one image before sending a large batch.
 
 If a JPG still will not open, make sure the download completed and try opening it from the folder where it was saved. If only one image fails, convert that photo again on its own; the source file may be damaged or encoded differently from the others.
 
-## Frequently Asked Questions
+## What are common questions about opening HEIC photos on Windows?
 
 ### Do I need both HEIF Image Extensions and HEVC Video Extensions?
 

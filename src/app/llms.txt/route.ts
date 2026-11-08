@@ -1,36 +1,58 @@
 import { NextResponse } from "next/server";
+import { getAllPosts } from "@/lib/blog";
 import { SITE_CONFIG, TOOLS } from "@/lib/tools";
 
-const toolSummary = TOOLS.map(
-  (tool) => `- ${tool.name}: ${tool.description}`,
-).join("\n");
+const CORE_TOOL_SLUGS = [
+  "compress-image",
+  "remove-background",
+  "heic-to-jpg",
+  "merge-pdf",
+  "split-pdf",
+  "rotate-pdf",
+  "pdf-to-word",
+  "image-to-pdf",
+  "compress-pdf",
+  "webp-to-png",
+  "png-to-jpg",
+  "jpg-to-webp",
+  "youtube-thumbnail-downloader",
+  "youtube-thumbnail-resizer",
+  "youtube-tags-extractor",
+  "youtube-title-generator",
+  "youtube-description-generator",
+  "youtube-hashtag-generator",
+];
 
 export async function GET() {
+  const toolsBySlug = new Map(TOOLS.map((tool) => [tool.slug, tool]));
+  const coreTools = CORE_TOOL_SLUGS.flatMap((slug) => {
+    const tool = toolsBySlug.get(slug);
+    return tool
+      ? [
+          `- [${tool.name}](${SITE_CONFIG.url}/tools/${tool.slug}): ${tool.description}`,
+        ]
+      : [];
+  });
+  const contentGuides = getAllPosts()
+    .slice(0, 10)
+    .map(
+      (post) =>
+        `- [${post.title}](${SITE_CONFIG.url}/blog/${post.slug}): ${post.description}`,
+    );
+
   const body = `# Convaudit
 
 > Convaudit provides browser-based image, PDF, and file-conversion tools, plus YouTube creator utilities. Image and PDF files are processed in the browser; YouTube tools may send URLs to Convaudit, YouTube, or a third-party proxy as described on each tool page.
 
-## Overview
-- Website: ${SITE_CONFIG.url}
-- About: ${SITE_CONFIG.url}/about
-- Blog: ${SITE_CONFIG.url}/blog
-- Privacy: ${SITE_CONFIG.url}/privacy
-- Terms: ${SITE_CONFIG.url}/terms
-- Search: ${SITE_CONFIG.url}/search
-- Sitemap: ${SITE_CONFIG.url}/sitemap.xml
-- RSS: ${SITE_CONFIG.url}/rss.xml
+## Core Tools
+${coreTools.join("\n")}
 
-## Main tool categories
-- Image optimization and compression
-- PDF merging, splitting, conversion, and page extraction
-- HEIC, JPG, PNG, WebP, and document conversion
-- YouTube creator utilities and productivity helpers
+## Content & Guides
+${contentGuides.join("\n")}
 
-## Core tools
-${toolSummary}
-
-## Content and discovery
-Convaudit is designed to help users complete file and media tasks quickly in the browser without sign-up or account creation. The site publishes helpful guides and tool-specific explanations to improve discoverability for both search engines and AI assistants.
+## About & Privacy
+- [About Convaudit](${SITE_CONFIG.url}/about): Meet the founder, learn the site's mission, and review how each tool handles input.
+- [Privacy Policy](${SITE_CONFIG.url}/privacy): Read how files, URLs, analytics, and advertising data are handled.
 `;
 
   return new NextResponse(body, {

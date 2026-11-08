@@ -49,7 +49,7 @@ export function RelatedTools({
         aria-labelledby="related-heading"
       >
         <h2 id="related-heading" className="text-sm font-semibold">
-          Related tools &amp; guides
+          Which tools and guides can you explore next?
         </h2>
         <ul className="mt-3 space-y-2">
           {related.map((tool) => (
@@ -98,7 +98,7 @@ export function RelatedTools({
         id="related-heading"
         className="text-xl font-semibold tracking-tight sm:text-2xl"
       >
-        Related tools &amp; guides
+        Which tools and guides can you explore next?
       </h2>
       <p className="mt-2 text-sm text-muted-foreground">
         Keep exploring Convaudit with these related resources.

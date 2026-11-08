@@ -26,13 +26,13 @@ Every image you upload to a website, attach to an email, or share on social medi
 
 Our [Compress Image tool](/tools/compress-image) uses the Canvas API and the \`browser-image-compression\` library in your browser. The selected photo files are not sent to our server for compression.
 
-## How browser-based compression works
+## How does browser-based compression work?
 
 When you drop an image into the tool, your browser decodes it into a pixel buffer, re-encodes it at the quality level you choose (1-100), and produces a smaller Blob you can download. Because no server roundtrip is involved, compression happens at the speed of your device's CPU — typically under a second for images under 10 MB.
 
 For batch compression, the tool processes each file sequentially and updates a progress bar so you always know how far along it is.
 
-## Best practices for image compression
+## What are the best practices for image compression?
 
 - **Start at quality 75** — visually identical to most viewers, cuts file size by 60-80%
 - **Use PNG for screenshots** with text — JPG artifacts make text look fuzzy
@@ -49,13 +49,13 @@ That's where our [HEIC to JPG converter](/tools/heic-to-jpg) comes in. It uses t
 
 Having trouble opening HEIC files on Windows? [Read our troubleshooting guide](/blog/heic-windows-fix).
 
-## How the conversion works
+## How does HEIC-to-JPG conversion work?
 
 When you drop a HEIC file into the tool, the WASM decoder reads the HEVC-encoded image data, decompresses it into raw pixels, and re-encodes those pixels as JPEG. You control the JPG quality (30-100) with a slider — lower quality means smaller files but more visible artifacts.
 
 Conversion typically takes 1-3 seconds per image depending on resolution and your device's CPU. Batch conversion is supported: drop in 20 HEIC files and download them all as JPGs.
 
-## When to keep HEIC vs convert
+## When should you keep HEIC or convert to JPG?
 
 Keep HEIC when:
 - Photos stay on your iPhone or Mac
@@ -70,19 +70,19 @@ Convert to JPG when:
 
 For web publishing, consider converting further to [WebP](/tools/jpg-to-webp) for smaller file sizes.`,
 
-  "merge-pdf": `## Free online PDF merger for combining files
+  "merge-pdf": `  ## How can you combine files with a free online PDF merger?
 
 Use the [free PDF merger](/tools/merge-pdf) to combine two or more PDF files into one document in your browser. If you want to merge PDF files online for free or combine PDF documents without installing software, add your files, choose their order, and download the merged PDF. There is no charge to use the tool.
 
 The merge runs locally in your browser; the PDF file contents are not uploaded to our server for processing. The website itself needs an internet connection to load. Very large files or many PDFs may be limited by available browser memory.
 
-## Put the PDFs in the right order
+## How do you put the PDFs in the right order?
 
 Add the PDFs, then use the up and down controls beside each file to set the sequence. The first file supplies the opening pages, followed by each file in the displayed order. You can remove a file before merging if you change your mind.
 
 This tool combines whole files, not selected pages. To change the order of pages within a document or include only certain pages, first use [Split PDF](/tools/split-pdf) to extract the pages you need.
 
-## What to check in the merged PDF
+## What should you check in a merged PDF?
 
 The tool copies pages into a new PDF without converting them to images. Do not assume that every document-level feature—such as forms, bookmarks, attachments, metadata, or digital signatures—will be preserved. In particular, a source digital signature does not validate the newly merged document. Open the result and check its content and features before sharing or relying on it.
 
@@ -90,13 +90,13 @@ Combining PDFs is useful for assembling contracts and appendices, putting a port
 
 For a reverse workflow, see [how to split a PDF](/blog/how-to-split-pdf-pages).`,
 
-  "split-pdf": `## Extracting pages from a PDF
+  "split-pdf": `  ## How do you extract pages from a PDF?
 
 PDFs often arrive as one large file when you only need a few pages. A 200-page manual where you only want chapter 3. A scanned tax return where you only need page 4. A combined contract where you only need the signature page.
 
 Our [Split PDF tool](/tools/split-pdf) lets you extract exactly the pages you want using a simple range syntax. Type \`1-3, 5, 7-9\` and you get a new PDF containing pages 1, 2, 3, 5, 7, 8, and 9 — nothing more.
 
-## How the page range syntax works
+## How does PDF page-range syntax work?
 
 The parser accepts:
 - **Ranges**: \`1-10\` extracts pages 1 through 10 (inclusive)
@@ -106,7 +106,7 @@ The parser accepts:
 
 Each range produces one output PDF. So \`1-3, 5, 7-9\` produces three files: pages 1-3, page 5, and pages 7-9. Download them individually or as a batch.
 
-## Common use cases
+## When should you extract pages from a PDF?
 
 - **Extract a chapter** from a long manual or textbook
 - **Pull signature pages** from a multi-party contract
@@ -115,13 +115,13 @@ Each range produces one output PDF. So \`1-3, 5, 7-9\` produces three files: pag
 
 The tool uses \`pdf-lib\` in your browser; the selected PDF contents are not sent to our server for splitting. For the reverse operation, see [Merge PDF](/tools/merge-pdf). To shrink a PDF before splitting, try [Compress PDF](/tools/compress-pdf).`,
 
-  "pdf-to-word": `## Extracting text from PDFs for editing
+  "pdf-to-word": `  ## How can you extract text from PDFs for editing?
 
 PDF is a final-format document type — designed for printing and viewing, not editing. But sometimes you need to edit the text inside a PDF: update a contract clause, fix a typo in a resume, or repurpose content from a white paper.
 
 Our [PDF to Text tool](/tools/pdf-to-word) extracts the text content from a PDF using Mozilla's PDF.js library and packages it as a Word-compatible \`.doc\` file you can open in Microsoft Word, Google Docs, or LibreOffice. The conversion runs entirely in your browser.
 
-## What gets preserved (and what doesn't)
+## What does PDF-to-Word conversion preserve?
 
 **Preserved:**
 - All selectable text in the PDF
@@ -137,7 +137,7 @@ Our [PDF to Text tool](/tools/pdf-to-word) extracts the text content from a PDF 
 
 This tool prioritizes text extraction over visual fidelity: original page layout, images, complex tables, and custom formatting are not preserved.
 
-## A note on scanned PDFs
+## What should you know about scanned PDFs?
 
 If your PDF was created by scanning paper documents, it contains images of text — not actual text characters. The extractor can't read text from images. You'd need an OCR tool (like Tesseract) to convert the scanned images back to editable text.
 
@@ -149,7 +149,7 @@ There are plenty of reasons to convert images into a PDF: assembling a photo alb
 
 Our [Image to PDF tool](/tools/image-to-pdf) accepts JPG, PNG, and WebP images and combines them into one PDF. You can reorder images by dragging, choose the page size (A4, US Letter, or fit-to-image), and download the result. Everything happens in your browser via the \`pdf-lib\` library.
 
-## Choosing the right page size
+## How do you choose the right PDF page size?
 
 - **A4 (210×297mm)** — international standard, best for documents meant to be printed in Europe/Asia
 - **US Letter (8.5×11in)** — North American standard, best for documents meant to be printed in the US/Canada
@@ -157,7 +157,7 @@ Our [Image to PDF tool](/tools/image-to-pdf) accepts JPG, PNG, and WebP images a
 
 Images are centered on the page and scaled to fit while preserving aspect ratio. White space fills the rest of the page.
 
-## Tips for best results
+## How can you get the best image-to-PDF results?
 
 - **Order matters**: drag images into the order you want pages to appear
 - **Use consistent orientation**: mixing portrait and landscape images in the same PDF works but looks jarring
@@ -172,7 +172,7 @@ PDFs have a habit of growing large. Image-heavy reports, scanned documents, and 
 
 Our [Compress PDF tool](/tools/compress-pdf) reduces PDF file size by rasterizing each page to a JPEG image at a quality level you choose, then reassembling those images into a new PDF. The output text is no longer selectable or searchable. It uses \`pdfjs-dist\` (Mozilla's PDF.js) and \`pdf-lib\` together, all in your browser.
 
-## Three quality levels explained
+## What do the three PDF compression quality levels mean?
 
 - **Low (smallest file)**: renders pages at 1.5× scale with JPEG quality 0.45. Best for screen-only viewing. Text may look slightly soft.
 - **Medium (recommended)**: 1.5× scale, JPEG quality 0.65. Good balance of size and readability. Most documents look fine.
@@ -180,11 +180,11 @@ Our [Compress PDF tool](/tools/compress-pdf) reduces PDF file size by rasterizin
 
 Typical compression ratios: 60-85% smaller for image-heavy PDFs, 30-50% for text-heavy PDFs.
 
-## What you trade for smaller size
+## What do you trade for a smaller PDF?
 
 After compression, **text is no longer searchable or selectable** — it's part of the rasterized image. Use this tool for archival copies or sharing, not for documents you need to search inside. Keep your original PDF for that.
 
-## When to use other tools instead
+## When should you use another PDF tool?
 
 - For [merging](/tools/merge-pdf) multiple PDFs into one (no quality loss)
 - For [splitting](/tools/split-pdf) a PDF into smaller pieces (no quality loss)
@@ -198,7 +198,7 @@ WebP is Google's modern image format — it produces files 25-35% smaller than J
 
 The tool uses your browser's Canvas API to decode the WebP and re-encode it as PNG. Transparency is fully preserved — if the original WebP had an alpha channel, the PNG will too.
 
-## When WebP → PNG makes sense
+## When should you convert WebP to PNG?
 
 - **Editing in older software**: Photoshop CS6 and earlier don't support WebP natively
 - **Email attachments**: some email clients reject WebP attachments
@@ -206,7 +206,7 @@ The tool uses your browser's Canvas API to decode the WebP and re-encode it as P
 - **Embedded systems**: industrial displays, kiosks, and older e-readers often only support JPG/PNG
 - **Documentation**: Word documents, PDFs, and presentations sometimes don't accept WebP inserts
 
-## When to keep WebP instead
+## When should you keep WebP instead?
 
 - **Web publishing** — WebP is universally supported in modern browsers and significantly smaller
 - **Mobile apps** — modern iOS and Android both support WebP natively
@@ -222,7 +222,7 @@ PNG is the format of choice for screenshots, diagrams, and images with transpare
 
 Our [PNG to JPG converter](/tools/png-to-jpg) re-encodes PNG images as JPG, which uses lossy compression to achieve dramatically smaller file sizes. The tool runs entirely in your browser using the Canvas API.
 
-## Handling transparency
+## How does JPG handle image transparency?
 
 JPG doesn't support transparency — every pixel must be a solid color. When you convert a PNG with transparent areas, the tool fills those areas with a background color you choose (white by default). This is important for:
 
@@ -230,7 +230,7 @@ JPG doesn't support transparency — every pixel must be a solid color. When you
 - **Icons and UI elements** — typically white or black backgrounds
 - **Stickers and clip art** — choose a color that complements the design
 
-## Quality trade-off
+## What quality trade-offs come with PNG-to-JPG conversion?
 
 JPG compression is lossy — some image data is discarded to achieve smaller files. The tool lets you choose quality (1-100):
 
@@ -238,7 +238,7 @@ JPG compression is lossy — some image data is discarded to achieve smaller fil
 - **75-85**: most users can't tell the difference, 60-80% smaller
 - **60-75**: visible artifacts in detailed areas, 80-90% smaller
 
-## When to keep PNG instead
+## When should you keep a PNG instead of converting?
 
 - **Screenshots with text** — JPG artifacts make text look fuzzy
 - **Images with transparency** — unless you can commit to a background color
@@ -252,7 +252,7 @@ WebP is the modern image format developed by Google. It produces files 25-35% sm
 
 Our [JPG to WebP converter](/tools/jpg-to-webp) re-encodes JPG images as WebP using your browser's Canvas API. The selected files are not sent to our server for conversion.
 
-## Why WebP wins for the web
+## Why can WebP work well for web images?
 
 - **25-35% smaller** than JPG at the same visual quality — directly faster page loads
 - **Supports transparency** — replaces PNG for graphics with alpha channels
@@ -261,14 +261,14 @@ Our [JPG to WebP converter](/tools/jpg-to-webp) re-encodes JPG images as WebP us
 
 For a website with 50 product images, switching from JPG to WebP can cut total page weight by 1-3 MB — directly improving Core Web Vitals and SEO rankings.
 
-## Quality settings
+## How should you choose WebP quality settings?
 
 The tool accepts quality 1-100 (default 85). For most photographs:
 - **80-85**: visually identical to the JPG, 25-30% smaller
 - **70-75**: minor artifacts in detailed areas, 35-40% smaller
 - **60-65**: visible artifacts, 45-50% smaller — use for thumbnails
 
-## When not to use WebP
+## When should you avoid WebP?
 
 - **Email signatures** — Outlook desktop doesn't support WebP
 - **Older embedded systems** — industrial displays, kiosks
@@ -284,21 +284,21 @@ Every YouTube video has multiple thumbnail images at different resolutions — f
 
 Just paste a YouTube URL (watch, youtu.be, shorts, or embed links all work), and the tool fetches the video metadata via YouTube's oEmbed API, then offers download links for every available resolution.
 
-## What you can do with downloaded thumbnails
+## What can you do with downloaded thumbnails?
 
 - **Study what makes top creators' thumbnails click-worthy** — analyze composition, text placement, color choices
 - **Grab a still frame** from a video for use as a custom thumbnail elsewhere
 - **Save a backup** of your own video's thumbnail before YouTube's algorithm tests a different one
 - **Create tutorial content** showing thumbnail examples
 
-## Which resolution to choose
+## Which thumbnail resolution should you choose?
 
 - **maxresdefault (1280×720)** — the full HD thumbnail. Best for analysis and reuse. Not all videos have this — older uploads may cap out at SD.
 - **sddefault (640×480)** — standard definition. Good fallback when maxres is missing.
 - **hqdefault (480×360)** — always available, decent quality.
 - **mqdefault (320×180)** and **default (120×90)** — small thumbnails for quick reference.
 
-## Copyright note
+## What should you know about thumbnail copyright?
 
 Thumbnails are owned by the video creator. Downloading for personal research, inspiration, or commentary is generally fine. Don't republish someone else's thumbnail without permission — especially not commercially.
 
@@ -310,7 +310,7 @@ YouTube requires custom thumbnails to be exactly 1280×720 pixels (16:9 aspect r
 
 Our [YouTube Thumbnail Resizer](/tools/youtube-thumbnail-resizer) puts you in control. Upload any image, drag to reposition it within the 1280×720 frame, and the tool crops it precisely. The optional **safe zone overlay** shows you the central 80% where text and faces won't be clipped by YouTube's mobile UI.
 
-## Why the safe zone matters
+## Why does the thumbnail safe zone matter?
 
 YouTube's player overlays elements on top of your thumbnail:
 - **Timestamp** in the bottom-right corner
@@ -320,7 +320,7 @@ YouTube's player overlays elements on top of your thumbnail:
 
 Important text, faces, and key visuals should stay inside the central 80% (the safe zone). Anything outside might be hidden.
 
-## How to use the resizer
+## How do you use the thumbnail resizer?
 
 1. Upload an image (JPG, PNG, or WebP — any dimensions)
 2. The tool auto-fits the image to cover the 1280×720 frame
@@ -336,18 +336,18 @@ YouTube tags are hidden from viewers — they're stored in the video's metadata 
 
 Our [YouTube Tags Extractor](/tools/youtube-tags-extractor) sends the video URL to our server, which fetches the public YouTube page and parses its \`<meta name="keywords">\` tag. The video URL, not a video file, is sent to our server.
 
-## How to use extracted tags
+## How can you use extracted tags?
 
 - **Competitor research**: see what tags top-ranking videos in your niche use
 - **Keyword gap analysis**: compare your tags to a competitor's to find missed opportunities
 - **Topic discovery**: tags reveal how creators categorize their content
 - **Trend spotting**: clusters of similar tags across popular videos suggest trending topics
 
-## Why some videos have no tags
+## Why do some videos have no tags?
 
 YouTube de-emphasized tags in 2023, and many creators stopped adding them. If the extractor finds no tags, the video simply doesn't have any. This isn't an error — it's a signal that the creator relies on title, description, and engagement for discovery instead.
 
-## Don't just copy tags
+## Why shouldn't you copy tags without review?
 
 Blindly copying a competitor's tags won't help your videos rank. Tags work best when they accurately describe your specific content. Use the extracted tags as research to understand the topic landscape, then craft your own relevant tags.
 
@@ -359,7 +359,7 @@ Your video's title is the single biggest factor in click-through rate (CTR). A g
 
 Our [YouTube Title Generator](/tools/youtube-title-generator) takes your topic and produces 20 title variations using proven CTR templates: how-to, listicle, question, curiosity gap, and more. Each title includes a live character counter that turns amber past 70 characters (mobile truncation point) and red past 100 (hard limit).
 
-## Title length best practices
+## How long should a YouTube title be?
 
 - **Under 70 characters**: full title visible on mobile and in search results
 - **70-100 characters**: may truncate on mobile, fully visible on desktop
@@ -367,7 +367,7 @@ Our [YouTube Title Generator](/tools/youtube-title-generator) takes your topic a
 
 Aim for 60-70 characters whenever possible. Front-load the most important words so even truncated titles make sense.
 
-## Title patterns that work
+## Which YouTube title patterns can you test?
 
 - **How to X** — clear value, searches well
 - **X Tips for Y** — listicle promise, easy to scan
@@ -376,7 +376,7 @@ Aim for 60-70 characters whenever possible. Front-load the most important words 
 - **X Mistakes to Avoid** — fear of missing out
 - **X Explained in Y Minutes** — time-bounded promise
 
-## Don't clickbait
+## Why should you avoid clickbait in a YouTube title?
 
 YouTube's algorithm now penalizes titles that promise something the video doesn't deliver. If viewers click but bounce in 10 seconds, your watch time tanks and YouTube stops recommending the video. Make sure your title accurately reflects the content.
 
@@ -388,7 +388,7 @@ Your video's description is the second-most-important SEO field after the title.
 
 Our [YouTube Description Generator](/tools/youtube-description-generator) builds a structured description with: a hook (first 1-2 lines), timestamp chapters, an "about this video" section, social links, and hashtags. Fill in your details, copy the result, paste into YouTube Studio.
 
-## The first 125 characters matter most
+## Why do the first 125 description characters matter?
 
 YouTube shows only the first 1-2 lines of your description in search results and above the "Show more" fold on mobile. Those lines need to:
 - Repeat your primary keyword naturally
@@ -397,7 +397,7 @@ YouTube shows only the first 1-2 lines of your description in search results and
 
 Don't waste those lines with "Hey guys, welcome back to my channel." Get straight to the value.
 
-## Timestamps create chapters
+## How do timestamps create video chapters?
 
 Add lines starting with a time (e.g. \`0:00 Intro\`, \`1:23 Main Topic\`) and YouTube automatically creates chapter markers in the video player. Chapters:
 - Improve viewer retention (people can jump to what they want)
@@ -416,7 +416,7 @@ Hashtags on YouTube help the algorithm group your video with related content and
 
 Our [YouTube Hashtag Generator](/tools/youtube-hashtag-generator) takes your topic or niche and produces a mix of broad, niche, and long-tail hashtags. Click to copy individual tags, or copy the top 10 at once.
 
-## How many hashtags to use
+## How many hashtags should you use?
 
 YouTube allows up to 60 hashtags per description, but more than 15 can be flagged as spam. Best practice:
 
@@ -424,14 +424,14 @@ YouTube allows up to 60 hashtags per description, but more than 15 can be flagge
 - **First 3 matter most** — these appear above the title on mobile
 - **Mix broad and specific** — \`#personal finance\` (broad) + \`#investingforbeginners\` (specific)
 
-## Hashtag best practices
+## What are good practices for YouTube hashtags?
 
 - **Be specific**: \`#personalfinance\` is too broad to surface your video; \`#investingforbeginners\` has less competition
 - **Use trending tags when relevant**: \`#2025\`, \`#shorts\` if they actually fit
 - **Avoid spammy repetition**: don't repeat the same tag with slight variations
 - **Match the video**: tags that don't reflect content hurt retention
 
-## Hashtags vs tags
+## How do hashtags differ from video tags?
 
 YouTube tags (hidden metadata) and hashtags (visible in description) are different systems with different roles. Tags help with disambiguation; hashtags help with grouping. Use both — extract competitor tags with our [Tags Extractor](/tools/youtube-tags-extractor).`,
 
@@ -439,7 +439,7 @@ YouTube tags (hidden metadata) and hashtags (visible in description) are differe
 
 YouTube earnings vary by niche, audience geography, and ad format. Our [YouTube Money Calculator](/tools/youtube-money-calculator) estimates ad revenue from monthly views and CPM (cost per mille) ranges.
 
-## How YouTube ad revenue works
+## How does YouTube ad revenue work?
 
 Advertisers pay YouTube per 1,000 ad impressions (CPM). For this estimate, creators receive ${CREATOR_SHARE * 100}% of the CPM as RPM (revenue per mille). Actual CPMs depend on:
 
@@ -448,13 +448,13 @@ Advertisers pay YouTube per 1,000 ad impressions (CPM). For this estimate, creat
 - **Watch time**: longer videos serve more ads
 - **Ad format**: skippable video ads pay more than display ads
 
-## CPM ranges by niche
+## How do CPM ranges vary by niche?
 
 ${cpmRangeCopy}
 
 These are estimates, not guarantees. Actual earnings depend on audience geography, watch time, ad format, and season. CPM ranges last reviewed ${lastReviewed}.
 
-## What this calculator doesn't include
+## What does this calculator leave out?
 
 - **Sponsorships**: often 2-5x ad revenue for mid-sized channels
 - **Channel memberships**: recurring monthly revenue
@@ -470,7 +470,7 @@ Over 70% of YouTube watch time happens on mobile. On a phone, your thumbnail is 
 
 Our [YouTube Thumbnail Tester](/tools/youtube-thumbnail-tester) shows your thumbnail at the actual pixel sizes YouTube uses across devices: mobile feed (210×118), desktop search (246×138), sidebar suggestion (168×94), notification (120×68), and TV (1280×720).
 
-## How to use the tester
+## How do you use the thumbnail tester?
 
 1. **Upload your thumbnail** (any image format) OR paste a YouTube URL to load an existing video's thumbnail
 2. **Scroll through the preview cards** showing each display size
@@ -478,7 +478,7 @@ Our [YouTube Thumbnail Tester](/tools/youtube-thumbnail-tester) shows your thumb
 4. **Check face visibility** — faces should be recognizable at 168×94
 5. **Redesign if needed** — make text bigger, simplify the composition, increase contrast
 
-## Design for the smallest size first
+## Why should you design for the smallest thumbnail size first?
 
 A common mistake is designing a thumbnail at full 1280×720 size and assuming it'll look good everywhere. It won't. Design for the smallest size first — if it works at 120 pixels, it'll work everywhere.
 
@@ -496,20 +496,20 @@ Every YouTube channel has a unique 24-character identifier starting with "UC" (e
 
 Finding the channel ID used to require digging through page source. Our [YouTube Channel ID Finder](/tools/youtube-channel-id-finder) resolves it automatically from any YouTube URL — video, channel link, or @handle — using the public oEmbed API. No API key required.
 
-## Three ways to find a channel ID
+## How can you find a YouTube channel ID?
 
 1. **From a video URL** (most reliable): paste a video URL from the channel. The browser sends that URL to YouTube's oEmbed API, then extracts the channel ID from the author URL.
 2. **From a /channel/ URL**: paste a URL like \`youtube.com/channel/UCxxxx\` and we extract the ID directly.
 3. **From a @handle URL**: paste \`youtube.com/@name\`; the browser sends the channel URL to the AllOrigins proxy to fetch the channel page and extract the ID from its metadata.
 
-## What channel IDs are used for
+## What are YouTube channel IDs used for?
 
 - **YouTube Data API v3**: every API request requires the channel ID
 - **RSS feeds**: \`https://www.youtube.com/feeds/videos.xml?channel_id=UCxxxx\` gives you the channel's latest videos as RSS
 - **Analytics tools**: SocialBlade, Noxinfluencer, and similar tools use the channel ID
 - **Embedding**: some embed widgets require the channel ID rather than the URL
 
-## Why video URLs are most reliable
+## Why are video URLs the most reliable way to find a channel ID?
 
 YouTube's @handle system is relatively new (2022), and the mapping from handle to channel ID isn't always exposed cleanly. Video URLs, on the other hand, always include the channel ID via the oEmbed API — which has been stable for over a decade.
 
@@ -521,14 +521,14 @@ Ever wanted to share a YouTube video but skip the 3-minute intro? Or link direct
 
 Our [YouTube Timestamp Link Generator](/tools/youtube-timestamp-link-generator) takes a YouTube URL and one or more timestamps, then generates shareable deep links in the format \`youtu.be/VIDEO_ID?t=SECONDS\`.
 
-## How timestamp links work
+## How do YouTube timestamp links work?
 
 YouTube's URL parameter \`?t=\` accepts seconds (not minutes:seconds). The link \`https://youtu.be/dQw4w9WgXcQ?t=43\` starts the video at 43 seconds. When a viewer clicks the link:
 - **Desktop browser**: opens YouTube at the timestamp
 - **Mobile browser**: opens YouTube at the timestamp
 - **YouTube app**: opens the app and starts at the timestamp
 
-## Accepted timestamp formats
+## Which timestamp formats does the generator accept?
 
 The generator accepts:
 - **Pure seconds**: \`90\` → 1:30
@@ -537,7 +537,7 @@ The generator accepts:
 
 It converts all formats to seconds automatically for the URL parameter, but displays the human-readable timestamp next to each link.
 
-## Use cases
+## When should you share a timestamp link?
 
 - **Share the best moment** from a long podcast without making viewers scrub
 - **Create a table of contents** for a tutorial video — generate links for each chapter
