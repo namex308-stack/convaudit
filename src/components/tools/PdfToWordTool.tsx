@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Loader2 } from "lucide-react";
+import { ClipboardCopy, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { FileUploader, type UploadedFile } from "./FileUploader";
 import { CancelOperationButton } from "./CancelOperationButton";
 import { useOperationCancellation } from "./useOperationCancellation";
-import { downloadBlob, shortId } from "@/lib/download";
+import { copyText, downloadBlob, shortId } from "@/lib/download";
 import { throwIfCancelled } from "@/lib/file-validation";
 
 /**
@@ -25,6 +25,7 @@ export function PdfToWordTool() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [extractedText, setExtractedText] = useState<string>("");
+  const [clipboardStatus, setClipboardStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const cancellation = useOperationCancellation();
 
@@ -38,11 +39,13 @@ export function PdfToWordTool() {
     setError(null);
     setFile({ file: f, id: shortId() });
     setExtractedText("");
+    setClipboardStatus(null);
   };
 
   const handleRemove = () => {
     setFile(null);
     setExtractedText("");
+    setClipboardStatus(null);
   };
 
   const handleProcessAnotherFile = () => {
@@ -50,6 +53,7 @@ export function PdfToWordTool() {
     setExtractedText("");
     setError(null);
     setProgress(0);
+    setClipboardStatus(null);
   };
 
   const handleConvert = async () => {
@@ -58,6 +62,7 @@ export function PdfToWordTool() {
     setError(null);
     setProgress(0);
     setExtractedText("");
+    setClipboardStatus(null);
     const controller = cancellation.start();
 
     try {
@@ -120,6 +125,22 @@ export function PdfToWordTool() {
     downloadBlob(blob, `${baseName}.doc`);
   };
 
+  const handleCopyText = async () => {
+    const copied = await copyText(extractedText);
+    setClipboardStatus(
+      copied
+        ? "Text copied to clipboard."
+        : "Could not copy text. Select it from the preview and copy manually.",
+    );
+  };
+
+  const handleDownloadText = () => {
+    if (!extractedText || !file) return;
+    const baseName = file.file.name.replace(/\.pdf$/i, "");
+    const blob = new Blob([extractedText], { type: "text/plain;charset=utf-8" });
+    downloadBlob(blob, `${baseName}.txt`);
+  };
+
   return (
     <div className="space-y-5">
       <FileUploader
@@ -171,6 +192,12 @@ export function PdfToWordTool() {
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-semibold">Extracted text preview</h3>
             <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={handleCopyText}>
+                <ClipboardCopy className="mr-1 h-3.5 w-3.5" /> Copy text
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleDownloadText}>
+                <Download className="mr-1 h-3.5 w-3.5" /> Download .txt
+              </Button>
               <Button size="sm" onClick={handleDownload}>
                 <Download className="mr-1 h-3.5 w-3.5" /> Download .doc
               </Button>
@@ -183,6 +210,11 @@ export function PdfToWordTool() {
               </Button>
             </div>
           </div>
+          {clipboardStatus && (
+            <p className="text-sm text-muted-foreground" role="status" aria-live="polite">
+              {clipboardStatus}
+            </p>
+          )}
           <pre className="max-h-80 overflow-y-auto rounded-lg border bg-muted/30 p-3 text-xs whitespace-pre-wrap">
             {extractedText.slice(0, 4000)}
             {extractedText.length > 4000 ? "\n..." : ""}

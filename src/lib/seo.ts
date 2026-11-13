@@ -130,9 +130,13 @@ export function buildBlogPostMetadata(post: {
 }): Metadata {
   const canonical = `${SITE_CONFIG.url}/blog/${post.slug}`;
   assertMetaDescription(post.description, post.slug);
+  const brandedTitleLength = post.title.length + ` | ${SITE_CONFIG.name}`.length;
 
   return {
-    title: post.title,
+    title:
+      brandedTitleLength < 60
+        ? post.title
+        : { absolute: post.title },
     description: post.description,
     alternates: {
       canonical,

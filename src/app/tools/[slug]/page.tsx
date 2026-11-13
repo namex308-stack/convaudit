@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { TOOLS, SITE_CONFIG, getToolBySlug, type Tool } from "@/lib/tools";
+import { TOOLS, getToolBySlug, type Tool } from "@/lib/tools";
 import {
   buildToolMetadata,
   SEO_CONTENT_UPDATED_DATE,
@@ -39,22 +39,8 @@ const compressImageSteps = [
 ];
 
 function CompressImageCitationPage({ tool }: { tool: Tool }) {
-  const lastUpdated = new Date(`${SEO_CONTENT_UPDATED_DATE}T00:00:00.000Z`);
-  const date = lastUpdated.toISOString();
   const headline = "Compress Images Online — Free, In-Browser";
 
-  const articleSchema = {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    headline,
-    datePublished: date,
-    dateModified: date,
-    author: {
-      "@type": "Organization",
-      name: "Convaudit Team",
-      url: `${SITE_CONFIG.url}/about`,
-    },
-  };
   const faqSchema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -78,18 +64,15 @@ function CompressImageCitationPage({ tool }: { tool: Tool }) {
       priceCurrency: "USD",
     },
     featureList: [
-      "Runs locally in browser",
-      "Adjust compression quality for JPG, PNG, and WebP files.",
+      "The selected image files are not uploaded or sent to our server for compression.",
       "Compress JPG, PNG, and WebP images.",
-      "Select one or more JPG, PNG, or WebP images.",
-      "Set your preferred compression quality with the slider.",
+      ...compressImageSteps,
     ],
   };
 
   return (
     <>
       <article className="mx-auto max-w-4xl px-5 py-10 sm:px-6 lg:px-8">
-        <JsonLd data={articleSchema} />
         <JsonLd data={faqSchema} />
         <JsonLd data={softwareSchema} />
 
@@ -238,7 +221,6 @@ function CompressImageCitationPage({ tool }: { tool: Tool }) {
           </section>
         </div>
 
-        <RelatedGuide toolSlug={tool.slug} toolName={tool.name} />
         <ContentAttribution
           author="Convaudit Team"
           lastUpdated={SEO_CONTENT_UPDATED_DATE}
@@ -251,6 +233,7 @@ function CompressImageCitationPage({ tool }: { tool: Tool }) {
       >
         <ToolRenderer slug={tool.slug} />
       </section>
+      <RelatedGuide toolSlug={tool.slug} toolName={tool.name} />
     </>
   );
 }
@@ -260,7 +243,7 @@ function CompressImageCitationPage({ tool }: { tool: Tool }) {
  * This makes each tool page fast and SEO-friendly.
  */
 export function generateStaticParams() {
-  return TOOLS.map((t) => ({ slug: t.slug }));
+  return [...TOOLS.map((t) => ({ slug: t.slug })), { slug: "pdf-to-text" }];
 }
 
 /**

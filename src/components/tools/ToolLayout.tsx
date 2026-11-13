@@ -58,7 +58,11 @@ export function ToolLayout({ tool, children }: ToolLayoutProps) {
       priceCurrency: "USD",
     },
     featureList: [
-      ...(tool.privacyMode === "browser" ? ["Runs locally in browser"] : []),
+      ...(tool.privacyMode === "browser"
+        ? [
+            "Your files are processed locally in your browser and are never uploaded to our servers.",
+          ]
+        : []),
       ...tool.howToSteps,
     ],
   };
@@ -186,6 +190,22 @@ export function ToolLayout({ tool, children }: ToolLayoutProps) {
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-10">
         <div className="min-w-0">
           <section className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm sm:p-7">
+            <aside
+              className={`mb-5 flex items-start gap-2.5 rounded-lg border p-3 text-sm leading-relaxed ${
+                tool.privacyMode === "browser"
+                  ? "border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-900/30 dark:text-green-400"
+                  : "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
+              }`}
+              role="note"
+              aria-label="Privacy and data handling"
+            >
+              <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+              <p>
+                {tool.privacyMode === "browser"
+                  ? "Your files are processed locally in your browser and are never uploaded to our servers."
+                  : getToolPrivacyDetail(tool.privacyMode)}
+              </p>
+            </aside>
             {children}
           </section>
         </div>
@@ -253,8 +273,6 @@ export function ToolLayout({ tool, children }: ToolLayoutProps) {
         </section>
       )}
 
-      <RelatedGuide toolSlug={tool.slug} toolName={tool.name} />
-
       <AdSlot slot="3333333333" label="Advertisement" />
 
       {/* FAQ */}
@@ -283,6 +301,7 @@ export function ToolLayout({ tool, children }: ToolLayoutProps) {
         author="Convaudit Team"
         lastUpdated={SEO_CONTENT_UPDATED_DATE}
       />
+      <RelatedGuide toolSlug={tool.slug} toolName={tool.name} />
     </article>
   );
 }

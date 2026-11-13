@@ -119,7 +119,7 @@ The tool uses \`pdf-lib\` in your browser; the selected PDF contents are not sen
 
 PDF is a final-format document type — designed for printing and viewing, not editing. But sometimes you need to edit the text inside a PDF: update a contract clause, fix a typo in a resume, or repurpose content from a white paper.
 
-Our [PDF to Text tool](/tools/pdf-to-word) extracts the text content from a PDF using Mozilla's PDF.js library and packages it as a Word-compatible \`.doc\` file you can open in Microsoft Word, Google Docs, or LibreOffice. The conversion runs entirely in your browser.
+Our [PDF to Text tool](/tools/pdf-to-word) extracts selectable text from a PDF using Mozilla's PDF.js library. Copy the result, download it as plain \`.txt\`, or save it as a Word-compatible \`.doc\` file you can open in Microsoft Word, Google Docs, or LibreOffice. Extraction runs in your browser.
 
 ## What does PDF-to-Word conversion preserve?
 

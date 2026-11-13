@@ -226,7 +226,11 @@ export default async function BlogPostPage({
         </p>
       </section>
 
-      <RelatedGuide toolSlug={primaryTool.slug} toolName={primaryTool.name} />
+      <RelatedGuide
+        toolSlug={primaryTool.slug}
+        toolName={primaryTool.name}
+        excludePostSlug={post.slug}
+      />
       <ContentAttribution
         author={post.author}
         lastUpdated={post.modifiedDate ?? post.date}

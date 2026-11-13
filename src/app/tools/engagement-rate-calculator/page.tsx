@@ -16,6 +16,9 @@ export const metadata = buildCalculatorMetadata(
   ENGAGEMENT_RATE_CALCULATOR,
 );
 
+const engagementRateDirectAnswer =
+  "Engagement rate is the percentage of your followers who interacted with a post. Add likes, comments, and shares, divide that total by your follower count, then multiply by 100. Use the calculator below to get an instant result and compare it with broad Instagram, TikTok, and YouTube reference ranges.";
+
 const faqSchema = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
@@ -33,7 +36,7 @@ const softwareSchema = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   name: ENGAGEMENT_RATE_CALCULATOR.name,
-  description: ENGAGEMENT_RATE_CALCULATOR.description,
+  description: engagementRateDirectAnswer,
   url: `${SITE_CONFIG.url}/tools/${ENGAGEMENT_RATE_CALCULATOR.slug}`,
   applicationCategory: "UtilitiesApplication",
   operatingSystem: "Any",
@@ -42,7 +45,7 @@ const softwareSchema = {
     price: "0",
     priceCurrency: "USD",
   },
-  featureList: ["Runs locally in browser"],
+  featureList: [engagementRateDirectAnswer],
 };
 
 export default function EngagementRateCalculatorPage() {
@@ -56,11 +59,7 @@ export default function EngagementRateCalculatorPage() {
           Engagement Rate Calculator
         </h1>
         <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
-          Engagement rate is the percentage of your followers who interacted
-          with a post. Add likes, comments, and shares, divide that total by
-          your follower count, then multiply by 100. Use the calculator below
-          to get an instant result and compare it with broad Instagram, TikTok,
-          and YouTube reference ranges.
+          {engagementRateDirectAnswer}
         </p>
       </header>
 
@@ -102,13 +101,13 @@ export default function EngagementRateCalculatorPage() {
           </div>
         ))}
       </section>
-      <RelatedGuide
-        toolSlug={ENGAGEMENT_RATE_CALCULATOR.slug}
-        toolName={ENGAGEMENT_RATE_CALCULATOR.name}
-      />
       <ContentAttribution
         author="Convaudit Team"
         lastUpdated={SEO_CONTENT_UPDATED_DATE}
+      />
+      <RelatedGuide
+        toolSlug={ENGAGEMENT_RATE_CALCULATOR.slug}
+        toolName={ENGAGEMENT_RATE_CALCULATOR.name}
       />
     </article>
   );

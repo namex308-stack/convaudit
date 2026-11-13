@@ -28,6 +28,9 @@ const toolComponents: Record<string, ComponentType> = {
   "pdf-to-word": dynamic(() =>
     import("./PdfToWordTool").then((module) => module.PdfToWordTool),
   ),
+  "pdf-to-text": dynamic(() =>
+    import("./PdfToWordTool").then((module) => module.PdfToWordTool),
+  ),
   "image-to-pdf": dynamic(() =>
     import("./ImageToPdfTool").then((module) => module.ImageToPdfTool),
   ),

@@ -196,15 +196,23 @@ const RELATED_GUIDE_FALLBACKS: Record<string, string> = {
   "follower-growth-calculator": "how-to-calculate-engagement-rate",
 };
 
-export function getRelatedPostForTool(toolSlug: string): BlogPostMeta | undefined {
+export function getRelatedPostsForTool(
+  toolSlug: string,
+  excludePostSlug?: string,
+): BlogPostMeta[] {
   const posts = getAllPosts();
-  const directMatch = posts.find((post) => post.toolSlug === toolSlug);
-  if (directMatch) return directMatch;
+  const directMatches = posts.filter(
+    (post) => post.toolSlug === toolSlug && post.slug !== excludePostSlug,
+  );
+  if (directMatches.length > 0) return directMatches.slice(0, 2);
 
   const fallbackSlug = RELATED_GUIDE_FALLBACKS[toolSlug];
-  return fallbackSlug
-    ? posts.find((post) => post.slug === fallbackSlug)
+  const fallback = fallbackSlug
+    ? posts.find(
+        (post) => post.slug === fallbackSlug && post.slug !== excludePostSlug,
+      )
     : undefined;
+  return fallback ? [fallback] : [];
 }
 
 /**

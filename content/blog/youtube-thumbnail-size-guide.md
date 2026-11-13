@@ -59,3 +59,4 @@ The [YouTube Thumbnail Resizer](/tools/youtube-thumbnail-resizer) exports a 1280
 ### How can I see whether a thumbnail is readable on mobile?
 
 Use the [Thumbnail Tester](/tools/youtube-thumbnail-tester) to preview the image at multiple sizes, then check whether important text and faces remain visible. A preview is a design check, not a performance prediction.
+If you need a copy of the artwork to preview, [download an available YouTube thumbnail](/tools/youtube-thumbnail-downloader) and test that image at the sizes your audience uses.

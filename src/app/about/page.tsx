@@ -49,6 +49,28 @@ export default function AboutPage() {
 
       <section className="mt-8 space-y-3">
         <h2 className="text-xl font-semibold tracking-tight">
+          Why Trust Convaudit?
+        </h2>
+        <p className="leading-relaxed text-muted-foreground">
+          Many image and PDF tools process your files in your browser using web
+          technologies such as JavaScript and WebAssembly where needed. For
+          those tools, the file contents are not uploaded to our servers.
+        </p>
+        <p className="leading-relaxed text-muted-foreground">
+          Privacy details vary by tool. Tools that look up public YouTube
+          information may send a video or channel URL to YouTube or another
+          disclosed endpoint; each tool page explains its data handling before
+          you use it.
+        </p>
+        <p className="leading-relaxed text-muted-foreground">
+          Our mission is to make useful online tools free to use, without
+          watermarks or account requirements. We aim to keep the experience
+          straightforward and explain what each tool does with your input.
+        </p>
+      </section>
+
+      <section className="mt-8 space-y-3">
+        <h2 className="text-xl font-semibold tracking-tight">
           About the founder
         </h2>
         <p className="leading-relaxed text-muted-foreground">

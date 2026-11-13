@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Check } from "lucide-react";
 import { TOOLS, SITE_CONFIG } from "@/lib/tools";
 import { PrivacySettingsButton } from "@/components/ads/PrivacyConsent";
 import { BrandMark } from "./BrandMark";
@@ -7,7 +8,7 @@ export function Footer() {
   return (
     <footer className="mt-auto w-full border-t border-border bg-muted/40">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-5">
           <div className="md:col-span-1">
             <Link href="/" className="inline-flex items-center gap-2.5" aria-label="Convaudit home">
               <span className="flex size-9 items-center justify-center rounded-xl bg-accent text-primary">
@@ -109,6 +110,30 @@ export function Footer() {
               ))}
             </ul>
           </div>
+
+          <section aria-labelledby="commitment-heading">
+            <h3
+              id="commitment-heading"
+              className="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
+            >
+              Our Commitment
+            </h3>
+            <ul className="mt-4 flex flex-col gap-2.5 text-sm text-muted-foreground">
+              {[
+                "We don't store your files.",
+                "We don't require an account.",
+                "We don't sell your data.",
+              ].map((commitment) => (
+                <li key={commitment} className="flex items-start gap-2">
+                  <Check
+                    className="mt-0.5 size-4 shrink-0 text-teal"
+                    aria-hidden="true"
+                  />
+                  <span>{commitment}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
         </div>
 
         <div className="mt-10 flex flex-col items-start justify-between gap-3 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center">

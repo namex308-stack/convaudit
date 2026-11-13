@@ -29,7 +29,7 @@ export function CalculatorPageContent({
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     name: calculator.name,
-    description: calculator.description,
+    description: calculator.directAnswer,
     url: `${SITE_CONFIG.url}/tools/${calculator.slug}`,
     applicationCategory: "UtilitiesApplication",
     operatingSystem: "Any",
@@ -38,7 +38,7 @@ export function CalculatorPageContent({
       price: "0",
       priceCurrency: "USD",
     },
-    featureList: ["Runs locally in browser"],
+    featureList: [calculator.directAnswer],
   };
 
   return (
@@ -87,11 +87,11 @@ export function CalculatorPageContent({
           </div>
         ))}
       </section>
-      <RelatedGuide toolSlug={calculator.slug} toolName={calculator.name} />
       <ContentAttribution
         author="Convaudit Team"
         lastUpdated={SEO_CONTENT_UPDATED_DATE}
       />
+      <RelatedGuide toolSlug={calculator.slug} toolName={calculator.name} />
     </article>
   );
 }

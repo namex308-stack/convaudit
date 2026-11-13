@@ -2,12 +2,15 @@
 
 import { useMemo, useState } from "react";
 import {
+  BadgeCheck,
+  Code2,
   FileCheck2,
   Search,
   SearchX,
   ShieldCheck,
   UserRound,
   X,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,6 +86,48 @@ export function ToolsOrganizer() {
           Fast, free, secure tools for images, PDFs, YouTube, and social media.
           Files stay local. No sign-up required—choose a tool and start
           processing instantly.
+        </p>
+        <ul
+          aria-label="Convaudit trust signals"
+          className="mx-auto mt-6 flex max-w-4xl flex-wrap items-center justify-center gap-x-6 gap-y-3 text-sm text-muted-foreground"
+        >
+          <li className="group relative inline-flex items-center gap-2 rounded-sm focus-within:outline-none focus-within:ring-2 focus-within:ring-ring">
+            <span
+              tabIndex={0}
+              aria-describedby="local-processing-tooltip"
+              className="inline-flex items-center gap-2"
+            >
+              <ShieldCheck className="size-4 shrink-0 text-teal" aria-hidden="true" />
+              <span>100% Local Processing</span>
+            </span>
+            <span
+              id="local-processing-tooltip"
+              role="tooltip"
+              className="invisible absolute left-1/2 top-full z-20 mt-2 w-64 -translate-x-1/2 rounded-md border border-border bg-popover px-3 py-2 text-left text-xs leading-relaxed text-popover-foreground opacity-0 shadow-md transition-opacity group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+            >
+              Files never leave your device. This applies to file tools; URL-based
+              tools disclose any external requests in their data-use details.
+            </span>
+          </li>
+          <li className="inline-flex items-center gap-2">
+            <Zap className="size-4 shrink-0" aria-hidden="true" />
+            <span>No Sign-up Required</span>
+          </li>
+          <li className="inline-flex items-center gap-2">
+            <BadgeCheck className="size-4 shrink-0" aria-hidden="true" />
+            <span>Free Forever</span>
+          </li>
+          <li
+            className="inline-flex items-center gap-2"
+            title="Each tool explains what it processes and which external requests it makes."
+          >
+            <Code2 className="size-4 shrink-0" aria-hidden="true" />
+            <span>Open &amp; Transparent</span>
+          </li>
+        </ul>
+        <p className="sr-only">
+          Local processing applies to file tools. URL-based tools describe any
+          external requests in their data-use details.
         </p>
         <div
           role="search"

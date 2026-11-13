@@ -338,9 +338,9 @@ export const TOOLS: Tool[] = [
   },
   {
     slug: "pdf-to-word",
-    name: "PDF to Text — Word-compatible .doc",
+    name: "PDF to Text & Word Converter",
     description:
-      "Extract selectable PDF text into a Word-compatible .doc file. Text-focused output; original page layout is not preserved.",
+      "Extract selectable PDF text to copy, download as plain .txt, or save as a Word-compatible .doc. Text-focused output; original layout is not preserved.",
     category: "Conversion",
     privacyMode: "browser",
     keywords: [
@@ -361,9 +361,9 @@ export const TOOLS: Tool[] = [
       "pdf to word conversion",
     ],
     longDescription:
-      "PDF to Text uses the pdfjs-dist library to extract text content from your PDF and packages it as a .doc file you can open in Microsoft Word, Google Docs, or LibreOffice. It extracts text, not the original page design: tables, columns, images, and complex layouts may change or be omitted.",
+      "PDF to Text uses the pdfjs-dist library to extract text content from your PDF locally in your browser. Copy the extracted text, download it as a plain .txt file, or package it as a Word-compatible .doc file for Microsoft Word, Google Docs, or LibreOffice. It extracts text, not the original page design: tables, columns, images, and complex layouts may change or be omitted.",
     notice:
-      "This tool extracts text into a Word-compatible .doc file; it does not preserve the original PDF layout, images, or complex tables.",
+      "This tool extracts text for copying or .txt and Word-compatible .doc downloads; it does not preserve the original PDF layout, images, or complex tables.",
     faqs: [
       {
         q: "Will the layout be preserved?",
@@ -379,14 +379,14 @@ export const TOOLS: Tool[] = [
       },
       {
         q: "What output format is used?",
-        a: "We generate a .doc file (Word 97-2003) which opens in Microsoft Word, Google Docs, and LibreOffice. The format is HTML-based so it's lightweight and universally compatible.",
+        a: "Copy the extracted text, download it as plain .txt, or generate a Word-compatible .doc file that opens in Microsoft Word, Google Docs, and LibreOffice. Neither format preserves the PDF's exact page layout.",
       },
     ],
     howToSteps: [
       "Drop a PDF file into the upload area or click to browse.",
       "Click Convert to Word and wait for text extraction to complete.",
       "Preview the extracted text in the panel.",
-      "Download the resulting .doc file to edit in Word or Google Docs.",
+      "Copy the text, download a .txt file, or save a Word-compatible .doc file.",
     ],
     accent: "#3b82f6",
   },
@@ -1266,5 +1266,8 @@ export const SITE_CONFIG = {
 };
 
 export function getToolBySlug(slug: string): Tool | undefined {
+  if (slug === "pdf-to-text") {
+    return TOOLS.find((tool) => tool.slug === "pdf-to-word");
+  }
   return TOOLS.find((t) => t.slug === slug);
 }
