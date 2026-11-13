@@ -70,11 +70,12 @@ export default function PrivacyPage() {
           <p className="mt-3 leading-relaxed text-muted-foreground">
             Optional analytics are provided by {SITE_CONFIG.analyticsProvider}.
             These scripts load only after you choose “Allow optional.”
-            Google Analytics 4 is configured with IP anonymization. Google
-            AdSense loads only if an AdSense publisher ID is configured and
-            you allow optional services. When enabled, these providers may
-            process usage, device, browser, and network information under
-            their own policies.
+            Google Analytics 4 is configured with IP anonymization. Plausible
+            Analytics, Google Analytics 4, Vercel Analytics, and Vercel Speed
+            Insights may process usage, device, browser, and network
+            information under their own policies. Google AdSense loads only
+            if an AdSense publisher ID is configured and you allow optional
+            services.
           </p>
           <p className="mt-3 leading-relaxed text-muted-foreground">
             You can reject optional services or change your choice with the

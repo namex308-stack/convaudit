@@ -1261,7 +1261,7 @@ export const SITE_CONFIG = {
   url: "https://convaudit.com",
   adsenseClient: sanitizeAdsenseClient(process.env.NEXT_PUBLIC_ADSENSE_CLIENT),
   analyticsProvider:
-    "Google Analytics 4, Vercel Analytics, and Vercel Speed Insights",
+    "Plausible, Google Analytics 4, Vercel Analytics, and Vercel Speed Insights",
   analyticsMeasurementId: "G-MDR2NP5CJ3",
 };
 

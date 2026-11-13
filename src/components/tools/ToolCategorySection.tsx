@@ -38,13 +38,8 @@ export function ToolCard({ tool }: { tool: Tool }) {
           : Youtube;
 
   return (
-    <Link
-      href={`/tools/${tool.slug}`}
-      aria-labelledby={`tool-name-${tool.slug}`}
-      aria-describedby={`tool-privacy-${tool.slug}`}
-      className="group block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-    >
-      <Card className="h-full gap-0 border-border bg-card py-0 transition-[transform,border-color,box-shadow] duration-normal group-hover:-translate-y-0.5 group-hover:border-primary/50 group-hover:shadow-card">
+    <div className="group relative h-full">
+      <Card className="relative h-full gap-0 border-border bg-card py-0 transition-[transform,border-color,box-shadow] duration-normal group-hover:-translate-y-0.5 group-hover:border-primary/50 group-hover:shadow-card">
         <CardContent className="flex h-full min-h-52 flex-col p-5">
           <div className="mb-5 flex items-center justify-between">
             <span className="flex size-11 items-center justify-center rounded-xl bg-accent text-primary">
@@ -57,10 +52,15 @@ export function ToolCard({ tool }: { tool: Tool }) {
           <div className="flex items-start justify-between gap-2">
             <div className="flex min-w-0 items-center gap-2">
               <h3
-                id={`tool-name-${tool.slug}`}
                 className="truncate text-base font-semibold tracking-tight"
               >
-                {tool.name}
+                <Link
+                  href={`/tools/${tool.slug}`}
+                  aria-describedby={`tool-privacy-${tool.slug}`}
+                  className="z-10 after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:rounded-xl focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-offset-2 focus-visible:after:ring-offset-background"
+                >
+                  {tool.name}
+                </Link>
               </h3>
               {tool.badge && (
                 <Badge variant="secondary" className="shrink-0 text-xs">
@@ -85,7 +85,7 @@ export function ToolCard({ tool }: { tool: Tool }) {
           </div>
         </CardContent>
       </Card>
-    </Link>
+    </div>
   );
 }
 

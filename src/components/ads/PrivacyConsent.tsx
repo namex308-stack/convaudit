@@ -25,6 +25,11 @@ declare global {
   interface Window {
     dataLayer?: unknown[];
     gtag?: (...args: unknown[]) => void;
+    plausible?: ((...args: unknown[]) => void) & {
+      q?: unknown[];
+      o?: Record<string, unknown>;
+      init?: (options?: Record<string, unknown>) => void;
+    };
   }
 }
 
@@ -146,6 +151,20 @@ export function ConsentManagedScripts() {
 
   return (
     <>
+      <Script id="plausible-init" strategy="afterInteractive">
+        {`
+          window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
+          plausible.init()
+        `}
+      </Script>
+      <Script
+        id="plausible-src"
+        strategy="afterInteractive"
+        src="https://plausible.io/js/pa-cjRauxDL6ZYZQatXPAD3w.js"
+        onError={() => {
+          console.error("Failed to load the Plausible Analytics script.");
+        }}
+      />
       <Script
         id="ga-src"
         strategy="afterInteractive"
