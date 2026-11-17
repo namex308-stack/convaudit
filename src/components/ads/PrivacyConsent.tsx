@@ -99,7 +99,7 @@ export function PrivacyConsentProvider({ children }: { children: ReactNode }) {
         <section
           aria-label="Privacy choices"
           aria-live="polite"
-          className="fixed inset-x-0 bottom-0 z-[100] border-t bg-background p-4 shadow-2xl sm:p-6"
+          className="fixed inset-x-0 bottom-0 z-100 border-t bg-background p-4 shadow-2xl sm:p-6"
         >
           <div className="mx-auto flex max-w-5xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="max-w-3xl">
@@ -151,18 +151,13 @@ export function ConsentManagedScripts() {
 
   return (
     <>
-      <Script id="plausible-init" strategy="afterInteractive">
-        {`
-          window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
-          plausible.init()
-        `}
-      </Script>
       <Script
         id="plausible-src"
         strategy="afterInteractive"
-        src="https://plausible.io/js/pa-cjRauxDL6ZYZQatXPAD3w.js"
+        src="https://plausible.io/js/script.js"
+        data-domain={new URL(SITE_CONFIG.url).hostname}
         onError={() => {
-          console.error("Failed to load the Plausible Analytics script.");
+          console.warn("Failed to load the Plausible Analytics script.");
         }}
       />
       <Script

@@ -53,6 +53,7 @@ Free tools for processing images and PDFs, plus utilities for YouTube and social
 
 - Calculate social engagement, follower growth, TikTok earnings, influencer rates, and return on ad spend.
 - Read practical guides for image formats, PDF workflows, metadata, and YouTube creators.
+- Explore the latest guides: [share a YouTube link with a timestamp](https://convaudit.com/blog/youtube-link-with-timestamp) and [understand YouTube CPM vs. RPM](https://convaudit.com/blog/youtube-cpm-vs-rpm).
 
 ## Tech stack
 
@@ -93,6 +94,8 @@ tests/                   Tests
 ## Privacy
 
 Image and PDF files handled by browser-based tools are processed locally and are not uploaded to Convaudit for those operations. Some YouTube tools request public information from YouTube or other services, and the YouTube Tags Extractor sends the video URL to the Convaudit server to retrieve public video-page data. Review the disclosure on each tool and the [privacy policy](https://convaudit.com/privacy) before use.
+
+Optional analytics and advertising scripts are only enabled after a visitor allows optional cookies in the privacy controls.
 
 ## About Convaudit
 
