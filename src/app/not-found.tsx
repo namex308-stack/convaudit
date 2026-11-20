@@ -41,6 +41,8 @@ export default function NotFound() {
         action="/search"
         method="get"
         className="mt-8 flex w-full max-w-md items-center gap-2"
+        toolname="search_convaudit"
+        tooldescription="Search Convaudit tools and blog guides by name, category, description, or keyword."
       >
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -50,6 +52,7 @@ export default function NotFound() {
             placeholder="Search Convaudit..."
             className="pl-9"
             aria-label="Search Convaudit"
+            toolparamdescription="Search words or phrases for tools and blog guides."
           />
         </div>
         <Button type="submit">Search</Button>

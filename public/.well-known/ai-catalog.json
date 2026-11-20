@@ -1,1 +1,53 @@
-{"specVersion": "1.0", "host": {"name": "Convaudit"}, "entries": [{"urn": "urn:air:convaudit.com:tools:images", "displayName": "Image Tools", "type": "application/json", "url": "https://convaudit.com/tools", "representativeQueries": ["compress image", "remove background"]}]}
+{
+  "specVersion": "1.0",
+  "host": {
+    "displayName": "Convaudit",
+    "identifier": "did:web:convaudit.com"
+  },
+  "entries": [
+    {
+      "identifier": "urn:air:convaudit.com:tools:compress-image",
+      "displayName": "Compress Image",
+      "type": "text/html",
+      "url": "https://convaudit.com/tools/compress-image",
+      "representativeQueries": [
+        "compress JPG, PNG, or WebP images in the browser",
+        "reduce image file size without uploading photos",
+        "batch compress images and download them as a ZIP"
+      ]
+    },
+    {
+      "identifier": "urn:air:convaudit.com:tools:merge-pdf",
+      "displayName": "Merge PDF",
+      "type": "text/html",
+      "url": "https://convaudit.com/tools/merge-pdf",
+      "representativeQueries": [
+        "combine multiple PDF files into one document",
+        "merge PDFs locally in a web browser",
+        "join PDF pages without uploading files"
+      ]
+    },
+    {
+      "identifier": "urn:air:convaudit.com:tools:youtube-tags-extractor",
+      "displayName": "YouTube Tags Extractor",
+      "type": "text/html",
+      "url": "https://convaudit.com/tools/youtube-tags-extractor",
+      "representativeQueries": [
+        "extract tags from a YouTube video",
+        "find the public keywords used by a YouTube video",
+        "get tags from a YouTube URL"
+      ]
+    },
+    {
+      "identifier": "urn:air:convaudit.com:tools:engagement-rate-calculator",
+      "displayName": "Engagement Rate Calculator",
+      "type": "text/html",
+      "url": "https://convaudit.com/tools/engagement-rate-calculator",
+      "representativeQueries": [
+        "calculate social media engagement rate from likes comments and shares",
+        "find engagement rate from follower and interaction counts",
+        "compare engagement rate benchmarks for social platforms"
+      ]
+    }
+  ]
+}

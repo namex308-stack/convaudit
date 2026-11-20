@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/components/layout/ThemeProvider";
 import { AdPreferencesProvider } from "@/components/ads/AdPreferences";
 import { AdBlockDetector } from "@/components/ads/AdBlockDetector";
 import { AdSenseScript } from "@/components/ads/AdSenseScript";
+import { WebMcpTools } from "@/components/agent/WebMcpTools";
 import {
   ConsentManagedScripts,
   PrivacyConsentProvider,
@@ -189,6 +190,7 @@ export default function RootLayout({
                 <Footer />
               </div>
               <Toaster />
+              <WebMcpTools />
               <AdBlockDetector />
               <AdSenseScript />
               <ConsentManagedScripts />

@@ -55,12 +55,24 @@ export default async function SearchPage({ searchParams }: Props) {
       <h2 className="mt-8 text-xl font-semibold tracking-tight">
         Search image, PDF, and YouTube tools
       </h2>
-      <form action="/search" method="get" className="mt-4 flex items-center gap-2">
+      <form
+        action="/search"
+        method="get"
+        className="mt-4 flex items-center gap-2"
+        toolname="search_convaudit"
+        tooldescription="Search Convaudit tools and blog guides by name, category, description, or keyword."
+      >
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input type="search" name="q" defaultValue={query}
+          <Input
+            type="search"
+            name="q"
+            defaultValue={query}
             placeholder="Try 'compress pdf' or 'thumbnail'…"
-            className="pl-9" aria-label="Search Convaudit" />
+            className="pl-9"
+            aria-label="Search Convaudit"
+            toolparamdescription="Search words or phrases for tools and blog guides."
+          />
         </div>
         <Button type="submit">Search</Button>
       </form>
