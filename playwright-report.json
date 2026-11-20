@@ -1,0 +1,697 @@
+{
+  "config": {
+    "argv": [
+      "C:\\nvm4w\\nodejs\\node.exe",
+      "C:\\Users\\IT\\Downloads\\convaudit\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--list"
+    ],
+    "configFile": "C:\\Users\\IT\\Downloads\\convaudit\\playwright.config.js",
+    "rootDir": "C:/Users/IT/Downloads/convaudit/tests",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/IT/Downloads/convaudit/playwright-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "",
+        "name": "",
+        "testDir": "C:/Users/IT/Downloads/convaudit/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.spec.js"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "C:\\Users\\IT\\Downloads\\convaudit\\playwright-artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "name": "",
+        "testDir": "C:\\Users\\IT\\Downloads\\convaudit\\tests",
+        "snapshotDir": "C:\\Users\\IT\\Downloads\\convaudit\\tests",
+        "testIgnore": [],
+        "testMatch": "**/*.spec.js",
+        "timeout": 60000,
+        "use": {
+          "baseURL": "https://convaudit.com",
+          "headless": true,
+          "browserName": "chromium",
+          "viewport": {
+            "width": 1365,
+            "height": 900
+          }
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": ""
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "html",
+        {
+          "outputFolder": "./playwright-report",
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "./playwright-report.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.65.1",
+    "workers": 4,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "tools-pages.spec.js",
+      "file": "tools-pages.spec.js",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/compress-image",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-af2ad6fd628bf6afbf84",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/remove-background",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-8a0a6c843a0e294e055d",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/heic-to-jpg",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-c977dc2eef4172fe92e3",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/merge-pdf",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-09282fe6a746bb430710",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/split-pdf",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-9b51dd9dd6266b6b55a3",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/rotate-pdf",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-35e42ddbd509831c6520",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/pdf-to-word",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-4e3800cd6d6e037555f4",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/image-to-pdf",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-b7fa015ba91823452ab2",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/compress-pdf",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-08e6b5603ea6669b3003",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/webp-to-png",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-1edc57eeb5be7b62f504",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/png-to-jpg",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-00ce082388089260e33c",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/jpg-to-webp",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-8ac22be86a87c7959d51",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/youtube-thumbnail-downloader",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-f1c559f3ed017982a3d2",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/youtube-thumbnail-resizer",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-4b0338619112871750f1",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/youtube-tags-extractor",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-bee7d1e8be40a30843c5",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/youtube-title-generator",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-d036c1f162ea82e6b841",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/youtube-description-generator",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-fdf5552eddbee7e2302b",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/youtube-hashtag-generator",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-c6eaba337c9068015a98",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/youtube-money-calculator",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-d7b157f6ae589c1ffd62",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/youtube-thumbnail-tester",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-8ad855aa6a6cb57255a3",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/youtube-channel-id-finder",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-698dc13839ef81bdbc7b",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/youtube-timestamp-link-generator",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-39cf479362bc03cf6951",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/remove-exif",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-68257a0a0ed249f54c0e",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/pdf-to-image",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-51088b08ccb7c1941ac2",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/engagement-rate-calculator",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-e51dea4e7f339172eba3",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/tiktok-money-calculator",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-7a521aba00ec0a72bc1d",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/influencer-rate-calculator",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-6124c6d39c43222f588f",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/roas-calculator",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-13ee11dfd53c3f13e0d2",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        },
+        {
+          "title": "Tool page loads: https://convaudit.com/tools/follower-growth-calculator",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [],
+              "status": "skipped"
+            }
+          ],
+          "id": "403bb42c9415444f17a5-939bfacf0e460f4c1168",
+          "file": "tools-pages.spec.js",
+          "line": 17,
+          "column": 3
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-11-20T12:13:42.061Z",
+    "duration": 95.36900000000014,
+    "expected": 0,
+    "skipped": 29,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

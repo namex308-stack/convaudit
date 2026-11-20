@@ -1,0 +1,2784 @@
+﻿CONVAUDIT SOURCE REVIEW
+
+========================================
+FILE: src/components/tools/youtube/YouTubeChannelIdFinder.tsx
+========================================
+
+"use client";
+
+import { useState } from "react";
+import { Loader2, Search, AlertCircle, Copy, Check, User, Youtube } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  extractVideoId,
+  fetchOEmbed,
+  extractChannelId,
+  type YouTubeOEmbed,
+} from "@/lib/youtube";
+import { copyText } from "@/lib/download";
+import { CancelOperationButton } from "../CancelOperationButton";
+import { useOperationCancellation } from "../useOperationCancellation";
+
+type Result = {
+  channelId: string;
+  channelName: string;
+  channelUrl: string;
+};
+
+/**
+ * YouTube Channel ID Finder.
+ *
+ * Strategy:
+ * 1. If the input is a video URL, use oEmbed to get author_url (which
+ *    contains the channel ID). This is the most reliable method.
+ * 2. If the input is a channel URL (/channel/UC...), extract directly.
+ * 3. If the input is a handle URL (/@name), use a CORS proxy to fetch
+ *    the channel page and extract the ID from meta tags.
+ */
+export function YouTubeChannelIdFinder() {
+  const [url, setUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<Result | null>(null);
+  const [meta, setMeta] = useState<YouTubeOEmbed | null>(null);
+  const [copied, setCopied] = useState(false);
+  const cancellation = useOperationCancellation();
+
+  const handleFind = async () => {
+    setError(null);
+    setResult(null);
+    setMeta(null);
+    setCopied(false);
+
+    const trimmed = url.trim();
+    if (!trimmed) {
+      setError("Please enter a YouTube URL.");
+      return;
+    }
+
+    setLoading(true);
+    const controller = cancellation.start();
+    try {
+      // Strategy 1: Video URL â†’ oEmbed â†’ author_url
+      const videoId = extractVideoId(trimmed);
+      if (videoId) {
+        const oembed = await fetchOEmbed(
+          `https://www.youtube.com/watch?v=${videoId}`,
+          controller.signal
+        );
+        const channelId = extractChannelId(oembed.author_url);
+        if (channelId) {
+          setMeta(oembed);
+          setResult({
+            channelId,
+            channelName: oembed.author_name,
+            channelUrl: oembed.author_url,
+          });
+          return;
+        }
+      }
+
+      // Strategy 2: Direct channel URL (/channel/UC...)
+      const directId = extractChannelId(trimmed);
+      if (directId) {
+        setResult({
+          channelId: directId,
+          channelName: "Channel",
+          channelUrl: trimmed,
+        });
+        return;
+      }
+
+      // Strategy 3: Handle URL (/@name) â†’ fetch page via CORS proxy
+      if (trimmed.includes("/@") || trimmed.includes("/user/") || trimmed.includes("/c/")) {
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(trimmed)}`;
+        const res = await fetch(proxyUrl, { signal: controller.signal });
+        if (res.ok) {
+          const html = await res.text();
+          // Look for <meta itemprop="channelId" content="UC...">
+          const idMatch = html.match(/"channelId":"(UC[a-zA-Z0-9_-]{22})"/);
+          if (idMatch) {
+            // Also try to extract channel name
+            const nameMatch = html.match(/<meta\s+property="og:title"\s+content="([^"]*)"/);
+            setResult({
+              channelId: idMatch[1],
+              channelName: nameMatch ? nameMatch[1] : "Channel",
+              channelUrl: trimmed,
+            });
+            return;
+          }
+        }
+        setError("Could not resolve channel ID from this URL. Try a video URL from the channel instead.");
+        return;
+      }
+
+      setError("Please enter a valid YouTube URL â€” a video URL, channel URL, or @handle URL.");
+    } catch (err) {
+      setError(controller.signal.aborted
+        ? "Lookup cancelled."
+        : err instanceof Error
+          ? err.message
+          : "Failed to find channel ID. Please try again.");
+    } finally {
+      cancellation.finish(controller);
+      setLoading(false);
+    }
+  };
+
+  const copyId = async () => {
+    if (result) {
+      const ok = await copyText(result.channelId);
+      setCopied(ok);
+      if (ok) setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="space-y-2">
+        <Label htmlFor="yt-url">YouTube URL (video, channel, or @handle)</Label>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            id="yt-url"
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://www.youtube.com/@MrBeast or /watch?v=..."
+            onKeyDown={(e) => e.key === "Enter" && handleFind()}
+            disabled={loading}
+          />
+          <Button onClick={handleFind} disabled={loading || !url.trim()} className="sm:w-auto">
+            {loading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Search className="mr-1.5 h-4 w-4" />}
+            Find Channel ID
+          </Button>
+          {loading && (
+            <CancelOperationButton
+              onCancel={cancellation.cancel}
+              isCancelling={cancellation.isCancelling}
+            />
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Video URLs are the most reliable. Handle URLs (@name) use a CORS proxy and may occasionally fail.
+        </p>
+      </div>
+
+      {error && (
+        <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          <AlertCircle className="mt-0.5 h-4 w-4 flex-none" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {result && (
+        <div className="space-y-4">
+          {meta && (
+            <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
+              <Youtube className="h-5 w-5 flex-none text-red-600" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{meta.title}</p>
+                <p className="truncate text-xs text-muted-foreground">Video used for lookup</p>
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-xl border bg-card p-5">
+            <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <User className="h-3.5 w-3.5" />
+              Channel ID
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <code className="break-all rounded bg-muted px-3 py-2 font-mono text-sm font-medium">
+                {result.channelId}
+              </code>
+              <Button size="sm" variant="outline" className="flex-none" onClick={copyId}>
+                {copied ? <Check className="mr-1 h-3.5 w-3.5 text-emerald-600" /> : <Copy className="mr-1 h-3.5 w-3.5" />}
+                {copied ? "Copied!" : "Copy"}
+              </Button>
+            </div>
+            <div className="mt-3 space-y-1 text-sm text-muted-foreground">
+              <p><strong className="text-foreground">Channel name:</strong> {result.channelName}</p>
+              <p><strong className="text-foreground">Channel URL:</strong>{" "}
+                <a href={result.channelUrl} target="_blank" rel="noopener noreferrer" className="text-foreground underline underline-offset-2 hover:text-muted-foreground">
+                  {result.channelUrl}
+                </a>
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
+            Use this ID for the YouTube Data API, RSS feeds ({`https://www.youtube.com/feeds/videos.xml?channel_id=${result.channelId}`}), or third-party analytics tools.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/youtube/YouTubeDescriptionGenerator.tsx
+========================================
+
+"use client";
+
+import { useState } from "react";
+import { Copy, Check, Plus, Trash2, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { copyText } from "@/lib/download";
+
+type Timestamp = { id: string; time: string; label: string };
+
+/**
+ * YouTube Description Generator.
+ *
+ * Builds a structured description from user input: hook, summary,
+ * timestamp chapters, social links, and hashtags. Output is editable
+ * and copyable.
+ */
+export function YouTubeDescriptionGenerator() {
+  const [title, setTitle] = useState("");
+  const [summary, setSummary] = useState("");
+  const [timestamps, setTimestamps] = useState<Timestamp[]>([
+    { id: "ts-1", time: "0:00", label: "Intro" },
+    { id: "ts-2", time: "", label: "" },
+  ]);
+  const [socialLinks, setSocialLinks] = useState({
+    twitter: "",
+    instagram: "",
+    website: "",
+  });
+  const [hashtags, setHashtags] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const addTimestamp = () => {
+    setTimestamps((prev) => [
+      ...prev,
+      { id: `ts-${Date.now()}`, time: "", label: "" },
+    ]);
+  };
+
+  const removeTimestamp = (id: string) => {
+    setTimestamps((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const updateTimestamp = (id: string, field: "time" | "label", value: string) => {
+    setTimestamps((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, [field]: value } : t))
+    );
+  };
+
+  const generateDescription = (): string => {
+    const lines: string[] = [];
+
+    // Hook (first 1-2 lines â€” most visible in search)
+    if (summary.trim()) {
+      lines.push(summary.trim());
+      lines.push("");
+    }
+
+    // Timestamps
+    const validTs = timestamps.filter((t) => t.time.trim() && t.label.trim());
+    if (validTs.length > 0) {
+      lines.push("â±ï¸ Timestamps:");
+      validTs.forEach((t) => {
+        lines.push(`${t.time.trim()} ${t.label.trim()}`);
+      });
+      lines.push("");
+    }
+
+    // About section
+    if (title.trim()) {
+      lines.push(`About this video:`);
+      lines.push(`In this video, we cover ${title.trim()}. Whether you're a beginner or looking to level up, this guide breaks down everything you need to know.`);
+      lines.push("");
+    }
+
+    // Social links
+    const hasSocial = Object.values(socialLinks).some((v) => v.trim());
+    if (hasSocial) {
+      lines.push("ðŸ”— Connect with me:");
+      if (socialLinks.twitter.trim()) lines.push(`Twitter: ${socialLinks.twitter.trim()}`);
+      if (socialLinks.instagram.trim()) lines.push(`Instagram: ${socialLinks.instagram.trim()}`);
+      if (socialLinks.website.trim()) lines.push(`Website: ${socialLinks.website.trim()}`);
+      lines.push("");
+    }
+
+    // Hashtags
+    if (hashtags.trim()) {
+      lines.push(hashtags.trim());
+      lines.push("");
+    }
+
+    // Disclaimer
+    lines.push("---");
+    lines.push("If you found this video helpful, please like and subscribe! ðŸ””");
+    lines.push("");
+    lines.push(`# ${title.trim() || "Your Video Title"}`);
+
+    return lines.join("\n");
+  };
+
+  const handleCopy = async () => {
+    const desc = generateDescription();
+    const ok = await copyText(desc);
+    setCopied(ok);
+    if (ok) setTimeout(() => setCopied(false), 2000);
+  };
+
+  const description = generateDescription();
+
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="title">Video title</Label>
+          <Input
+            id="title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. How to Learn Guitar Fast"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="summary">Hook / opening line</Label>
+          <Input
+            id="summary"
+            value={summary}
+            onChange={(e) => setSummary(e.target.value)}
+            placeholder="One sentence that makes viewers want to watch"
+          />
+        </div>
+      </div>
+
+      {/* Timestamps */}
+      <div className="space-y-2">
+        <Label>Timestamps (for video chapters)</Label>
+        <div className="space-y-2">
+          {timestamps.map((ts) => (
+            <div key={ts.id} className="flex items-center gap-2">
+              <Input
+                value={ts.time}
+                onChange={(e) => updateTimestamp(ts.id, "time", e.target.value)}
+                placeholder="0:00"
+                className="w-24 flex-none"
+              />
+              <Input
+                value={ts.label}
+                onChange={(e) => updateTimestamp(ts.id, "label", e.target.value)}
+                placeholder="Section title (e.g. Intro, Tips, Demo)"
+                className="flex-1"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="flex-none"
+                onClick={() => removeTimestamp(ts.id)}
+                disabled={timestamps.length <= 1}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
+        <Button variant="outline" size="sm" onClick={addTimestamp}>
+          <Plus className="mr-1 h-3.5 w-3.5" /> Add timestamp
+        </Button>
+      </div>
+
+      {/* Social links */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="space-y-2">
+          <Label htmlFor="twitter">Twitter / X</Label>
+          <Input
+            id="twitter"
+            value={socialLinks.twitter}
+            onChange={(e) => setSocialLinks((s) => ({ ...s, twitter: e.target.value }))}
+            placeholder="https://twitter.com/..."
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="instagram">Instagram</Label>
+          <Input
+            id="instagram"
+            value={socialLinks.instagram}
+            onChange={(e) => setSocialLinks((s) => ({ ...s, instagram: e.target.value }))}
+            placeholder="https://instagram.com/..."
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="website">Website</Label>
+          <Input
+            id="website"
+            value={socialLinks.website}
+            onChange={(e) => setSocialLinks((s) => ({ ...s, website: e.target.value }))}
+            placeholder="https://..."
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="hashtags">Hashtags (space-separated)</Label>
+        <Input
+          id="hashtags"
+          value={hashtags}
+          onChange={(e) => setHashtags(e.target.value)}
+          placeholder="#howto #tutorial #2026"
+        />
+      </div>
+
+      {/* Output */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label className="flex items-center gap-1.5">
+            <FileText className="h-3.5 w-3.5" />
+            Generated description
+          </Label>
+          <Button size="sm" variant="outline" onClick={handleCopy}>
+            {copied ? <Check className="mr-1 h-3.5 w-3.5 text-emerald-600" /> : <Copy className="mr-1 h-3.5 w-3.5" />}
+            {copied ? "Copied!" : "Copy"}
+          </Button>
+        </div>
+        <Textarea
+          value={description}
+          readOnly
+          className="min-h-75 resize-y font-mono text-xs"
+          placeholder="Fill in the fields above to generate your description..."
+        />
+        <p className="text-xs text-muted-foreground">
+          {description.length} / 5000 characters
+        </p>
+      </div>
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/youtube/YouTubeHashtagGenerator.tsx
+========================================
+
+"use client";
+
+import { useState } from "react";
+import { Hash, Copy, Check, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { copyText } from "@/lib/download";
+
+/**
+ * Generate hashtags from a topic by combining it with proven patterns.
+ * Returns a deduplicated list.
+ */
+function generateHashtags(topic: string): string[] {
+  const t = topic.trim().toLowerCase().replace(/\s+/g, "");
+  if (!t) return [];
+  const year = new Date().getFullYear();
+
+  const topicWords = topic.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const topicPhrase = topicWords.join("");
+
+  const tags = new Set<string>();
+
+  // Core topic tags
+  tags.add(`#${topicPhrase}`);
+  topicWords.forEach((w) => tags.add(`#${w}`));
+
+  // Pattern-based variations
+  const patterns = [
+    `#${topicPhrase}tips`,
+    `#${topicPhrase}tutorial`,
+    `#${topicPhrase}guide`,
+    `#${topicPhrase}${year}`,
+    `#${topicPhrase}hacks`,
+    `#${topicPhrase}forbeginners`,
+    `#${topicPhrase}masterclass`,
+    `#${topicPhrase}explained`,
+    `#howto${topicPhrase}`,
+    `#learn${topicPhrase}`,
+    `#${topicPhrase}community`,
+    `#${topicPhrase}love`,
+    `#${topicPhrase}daily`,
+    `#${topicPhrase}tipsandtricks`,
+  ];
+  patterns.forEach((p) => tags.add(p));
+
+  // General content tags
+  const general = [
+    "#youtube",
+    "#tutorial",
+    "#howto",
+    "#viral",
+    "#trending",
+    `#${year}`,
+    "#shorts",
+    "#educational",
+    "#learning",
+    "#tips",
+  ];
+  general.forEach((g) => tags.add(g));
+
+  return Array.from(tags);
+}
+
+/**
+ * YouTube Hashtag Generator.
+ *
+ * Generates topic-specific + general hashtags. Click to copy individual
+ * tags, or copy all. Reminds users to use 5-10 tags max.
+ */
+export function YouTubeHashtagGenerator() {
+  const [topic, setTopic] = useState("");
+  const [results, setResults] = useState<string[]>([]);
+  const [copiedAll, setCopiedAll] = useState(false);
+  const [copiedTag, setCopiedTag] = useState<string | null>(null);
+
+  const handleGenerate = () => {
+    setResults(generateHashtags(topic));
+  };
+
+  const copyAll = async () => {
+    const ok = await copyText(results.slice(0, 10).join(" "));
+    setCopiedAll(ok);
+    if (ok) setTimeout(() => setCopiedAll(false), 2000);
+  };
+
+  const copyTag = async (tag: string) => {
+    const ok = await copyText(tag);
+    if (ok) {
+      setCopiedTag(tag);
+      setTimeout(() => setCopiedTag(null), 2000);
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="space-y-2">
+        <Label htmlFor="topic">Your video topic or niche</Label>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            id="topic"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="e.g. personal finance, vegan cooking, guitar..."
+            onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
+          />
+          <Button onClick={handleGenerate} disabled={!topic.trim()} className="sm:w-auto">
+            <Sparkles className="mr-1.5 h-4 w-4" />
+            Generate Hashtags
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          We recommend using 5-10 hashtags in your description. The first 3 appear above your title on mobile.
+        </p>
+      </div>
+
+      {results.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Hash className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">
+                {results.length} hashtags generated
+              </span>
+            </div>
+            <Button size="sm" variant="outline" onClick={copyAll}>
+              {copiedAll ? <Check className="mr-1 h-3.5 w-3.5 text-emerald-600" /> : <Copy className="mr-1 h-3.5 w-3.5" />}
+              {copiedAll ? "Copied!" : "Copy top 10"}
+            </Button>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {results.map((tag, idx) => (
+              <button
+                key={tag}
+                onClick={() => copyTag(tag)}
+                title="Click to copy"
+                className="group"
+              >
+                <Badge
+                  variant={idx < 3 ? "default" : "secondary"}
+                  className={cn(
+                    "cursor-pointer text-xs transition-all hover:scale-105",
+                    idx < 3 && "font-medium"
+                  )}
+                >
+                  {copiedTag === tag && <Check className="mr-1 h-3 w-3" />}
+                  {tag}
+                </Badge>
+              </button>
+            ))}
+          </div>
+
+          <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
+            <strong className="text-foreground">Tip:</strong> The first 3 hashtags (highlighted) will appear above your title on mobile. Choose the most relevant ones for those slots.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Inline import to avoid an extra file
+import { cn } from "@/lib/utils";
+
+
+========================================
+FILE: src/components/tools/youtube/YouTubeMoneyCalculator.tsx
+========================================
+
+"use client";
+
+import { useState, useMemo } from "react";
+import { DollarSign, TrendingUp, Calculator } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  YOUTUBE_NICHES,
+  calculateEarnings,
+  type NicheCPM,
+} from "@/lib/youtube-earnings";
+import { formatCurrency, formatLargeNumber } from "@/lib/youtube";
+
+/**
+ * YouTube Money Calculator.
+ *
+ * Estimates ad revenue from monthly views and the selected niche's CPM range.
+ */
+export function YouTubeMoneyCalculator() {
+  const [views, setViews] = useState<string>("100000");
+  const [nicheName, setNicheName] = useState<string>("Tech / Software");
+
+  const niche: NicheCPM = useMemo(
+    () => YOUTUBE_NICHES.find((n) => n.niche === nicheName) ?? YOUTUBE_NICHES[0],
+    [nicheName]
+  );
+
+  const earnings = useMemo(() => {
+    const v = parseInt(views.replace(/[^0-9]/g, ""), 10) || 0;
+    return calculateEarnings(v, niche);
+  }, [views, niche]);
+
+  const viewNumber = parseInt(views.replace(/[^0-9]/g, ""), 10) || 0;
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="views">Monthly views</Label>
+          <Input
+            id="views"
+            type="text"
+            value={views}
+            onChange={(e) => setViews(e.target.value.replace(/[^0-9]/g, ""))}
+            placeholder="e.g. 100000"
+            inputMode="numeric"
+          />
+          <p className="text-xs text-muted-foreground">
+            {formatLargeNumber(viewNumber)} views/month
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="niche">Content niche</Label>
+          <Select value={nicheName} onValueChange={setNicheName}>
+            <SelectTrigger id="niche">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="max-h-72">
+              {YOUTUBE_NICHES.map((n) => (
+                <SelectItem key={n.niche} value={n.niche}>
+                  {n.niche} (${n.cpmLow}-${n.cpmHigh} CPM)
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            CPM range: ${niche.cpmLow}â€“${niche.cpmHigh} per 1,000 views
+          </p>
+        </div>
+      </div>
+
+      {/* Results */}
+      <div className="rounded-xl border bg-card p-5">
+        <div className="mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <Calculator className="h-3.5 w-3.5" />
+          Estimated Monthly Ad Revenue
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-lg bg-muted/30 p-4 text-center">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Low estimate
+            </p>
+            <p className="mt-1 text-2xl font-bold tracking-tight text-muted-foreground">
+              {formatCurrency(earnings.monthly.low)}
+            </p>
+          </div>
+          <div className="rounded-lg bg-foreground p-4 text-center text-background">
+            <p className="text-xs font-medium uppercase tracking-wider opacity-70">
+              Most likely
+            </p>
+            <p className="mt-1 text-3xl font-bold tracking-tight">
+              {formatCurrency(earnings.monthly.mid)}
+            </p>
+          </div>
+          <div className="rounded-lg bg-muted/30 p-4 text-center">
+            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              High estimate
+            </p>
+            <p className="mt-1 text-2xl font-bold tracking-tight text-muted-foreground">
+              {formatCurrency(earnings.monthly.high)}
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-start gap-2 rounded-lg bg-muted/20 p-3 text-xs text-muted-foreground">
+          <TrendingUp className="mt-0.5 h-3.5 w-3.5 flex-none" />
+          <span>
+            Based on {formatLargeNumber(viewNumber)} monthly views in the{" "}
+            <strong className="text-foreground">{niche.niche}</strong> niche.
+            RPM (creator revenue per 1,000 views at low / likely / high):{" "}
+            <strong className="text-foreground">
+              ${earnings.rpm.low.toFixed(2)} / ${earnings.rpm.mid.toFixed(2)} /{" "}
+              ${earnings.rpm.high.toFixed(2)}
+            </strong>.
+            Does not include sponsorships, memberships, or merchandise.
+          </span>
+        </div>
+      </div>
+
+      {/* Annual projection */}
+      <div className="rounded-xl border bg-card p-5">
+        <div className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <DollarSign className="h-3.5 w-3.5" />
+          Projected Annual Revenue
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div>
+            <p className="text-xs text-muted-foreground">Low estimate / year</p>
+            <p className="text-xl font-bold tracking-tight">
+              {formatCurrency(earnings.annual.low)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Likely / year</p>
+            <p className="text-xl font-bold tracking-tight">
+              {formatCurrency(earnings.annual.mid)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">High estimate / year</p>
+            <p className="text-xl font-bold tracking-tight">
+              {formatCurrency(earnings.annual.high)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        Estimate only. Actual earnings depend on audience geography, watch time, ad format, and season.
+      </p>
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/youtube/YouTubeTagsExtractor.tsx
+========================================
+
+"use client";
+
+import { useState } from "react";
+import { Loader2, AlertCircle, Copy, Check, Tag, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { extractVideoId } from "@/lib/youtube";
+import { copyText } from "@/lib/download";
+import { CancelOperationButton } from "../CancelOperationButton";
+import { useOperationCancellation } from "../useOperationCancellation";
+
+/**
+ * YouTube Tags Extractor.
+ *
+ * Sends the submitted video URL to the same-origin API, which fetches the
+ * public video page and extracts its keyword tags.
+ */
+export function YouTubeTagsExtractor() {
+  const [url, setUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [tags, setTags] = useState<string[]>([]);
+  const [copied, setCopied] = useState(false);
+  const cancellation = useOperationCancellation();
+
+  const handleExtract = async () => {
+    setError(null);
+    setTags([]);
+
+    const id = extractVideoId(url);
+    if (!id) {
+      setError("Please enter a valid YouTube video URL.");
+      return;
+    }
+
+    setLoading(true);
+    const controller = cancellation.start();
+    try {
+      const videoUrl = `https://www.youtube.com/watch?v=${id}`;
+      let response: Response;
+      try {
+        response = await fetch("/api/youtube-tags", {
+          method: "POST",
+          credentials: "omit",
+          cache: "no-store",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: videoUrl }),
+          signal: controller.signal,
+        });
+      } catch (err) {
+        if (controller.signal.aborted) throw err;
+        throw new Error(
+          "Could not reach the tag service. Check your connection and try again.",
+        );
+      }
+      let payload: { error?: unknown; tags?: unknown };
+      try {
+        payload = await response.json();
+      } catch (err) {
+        if (controller.signal.aborted) throw err;
+        throw new Error("The server returned an unreadable response. Please try again.");
+      }
+      if (!response.ok) {
+        throw new Error(
+          typeof payload.error === "string"
+            ? payload.error
+            : "Could not fetch public video tags. Please try again.",
+        );
+      }
+      if (
+        !Array.isArray(payload.tags) ||
+        !payload.tags.every((tag) => typeof tag === "string")
+      ) {
+        throw new Error("The server returned an unexpected response. Please try again.");
+      }
+      const extractedTags = payload.tags.filter(
+        (tag): tag is string => typeof tag === "string",
+      );
+      setTags(extractedTags);
+
+      if (extractedTags.length === 0) {
+        setError("No public tags were found for this video.");
+      }
+    } catch (err) {
+      setError(controller.signal.aborted
+        ? "Lookup cancelled."
+        : err instanceof Error
+          ? err.message
+          : "Failed to extract tags. Please try again.");
+    } finally {
+      cancellation.finish(controller);
+      setLoading(false);
+    }
+  };
+
+  const copyAllTags = async () => {
+    const ok = await copyText(tags.join(", "));
+    setCopied(ok);
+    if (ok) setTimeout(() => setCopied(false), 2000);
+  };
+
+  const copyTag = (tag: string) => {
+    copyText(tag);
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="space-y-2">
+        <Label htmlFor="yt-url">YouTube video URL</Label>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            id="yt-url"
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://www.youtube.com/watch?v=..."
+            onKeyDown={(e) => e.key === "Enter" && handleExtract()}
+            disabled={loading}
+          />
+          <Button onClick={handleExtract} disabled={loading || !url.trim()} className="sm:w-auto">
+            {loading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Search className="mr-1.5 h-4 w-4" />}
+            Extract Tags
+          </Button>
+          {loading && (
+            <CancelOperationButton
+              onCancel={cancellation.cancel}
+              isCancelling={cancellation.isCancelling}
+            />
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Only the video URL is sent to our server to fetch public tags.
+        </p>
+      </div>
+
+      {error && !tags.length && (
+        <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          <AlertCircle className="mt-0.5 h-4 w-4 flex-none" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {tags.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Tag className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">
+                {tags.length} tag{tags.length === 1 ? "" : "s"} found
+              </span>
+            </div>
+            <Button size="sm" variant="outline" onClick={copyAllTags}>
+              {copied ? <Check className="mr-1 h-3.5 w-3.5 text-emerald-600" /> : <Copy className="mr-1 h-3.5 w-3.5" />}
+              {copied ? "Copied!" : "Copy all"}
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {tags.map((tag, i) => (
+              <button
+                key={i}
+                onClick={() => copyTag(tag)}
+                className="group"
+                title="Click to copy"
+              >
+                <Badge
+                  variant="secondary"
+                  className="cursor-pointer text-xs transition-colors hover:bg-accent"
+                >
+                  {tag}
+                </Badge>
+              </button>
+            ))}
+          </div>
+          {error && (
+            <p className="text-xs text-muted-foreground" role="alert">{error}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/youtube/YouTubeThumbnailDownloader.tsx
+========================================
+
+"use client";
+
+import { useState } from "react";
+import Image from "next/image";
+import { Download, Loader2, Youtube, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  extractVideoId,
+  getThumbnailUrls,
+  fetchOEmbed,
+  type YouTubeOEmbed,
+  type ThumbnailSet,
+} from "@/lib/youtube";
+import { downloadBlob } from "@/lib/download";
+import { CancelOperationButton } from "../CancelOperationButton";
+import { useOperationCancellation } from "../useOperationCancellation";
+
+type ThumbVariant = {
+  key: keyof ThumbnailSet;
+  label: string;
+  width: number;
+  height: number;
+};
+
+const VARIANTS: ThumbVariant[] = [
+  { key: "maxres", label: "Max Resolution", width: 1280, height: 720 },
+  { key: "sd", label: "Standard Definition", width: 640, height: 480 },
+  { key: "hq", label: "High Quality", width: 480, height: 360 },
+  { key: "mq", label: "Medium Quality", width: 320, height: 180 },
+  { key: "default", label: "Default", width: 120, height: 90 },
+];
+
+/**
+ * YouTube Thumbnail Downloader.
+ *
+ * Extracts the video ID from any YouTube URL, then offers download links
+ * for all standard thumbnail resolutions from img.youtube.com.
+ * Uses oEmbed to display video title/author for context.
+ */
+export function YouTubeThumbnailDownloader() {
+  const [url, setUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [meta, setMeta] = useState<YouTubeOEmbed | null>(null);
+  const [videoId, setVideoId] = useState<string | null>(null);
+  const [brokenUrls, setBrokenUrls] = useState<Set<string>>(new Set());
+  const [downloadingVariant, setDownloadingVariant] =
+    useState<keyof ThumbnailSet | null>(null);
+  const metadataCancellation = useOperationCancellation();
+  const downloadCancellation = useOperationCancellation();
+
+  const handleFetch = async () => {
+    setError(null);
+    setMeta(null);
+    setVideoId(null);
+    setBrokenUrls(new Set());
+
+    const id = extractVideoId(url);
+    if (!id) {
+      setError("Please enter a valid YouTube video URL.");
+      return;
+    }
+
+    setVideoId(id);
+    setLoading(true);
+    const controller = metadataCancellation.start();
+    try {
+      const oembed = await fetchOEmbed(
+        `https://www.youtube.com/watch?v=${id}`,
+        controller.signal
+      );
+      setMeta(oembed);
+    } catch (err) {
+      setError(controller.signal.aborted
+        ? "Lookup cancelled."
+        : err instanceof Error
+          ? err.message
+          : "Failed to fetch video metadata. Check the URL and try again.");
+    } finally {
+      metadataCancellation.finish(controller);
+      setLoading(false);
+    }
+  };
+
+  const handleDownload = async (variant: ThumbVariant) => {
+    if (!videoId) return;
+    if (downloadingVariant) return;
+    const thumbs = getThumbnailUrls(videoId);
+    const thumbUrl = thumbs[variant.key];
+    const controller = downloadCancellation.start();
+    setDownloadingVariant(variant.key);
+
+    try {
+      // Fetch the image and trigger a download (avoids opening in a new tab).
+      const res = await fetch(thumbUrl, { signal: controller.signal });
+      if (!res.ok) throw new Error("Not found");
+      const blob = await res.blob();
+      if (controller.signal.aborted) return;
+      const filename = `youtube-${videoId}-${variant.key}.jpg`;
+      downloadBlob(blob, filename);
+    } catch {
+      // Mark this resolution as unavailable (e.g. maxres missing on old videos)
+      if (controller.signal.aborted) {
+        setError("Download cancelled.");
+      } else {
+        setBrokenUrls((prev) => new Set(prev).add(thumbUrl));
+      }
+    } finally {
+      downloadCancellation.finish(controller);
+      setDownloadingVariant(null);
+    }
+  };
+
+  const cancelDownload = () => {
+    downloadCancellation.cancel();
+  };
+
+  const markBroken = (thumbUrl: string) => {
+    setBrokenUrls((prev) => new Set(prev).add(thumbUrl));
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="space-y-2">
+        <Label htmlFor="yt-url">YouTube video URL</Label>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            id="yt-url"
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://www.youtube.com/watch?v=..."
+            onKeyDown={(e) => e.key === "Enter" && handleFetch()}
+            disabled={loading}
+          />
+          <Button onClick={handleFetch} disabled={loading || !url.trim()} className="sm:w-auto">
+            {loading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Youtube className="mr-1.5 h-4 w-4" />}
+            Fetch Thumbnails
+          </Button>
+          {loading && (
+            <CancelOperationButton
+              onCancel={metadataCancellation.cancel}
+              isCancelling={metadataCancellation.isCancelling}
+            />
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Paste any YouTube URL â€” watch, youtu.be, shorts, or embed links all work.
+        </p>
+      </div>
+
+      {error && (
+        <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          <AlertCircle className="mt-0.5 h-4 w-4 flex-none" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {meta && videoId && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-3">
+            <Youtube className="h-5 w-5 flex-none text-red-600" />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium">{meta.title}</p>
+              <p className="truncate text-xs text-muted-foreground">
+                {meta.author_name}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {VARIANTS.map((variant) => {
+              const thumbs = getThumbnailUrls(videoId);
+              const thumbUrl = thumbs[variant.key];
+              const isBroken = brokenUrls.has(thumbUrl);
+              return (
+                <div
+                  key={variant.key}
+                  className="overflow-hidden rounded-lg border bg-card"
+                >
+                  <div className="relative aspect-video bg-muted">
+                    {!isBroken ? (
+                      <Image
+                        src={thumbUrl}
+                        alt={`${variant.label} thumbnail`}
+                        fill
+                        sizes="(max-width: 640px) 100vw, 50vw"
+                        className="object-cover"
+                        onError={() => markBroken(thumbUrl)}
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-xs text-muted-foreground">
+                        Not available
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between gap-2 p-3">
+                    <div>
+                      <p className="text-sm font-medium">{variant.label}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {variant.width}Ã—{variant.height}
+                      </p>
+                    </div>
+                    {downloadingVariant === variant.key ? (
+                      <div className="flex items-center gap-1.5">
+                        <Button size="sm" variant="outline" disabled>
+                          <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                          Downloading
+                        </Button>
+                        <CancelOperationButton
+                          onCancel={cancelDownload}
+                          isCancelling={downloadCancellation.isCancelling}
+                        />
+                      </div>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={isBroken || downloadingVariant !== null}
+                        onClick={() => handleDownload(variant)}
+                      >
+                        <Download className="mr-1 h-3.5 w-3.5" /> Download
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/youtube/YouTubeThumbnailResizer.tsx
+========================================
+
+"use client";
+
+import { useState, useRef, useCallback } from "react";
+import NextImage from "next/image";
+import { Download, Loader2, Eye, EyeOff, Upload } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { downloadBlob, shortId } from "@/lib/download";
+import { CancelOperationButton } from "../CancelOperationButton";
+import { useOperationCancellation } from "../useOperationCancellation";
+import {
+  FILE_SIZE_GUIDANCE,
+  throwIfCancelled,
+  validateToolFile,
+} from "@/lib/file-validation";
+
+const TARGET_W = 1280;
+const TARGET_H = 720;
+
+/**
+ * YouTube Thumbnail Resizer.
+ *
+ * Loads an image into a canvas viewport at 1280Ã—720, lets the user drag
+ * to reposition, optionally shows a safe-zone overlay (central 80% where
+ * text/faces won't be clipped by YouTube's mobile UI), and exports the
+ * cropped result as a PNG.
+ */
+export function YouTubeThumbnailResizer() {
+  const [imageData, setImageData] = useState<{
+    url: string;
+    img: HTMLImageElement;
+    width: number;
+    height: number;
+  } | null>(null);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [showSafeZone, setShowSafeZone] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
+  const [wasExported, setWasExported] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const cancellation = useOperationCancellation();
+  const dragRef = useRef<{ startX: number; startY: number; baseX: number; baseY: number } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = useCallback((file: File) => {
+    setError(null);
+    const validationError = validateToolFile(
+      file,
+      "image/*,.heic,.heif,.tiff,.tif,.bmp,.gif,.avif"
+    );
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    setWasExported(false);
+    // Revoke the previous object URL to avoid leaking memory on
+    // repeated uploads.
+    setImageData((prev) => {
+      if (prev) URL.revokeObjectURL(prev.url);
+      return prev;
+    });
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      setImageData({ url, img, width: img.naturalWidth, height: img.naturalHeight });
+      setOffset({ x: 0, y: 0 });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      setError("Failed to load image. Try a different file.");
+    };
+    img.src = url;
+  }, []);
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) handleFile(file);
+  };
+
+  /**
+   * Calculate the draw dimensions for "cover" fit: the image fills the
+   * 1280Ã—720 frame, overflowing if necessary. The user drags to choose
+   * which part is visible.
+   */
+  const getDrawDimensions = () => {
+    if (!imageData) return { drawW: TARGET_W, drawH: TARGET_H, scale: 1 };
+    const scale = Math.max(TARGET_W / imageData.width, TARGET_H / imageData.height);
+    return {
+      drawW: imageData.width * scale,
+      drawH: imageData.height * scale,
+      scale,
+    };
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!imageData) return;
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      baseX: offset.x,
+      baseY: offset.y,
+    };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!dragRef.current || !imageData) return;
+    const dx = e.clientX - dragRef.current.startX;
+    const dy = e.clientY - dragRef.current.startY;
+    const { drawW, drawH } = getDrawDimensions();
+    // Clamp so the image always covers the frame
+    const maxX = Math.max(0, (drawW - TARGET_W) / 2);
+    const maxY = Math.max(0, (drawH - TARGET_H) / 2);
+    setOffset({
+      x: Math.max(-maxX, Math.min(maxX, dragRef.current.baseX + dx)),
+      y: Math.max(-maxY, Math.min(maxY, dragRef.current.baseY + dy)),
+    });
+  };
+
+  const handleMouseUp = () => {
+    dragRef.current = null;
+  };
+
+  const handleExport = async () => {
+    if (!imageData) return;
+    setIsExporting(true);
+    const controller = cancellation.start();
+    try {
+      throwIfCancelled(controller.signal);
+      const canvas = document.createElement("canvas");
+      canvas.width = TARGET_W;
+      canvas.height = TARGET_H;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas not supported");
+
+      const { drawW, drawH } = getDrawDimensions();
+      // Draw the image centered + offset, covering the frame
+      ctx.drawImage(
+        imageData.img,
+        (TARGET_W - drawW) / 2 + offset.x,
+        (TARGET_H - drawH) / 2 + offset.y,
+        drawW,
+        drawH
+      );
+
+      const blob = await new Promise<Blob>((resolve, reject) =>
+        canvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error("Failed to export"))),
+          "image/png"
+        )
+      );
+      throwIfCancelled(controller.signal);
+      downloadBlob(blob, `youtube-thumbnail-${shortId()}.png`);
+      setWasExported(true);
+    } catch (err) {
+      if (controller.signal.aborted) {
+        setError("Export cancelled. The image was not downloaded.");
+      } else {
+        console.error(err);
+        setError("Failed to export thumbnail. Please try again.");
+      }
+    } finally {
+      cancellation.finish(controller);
+      setIsExporting(false);
+    }
+  };
+
+  const { drawW, drawH } = getDrawDimensions();
+  const processAnotherImage = () => {
+    if (imageData) URL.revokeObjectURL(imageData.url);
+    setImageData(null);
+    setOffset({ x: 0, y: 0 });
+    setShowSafeZone(true);
+    setWasExported(false);
+    setError(null);
+  };
+
+  return (
+    <div className="space-y-5">
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,.heic,.heif,.tiff,.tif,.bmp,.gif,.avif"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handleFile(f);
+          e.currentTarget.value = "";
+        }}
+      />
+
+      {!imageData ? (
+        <div
+          onDrop={handleDrop}
+          onDragOver={(e) => e.preventDefault()}
+          onClick={() => fileInputRef.current?.click()}
+          role="button"
+          tabIndex={0}
+          aria-label={`Upload a thumbnail image. ${FILE_SIZE_GUIDANCE}`}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              fileInputRef.current?.click();
+            }
+          }}
+          className="flex min-h-50 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border p-8 text-center transition-colors hover:border-primary/50 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          <Upload className="h-10 w-10 text-muted-foreground" />
+          <p className="mt-3 text-sm font-medium">Drop an image here, or click to browse</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            JPG, PNG, WebP, and more Â· {FILE_SIZE_GUIDANCE}
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-medium">{imageData.width}Ã—{imageData.height} source</p>
+              <p className="text-xs text-muted-foreground">Drag to reposition â€¢ Output: 1280Ã—720</p>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={processAnotherImage}
+              disabled={isExporting}
+            >
+              Process another image
+            </Button>
+          </div>
+
+          {/* Crop preview */}
+          <div className="overflow-hidden rounded-xl border bg-muted/30 p-4">
+            <div
+              className="relative mx-auto cursor-move overflow-hidden rounded-lg bg-black"
+              style={{ width: "100%", maxWidth: `${TARGET_W / 2}px`, aspectRatio: "16 / 9" }}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+            >
+              <NextImage
+                src={imageData.url}
+                alt="Thumbnail preview"
+                width={drawW / 2}
+                height={drawH / 2}
+                sizes="640px"
+                unoptimized
+                className="pointer-events-none absolute select-none"
+                style={{
+                  width: `${drawW / 2}px`,
+                  height: `${drawH / 2}px`,
+                  left: `${(TARGET_W / 2 - drawW / 2) / 2 + offset.x / 2}px`,
+                  top: `${(TARGET_H / 2 - drawH / 2) / 2 + offset.y / 2}px`,
+                  maxWidth: "none",
+                }}
+                draggable={false}
+              />
+              {/* Safe zone overlay: central 80% (10% margin on each side) */}
+              {showSafeZone && (
+                <>
+                  <div
+                    className="pointer-events-none absolute border-2 border-yellow-400/80"
+                    style={{
+                      left: "10%",
+                      top: "10%",
+                      width: "80%",
+                      height: "80%",
+                    }}
+                  />
+                  <div className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 rounded bg-black/60 px-2 py-0.5 text-[10px] text-white">
+                    Safe zone â€” keep text/faces inside
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Switch
+                id="safe-zone"
+                checked={showSafeZone}
+                onCheckedChange={setShowSafeZone}
+              />
+              <Label htmlFor="safe-zone" className="flex items-center gap-1.5 text-sm">
+                {showSafeZone ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
+                Safe zone overlay
+              </Label>
+            </div>
+            <Button onClick={handleExport} disabled={isExporting} className="ml-auto">
+              {isExporting ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Download className="mr-1.5 h-4 w-4" />}
+              Download 1280Ã—720 PNG
+            </Button>
+            {isExporting && (
+              <CancelOperationButton
+                onCancel={cancellation.cancel}
+                isCancelling={cancellation.isCancelling}
+                cancelLabel="Cancel after export encoding"
+                cancellingLabel="Waiting for export encoding..."
+              />
+            )}
+          </div>
+        </>
+      )}
+
+      {wasExported && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-teal/20 bg-teal/5 p-3 text-sm">
+          <p role="status">Your thumbnail has been downloaded.</p>
+          <Button variant="outline" size="sm" onClick={processAnotherImage}>
+            Process another image
+          </Button>
+        </div>
+      )}
+
+      {error && (
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">{error}</p>
+      )}
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/youtube/YouTubeThumbnailTester.tsx
+========================================
+
+"use client";
+
+import { useRef, useState } from "react";
+import Image from "next/image";
+import { Upload, Youtube, AlertCircle, Smartphone, Monitor, Tv, Bell } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  extractVideoId,
+  getThumbnailUrls,
+  THUMBNAIL_FALLBACK_ORDER,
+} from "@/lib/youtube";
+import {
+  FILE_SIZE_GUIDANCE,
+  validateToolFile,
+} from "@/lib/file-validation";
+
+type PreviewSize = {
+  key: string;
+  label: string;
+  width: number;
+  height: number;
+  icon: React.ReactNode;
+  description: string;
+};
+
+/**
+ * Real-world YouTube thumbnail display sizes, based on actual YouTube
+ * UI measurements across devices.
+ */
+const PREVIEW_SIZES: PreviewSize[] = [
+  { key: "mobile-feed", label: "Mobile Feed", width: 210, height: 118, icon: <Smartphone className="h-4 w-4" />, description: "Home feed on phones â€” 70%+ of watch time" },
+  { key: "desktop-search", label: "Desktop Search", width: 246, height: 138, icon: <Monitor className="h-4 w-4" />, description: "Search results on desktop" },
+  { key: "sidebar", label: "Sidebar Suggestion", width: 168, height: 94, icon: <Monitor className="h-4 w-4" />, description: "Related videos in the sidebar" },
+  { key: "notification", label: "Notification", width: 120, height: 68, icon: <Bell className="h-4 w-4" />, description: "Push notification preview" },
+  { key: "tv", label: "Smart TV", width: 480, height: 270, icon: <Tv className="h-4 w-4" />, description: "TV app (scaled for preview)" },
+];
+
+/**
+ * YouTube Thumbnail Tester.
+ *
+ * Loads a thumbnail from an uploaded image or a YouTube URL, then renders
+ * it at the actual display sizes YouTube uses across devices. Helps
+ * creators verify text legibility and face visibility at small sizes.
+ */
+export function YouTubeThumbnailTester() {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [fallbackIdx, setFallbackIdx] = useState(0);
+  const [url, setUrl] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = (file: File) => {
+    setError(null);
+    const validationError = validateToolFile(
+      file,
+      "image/*,.heic,.heif,.tiff,.tif,.bmp,.gif,.avif"
+    );
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    // Revoke the previous object URL to avoid leaking memory on
+    // repeated uploads.
+    setImageUrl((prev) => {
+      if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return prev;
+    });
+    setFallbackIdx(0);
+    setImageUrl(URL.createObjectURL(file));
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files[0];
+    if (file) handleFile(file);
+  };
+
+  const handleUrlLoad = () => {
+    setError(null);
+    const id = extractVideoId(url);
+    if (!id) {
+      setError("Please enter a valid YouTube video URL.");
+      return;
+    }
+    const thumbs = getThumbnailUrls(id);
+    // Don't assume maxres exists â€” older videos 404 on it. Start from
+    // the best URL and let onError walk down the fallback chain.
+    setFallbackIdx(0);
+    setImageUrl(thumbs[THUMBNAIL_FALLBACK_ORDER[0]]);
+  };
+
+  const handlePreviewError = () => {
+    if (!url) return;
+    const id = extractVideoId(url);
+    if (!id) return;
+    const thumbs = getThumbnailUrls(id);
+    const next = fallbackIdx + 1;
+    if (next < THUMBNAIL_FALLBACK_ORDER.length) {
+      setFallbackIdx(next);
+      setImageUrl(thumbs[THUMBNAIL_FALLBACK_ORDER[next]]);
+    } else {
+      setError("Failed to load image. If using a YouTube URL, the thumbnail may not be available â€” try uploading instead.");
+    }
+  };
+
+  const handleProcessAnotherImage = () => {
+    setImageUrl((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setFallbackIdx(0);
+    setError(null);
+    setUrl("");
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* Input: upload or URL */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="thumbnail-upload">Upload your thumbnail</Label>
+          <button
+            type="button"
+            aria-label={`Upload a thumbnail image. ${FILE_SIZE_GUIDANCE}`}
+            aria-describedby="thumbnail-upload-help"
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={handleDrop}
+            className="flex min-h-45 w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border p-6 text-center text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
+            <Upload className="h-6 w-6" aria-hidden />
+            <span className="font-medium text-foreground">
+              Drop an image here, or click to browse
+            </span>
+            <span id="thumbnail-upload-help" className="text-xs">
+              JPG, PNG, WebP, and more Â· {FILE_SIZE_GUIDANCE}
+            </span>
+          </button>
+          <input
+            ref={fileInputRef}
+            id="thumbnail-upload"
+            type="file"
+            accept="image/*,.heic,.heif,.tiff,.tif,.bmp,.gif,.avif"
+            className="hidden"
+            tabIndex={-1}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) handleFile(file);
+              event.currentTarget.value = "";
+            }}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="yt-url">Or load from YouTube URL</Label>
+          <div className="flex gap-2">
+            <Input
+              id="yt-url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://youtube.com/watch?v=..."
+              onKeyDown={(e) => e.key === "Enter" && handleUrlLoad()}
+            />
+            <Button onClick={handleUrlLoad} disabled={!url.trim()} size="sm" className="flex-none">
+              <Youtube className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {error && (
+        <div className="flex items-start gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          <AlertCircle className="mt-0.5 h-4 w-4 flex-none" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {imageUrl && (
+        <div className="space-y-6">
+          {/* Full-size preview */}
+          <div className="overflow-hidden rounded-xl border bg-muted/30 p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Full size (1280Ã—720 source)
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleProcessAnotherImage}
+              >
+                Process another image
+              </Button>
+            </div>
+            <Image
+              src={imageUrl}
+              alt="Full-size thumbnail"
+              width={1280}
+              height={720}
+              sizes="(max-width: 768px) 100vw, 768px"
+              unoptimized={imageUrl.startsWith("blob:")}
+              className="mx-auto max-w-full rounded-lg"
+              onError={handlePreviewError}
+            />
+          </div>
+
+          {/* Real-world sizes */}
+          <div>
+            <h3 className="mb-3 text-sm font-semibold">
+              Real-world display sizes
+            </h3>
+            <p className="mb-4 text-xs text-muted-foreground">
+              These are the actual pixel dimensions YouTube renders your thumbnail at across devices. If text isn't legible at the smallest sizes, viewers will scroll past.
+            </p>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {PREVIEW_SIZES.map((size) => (
+                <div
+                  key={size.key}
+                  className="rounded-lg border bg-card p-4"
+                >
+                  <div className="mb-3 flex items-center gap-2">
+                    {size.icon}
+                    <div>
+                      <p className="text-sm font-medium">{size.label}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {size.width}Ã—{size.height}px
+                      </p>
+                    </div>
+                  </div>
+                  <div
+                    className="overflow-hidden rounded bg-black"
+                    style={{ width: `${size.width}px`, height: `${size.height}px`, maxWidth: "100%" }}
+                  >
+                    <Image
+                      src={imageUrl}
+                      alt={`${size.label} preview`}
+                      width={size.width}
+                      height={size.height}
+                      sizes={`${size.width}px`}
+                      unoptimized={imageUrl.startsWith("blob:")}
+                      className="h-full w-full object-cover"
+                      style={{ width: `${size.width}px`, height: `${size.height}px` }}
+                    />
+                  </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {size.description}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 p-3 text-xs text-muted-foreground">
+            <strong className="text-foreground">Design tip:</strong> Design your thumbnail for the smallest size first (120Ã—68px notification). If your text and face are legible there, they'll look great everywhere.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/youtube/YouTubeTimestampLinkGenerator.tsx
+========================================
+
+"use client";
+
+import { useState } from "react";
+import { Plus, Trash2, Copy, Check, Link2, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  extractVideoId,
+  parseTimestampToSeconds,
+  formatSecondsToTimestamp,
+  buildTimestampLink,
+} from "@/lib/youtube";
+import { copyText } from "@/lib/download";
+
+type TimestampEntry = {
+  id: string;
+  time: string;
+  label: string;
+};
+
+/**
+ * YouTube Timestamp Link Generator.
+ *
+ * Takes a YouTube URL and one or more timestamps, generates shareable
+ * deep links (youtu.be/VIDEO_ID?t=SECONDS) for each. Perfect for sharing
+ * specific moments from long videos.
+ */
+export function YouTubeTimestampLinkGenerator() {
+  const [url, setUrl] = useState("");
+  const [videoId, setVideoId] = useState<string | null>(null);
+  const [entries, setEntries] = useState<TimestampEntry[]>([
+    { id: "ts-1", time: "1:30", label: "Main topic" },
+  ]);
+  const [error, setError] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleUrlChange = (value: string) => {
+    setUrl(value);
+    const id = extractVideoId(value);
+    setVideoId(id);
+    setError(id ? null : value.trim() ? "Could not detect a valid YouTube video ID." : null);
+  };
+
+  const addEntry = () => {
+    setEntries((prev) => [
+      ...prev,
+      { id: `ts-${Date.now()}`, time: "", label: "" },
+    ]);
+  };
+
+  const removeEntry = (id: string) => {
+    setEntries((prev) => prev.filter((e) => e.id !== id));
+  };
+
+  const updateEntry = (id: string, field: "time" | "label", value: string) => {
+    setEntries((prev) =>
+      prev.map((e) => (e.id === id ? { ...e, [field]: value } : e))
+    );
+  };
+
+  const copyLink = async (link: string, id: string) => {
+    const ok = await copyText(link);
+    if (ok) {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
+  };
+
+  const validEntries = entries.filter((e) => e.time.trim() && parseTimestampToSeconds(e.time) >= 0);
+
+  return (
+    <div className="space-y-5">
+      <div className="space-y-2">
+        <Label htmlFor="yt-url">YouTube video URL</Label>
+        <Input
+          id="yt-url"
+          type="url"
+          value={url}
+          onChange={(e) => handleUrlChange(e.target.value)}
+          placeholder="https://www.youtube.com/watch?v=..."
+        />
+        {error && (
+          <p className="text-xs text-destructive">{error}</p>
+        )}
+        {videoId && (
+          <p className="text-xs text-emerald-600">
+            âœ“ Video ID detected: <code className="rounded bg-muted px-1 py-0.5">{videoId}</code>
+          </p>
+        )}
+      </div>
+
+      {/* Timestamps */}
+      <div className="space-y-2">
+        <Label>Timestamps</Label>
+        <p className="text-xs text-muted-foreground">
+          Enter times as <code className="rounded bg-muted px-1">1:30</code>,{" "}
+          <code className="rounded bg-muted px-1">90</code>, or{" "}
+          <code className="rounded bg-muted px-1">1:02:03</code>.
+        </p>
+        <div className="space-y-2">
+          {entries.map((entry) => {
+            const seconds = parseTimestampToSeconds(entry.time);
+            const valid = entry.time.trim() !== "" && seconds >= 0;
+            const link = videoId && valid
+              ? buildTimestampLink(videoId, seconds)
+              : "";
+            return (
+              <div key={entry.id} className="space-y-2 rounded-lg border bg-card p-3">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 flex-none text-muted-foreground" />
+                  <Input
+                    value={entry.time}
+                    onChange={(e) => updateEntry(entry.id, "time", e.target.value)}
+                    placeholder="1:30"
+                    className="w-24 flex-none"
+                  />
+                  <Input
+                    value={entry.label}
+                    onChange={(e) => updateEntry(entry.id, "label", e.target.value)}
+                    placeholder="Label (optional, e.g. 'Best tip')"
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="flex-none"
+                    onClick={() => removeEntry(entry.id)}
+                    disabled={entries.length <= 1}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                {link ? (
+                  <div className="flex items-center gap-2 rounded-md bg-muted/40 p-2">
+                    <Link2 className="h-3.5 w-3.5 flex-none text-muted-foreground" />
+                    <code className="min-w-0 flex-1 truncate text-xs">
+                      {link}
+                    </code>
+                    <span className="flex-none text-xs text-muted-foreground">
+                      ({formatSecondsToTimestamp(seconds)})
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="flex-none h-7"
+                      onClick={() => copyLink(link, entry.id)}
+                    >
+                      {copiedId === entry.id ? (
+                        <Check className="h-3 w-3 text-emerald-600" />
+                      ) : (
+                        <Copy className="h-3 w-3" />
+                      )}
+                    </Button>
+                  </div>
+                ) : entry.time.trim() !== "" && !valid ? (
+                  <p className="text-xs text-destructive">
+                    Invalid timestamp â€” use seconds (90), M:SS (1:30), or H:MM:SS (1:02:03).
+                  </p>
+                ) : null}
+              </div>
+            );
+          })}
+        </div>
+        <Button variant="outline" size="sm" onClick={addEntry}>
+          <Plus className="mr-1 h-3.5 w-3.5" /> Add timestamp
+        </Button>
+      </div>
+
+      {/* Summary: all links as a list */}
+      {videoId && validEntries.length > 0 && (
+        <div className="space-y-2">
+          <Label>All links (copy-friendly)</Label>
+          <div className="rounded-lg border bg-muted/30 p-3">
+            <pre className="whitespace-pre-wrap break-all text-xs">
+{validEntries.map((e) => {
+  const seconds = parseTimestampToSeconds(e.time);
+  const link = buildTimestampLink(videoId, seconds);
+  return `${formatSecondsToTimestamp(seconds)}${e.label.trim() ? ` â€” ${e.label.trim()}` : ""}\n${link}`;
+}).join("\n\n")}
+            </pre>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              const text = validEntries.map((e) => {
+                const seconds = parseTimestampToSeconds(e.time);
+                const link = buildTimestampLink(videoId, seconds);
+                return `${formatSecondsToTimestamp(seconds)}${e.label.trim() ? ` â€” ${e.label.trim()}` : ""}\n${link}`;
+              }).join("\n\n");
+              copyText(text);
+            }}
+          >
+            <Copy className="mr-1 h-3.5 w-3.5" /> Copy all links
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/youtube/YouTubeTitleGenerator.tsx
+========================================
+
+"use client";
+
+import { useState } from "react";
+import { Sparkles, Copy, Check, Type } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { copyText } from "@/lib/download";
+
+const MAX_CHARS = 100;
+const IDEAL_CHARS = 70;
+const CURRENT_YEAR = new Date().getFullYear();
+
+/**
+ * Generate title variations from a topic using proven CTR templates.
+ * Returns objects with the title text and character count.
+ */
+function generateTitles(topic: string): { title: string; chars: number }[] {
+  const t = topic.trim();
+  if (!t) return [];
+
+  // Capitalize first letter of topic for cleaner output
+  const topicCap = t.charAt(0).toUpperCase() + t.slice(1);
+
+  const templates: string[] = [
+    `How to ${t} (Complete Guide)`,
+    `The Ultimate Guide to ${t} in ${CURRENT_YEAR}`,
+    `${topicCap}: 7 Things Nobody Tells You`,
+    `I Tried ${t} for 30 Days â€” Here's What Happened`,
+    `The Truth About ${t} (No One Talks About This)`,
+    `${topicCap} Explained in 10 Minutes`,
+    `5 ${t} Mistakes That Are Costing You`,
+    `Why ${t} Is Changing Everything`,
+    `Stop Doing ${t} Wrong â€” Do This Instead`,
+    `${topicCap} for Beginners: Step-by-Step`,
+    `The Best ${t} Tips I've Learned`,
+    `${topicCap}: What They Don't Tell You`,
+    `How ${t} Actually Works`,
+    `${topicCap} â€” A No-Nonsense Guide`,
+    `10 ${t} Hacks You Wish You Knew Sooner`,
+    `Is ${t} Worth It? An Honest Review`,
+    `The Fastest Way to ${t}`,
+    `${topicCap} Mistakes to Avoid at All Costs`,
+    `Everything You Need to Know About ${t}`,
+    `${topicCap} in ${CURRENT_YEAR}: What's Changed?`,
+  ];
+
+  return templates
+    .map((title) => ({ title, chars: title.length }))
+    .sort((a, b) => a.chars - b.chars);
+}
+
+/**
+ * YouTube Title Generator.
+ *
+ * Template-based generator using proven CTR patterns. Includes a live
+ * character counter that turns amber past 70 chars (mobile cutoff) and
+ * red past 100 (hard limit).
+ */
+export function YouTubeTitleGenerator() {
+  const [topic, setTopic] = useState("");
+  const [results, setResults] = useState<{ title: string; chars: number }[]>([]);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+
+  const handleGenerate = () => {
+    const titles = generateTitles(topic);
+    setResults(titles);
+  };
+
+  const copyTitle = async (title: string, idx: number) => {
+    const ok = await copyText(title);
+    if (ok) {
+      setCopiedIdx(idx);
+      setTimeout(() => setCopiedIdx(null), 2000);
+    }
+  };
+
+  const getCharColor = (chars: number) => {
+    if (chars > MAX_CHARS) return "text-red-500";
+    if (chars > IDEAL_CHARS) return "text-amber-500";
+    return "text-emerald-500";
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="space-y-2">
+        <Label htmlFor="topic">Your video topic or keyword</Label>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            id="topic"
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="e.g. learning guitar, meal prep, personal finance..."
+            onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
+          />
+          <Button onClick={handleGenerate} disabled={!topic.trim()} className="sm:w-auto">
+            <Sparkles className="mr-1.5 h-4 w-4" />
+            Generate Titles
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          We'll generate 20 title variations using proven CTR templates.
+        </p>
+      </div>
+
+      {results.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Type className="h-3.5 w-3.5" />
+            <span>
+              <span className="text-emerald-500">â—</span> Under 70 chars (ideal) Â·
+              <span className="text-amber-500"> â—</span> 70-100 chars (mobile truncates) Â·
+              <span className="text-red-500"> â—</span> Over 100 (too long)
+            </span>
+          </div>
+
+          <ul className="space-y-2">
+            {results.map((result, idx) => (
+              <li
+                key={idx}
+                className="group flex items-start gap-3 rounded-lg border bg-card p-3 transition-colors hover:border-border"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium leading-relaxed">{result.title}</p>
+                  <p className={cn("mt-1 text-xs font-medium tabular-nums", getCharColor(result.chars))}>
+                    {result.chars} characters
+                    {result.chars > MAX_CHARS && " â€” too long"}
+                    {result.chars > IDEAL_CHARS && result.chars <= MAX_CHARS && " â€” may truncate on mobile"}
+                    {result.chars <= IDEAL_CHARS && " â€” ideal length"}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="flex-none opacity-0 transition-opacity group-hover:opacity-100"
+                  onClick={() => copyTitle(result.title, idx)}
+                >
+                  {copiedIdx === idx ? (
+                    <Check className="h-3.5 w-3.5 text-emerald-600" />
+                  ) : (
+                    <Copy className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/calculators/EngagementRateCalculator.tsx
+========================================
+
+"use client";
+
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  calculateEngagementRate,
+  ENGAGEMENT_RATE_BENCHMARKS,
+} from "@/lib/calculators";
+
+const fields = [
+  { key: "followers", label: "Followers" },
+  { key: "likes", label: "Likes" },
+  { key: "comments", label: "Comments" },
+  { key: "shares", label: "Shares" },
+] as const;
+
+type FieldKey = (typeof fields)[number]["key"];
+type Counts = Record<FieldKey, string>;
+
+function countValue(value: string) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+}
+
+export function EngagementRateCalculator() {
+  const [counts, setCounts] = useState<Counts>({
+    followers: "1000",
+    likes: "50",
+    comments: "5",
+    shares: "2",
+  });
+
+  const followers = countValue(counts.followers);
+  const interactions =
+    countValue(counts.likes) +
+    countValue(counts.comments) +
+    countValue(counts.shares);
+  const engagementRate = calculateEngagementRate(
+    followers,
+    countValue(counts.likes),
+    countValue(counts.comments),
+    countValue(counts.shares),
+  );
+
+  return (
+    <div className="space-y-6">
+      <section
+        aria-label="Engagement rate inputs"
+        className="rounded-xl border bg-card p-5"
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          {fields.map(({ key, label }) => (
+            <div key={key} className="space-y-2">
+              <Label htmlFor={`engagement-${key}`}>{label}</Label>
+              <Input
+                id={`engagement-${key}`}
+                type="number"
+                min="0"
+                step="1"
+                inputMode="numeric"
+                value={counts[key]}
+                onChange={(event) =>
+                  setCounts((current) => ({
+                    ...current,
+                    [key]: event.target.value,
+                  }))
+                }
+              />
+            </div>
+          ))}
+        </div>
+        <p className="mt-4 text-sm text-muted-foreground">
+          Enter the counts for a single post. A follower count above zero is
+          required to calculate a meaningful rate.
+        </p>
+      </section>
+
+      <section
+        aria-live="polite"
+        aria-label="Engagement rate result"
+        className="rounded-xl bg-foreground p-6 text-background"
+      >
+        <p className="text-sm font-medium opacity-75">Engagement rate</p>
+        <p className="mt-1 text-4xl font-bold tracking-tight">
+          {engagementRate.toFixed(2)}%
+        </p>
+        <p className="mt-2 text-sm opacity-75">
+          {followers > 0
+            ? `${String(interactions)} total interactions Ã· ${String(followers)} followers`
+            : "Enter a follower count above zero to calculate your rate."}
+        </p>
+      </section>
+
+      <section aria-labelledby="benchmarks-title" className="space-y-3">
+        <div>
+          <h3 id="benchmarks-title" className="text-lg font-semibold">
+            Platform benchmarks
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            Broad reference ranges; actual results vary by audience, content,
+            and measurement method.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {ENGAGEMENT_RATE_BENCHMARKS.map((benchmark) => {
+            const isBelow = engagementRate < benchmark.minimum;
+            const isAbove = engagementRate > benchmark.maximum;
+            const comparison = isBelow
+              ? "Below range"
+              : isAbove
+                ? "Above range"
+                : "Within range";
+
+            return (
+              <div
+                key={benchmark.platform}
+                className="rounded-xl border bg-card p-4"
+              >
+                <p className="font-medium">{benchmark.platform}</p>
+                <p className="mt-1 text-2xl font-semibold tracking-tight">
+                  {benchmark.minimum}â€“{benchmark.maximum}%
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {comparison}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/calculators/FollowerGrowthCalculator.tsx
+========================================
+
+"use client";
+
+import { useState } from "react";
+import {
+  CalculatorNumberField,
+  CalculatorPrivacyNote,
+  calculatorNumber,
+} from "./CalculatorFields";
+
+export function FollowerGrowthCalculator() {
+  const [startingFollowers, setStartingFollowers] = useState("10000");
+  const [endingFollowers, setEndingFollowers] = useState("11250");
+  const start = calculatorNumber(startingFollowers);
+  const end = calculatorNumber(endingFollowers);
+  const netChange = end - start;
+  const growthRate = start > 0 ? (netChange / start) * 100 : null;
+
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-4 rounded-xl border bg-card p-5 sm:grid-cols-2">
+        <CalculatorNumberField
+          id="follower-starting-count"
+          label="Starting followers"
+          value={startingFollowers}
+          onChange={setStartingFollowers}
+        />
+        <CalculatorNumberField
+          id="follower-ending-count"
+          label="Ending followers"
+          value={endingFollowers}
+          onChange={setEndingFollowers}
+        />
+        <div className="sm:col-span-2">
+          <CalculatorPrivacyNote />
+        </div>
+      </div>
+      <div
+        aria-live="polite"
+        className="rounded-xl bg-foreground p-6 text-background"
+      >
+        <p className="text-sm font-medium opacity-75">Follower growth rate</p>
+        <p className="mt-1 text-4xl font-bold tracking-tight">
+          {growthRate === null ? "â€”" : `${growthRate.toFixed(2)}%`}
+        </p>
+        <p className="mt-2 text-sm opacity-75">
+          {growthRate === null
+            ? "Starting followers must be greater than zero."
+            : `${Math.abs(netChange).toLocaleString("en-US")} ${netChange < 0 ? "followers lost" : "followers gained"}.`}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/calculators/InfluencerRateCalculator.tsx
+========================================
+
+"use client";
+
+import { useState } from "react";
+import {
+  CalculatorNumberField,
+  CalculatorPrivacyNote,
+  calculatorNumber,
+  formatCalculatorCurrency,
+} from "./CalculatorFields";
+
+export function InfluencerRateCalculator() {
+  const [averageViews, setAverageViews] = useState("10000");
+  const [cpm, setCpm] = useState("25");
+  const [deliverables, setDeliverables] = useState("1");
+  const estimatedRate =
+    (calculatorNumber(averageViews) / 1000) *
+    calculatorNumber(cpm) *
+    calculatorNumber(deliverables);
+
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-4 rounded-xl border bg-card p-5 sm:grid-cols-2">
+        <CalculatorNumberField
+          id="influencer-average-views"
+          label="Average views per post"
+          value={averageViews}
+          onChange={setAverageViews}
+        />
+        <CalculatorNumberField
+          id="influencer-cpm"
+          label="Target CPM (per 1,000 views)"
+          value={cpm}
+          onChange={setCpm}
+          step={0.5}
+          prefix="$"
+        />
+        <CalculatorNumberField
+          id="influencer-deliverables"
+          label="Number of deliverables"
+          value={deliverables}
+          onChange={setDeliverables}
+        />
+        <div className="flex items-end">
+          <CalculatorPrivacyNote />
+        </div>
+      </div>
+      <div
+        aria-live="polite"
+        className="rounded-xl bg-foreground p-6 text-background"
+      >
+        <p className="text-sm font-medium opacity-75">Estimated sponsorship quote</p>
+        <p className="mt-1 text-4xl font-bold tracking-tight">
+          {formatCalculatorCurrency(estimatedRate)}
+        </p>
+        <p className="mt-2 text-sm opacity-75">
+          A starting estimate. Add separate fees for usage rights, exclusivity,
+          or production where appropriate.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/calculators/RoasCalculator.tsx
+========================================
+
+"use client";
+
+import { useState } from "react";
+import {
+  CalculatorNumberField,
+  CalculatorPrivacyNote,
+  calculatorNumber,
+} from "./CalculatorFields";
+
+export function RoasCalculator() {
+  const [revenue, setRevenue] = useState("4000");
+  const [spend, setSpend] = useState("1000");
+  const attributedRevenue = calculatorNumber(revenue);
+  const adSpend = calculatorNumber(spend);
+  const roas = adSpend > 0 ? attributedRevenue / adSpend : null;
+
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-4 rounded-xl border bg-card p-5 sm:grid-cols-2">
+        <CalculatorNumberField
+          id="roas-revenue"
+          label="Ad-attributed revenue"
+          value={revenue}
+          onChange={setRevenue}
+          step={0.01}
+          prefix="$"
+        />
+        <CalculatorNumberField
+          id="roas-spend"
+          label="Advertising spend"
+          value={spend}
+          onChange={setSpend}
+          step={0.01}
+          prefix="$"
+        />
+        <div className="sm:col-span-2">
+          <CalculatorPrivacyNote />
+        </div>
+      </div>
+      <div
+        aria-live="polite"
+        className="rounded-xl bg-foreground p-6 text-background"
+      >
+        <p className="text-sm font-medium opacity-75">Return on ad spend</p>
+        <p className="mt-1 text-4xl font-bold tracking-tight">
+          {roas === null ? "â€”" : `${roas.toFixed(2)}x`}
+        </p>
+        <p className="mt-2 text-sm opacity-75">
+          {roas === null
+            ? "Enter advertising spend above zero to calculate ROAS."
+            : `${roas.toFixed(2)} in attributed revenue for each 1.00 spent.`}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/calculators/TikTokMoneyCalculator.tsx
+========================================
+
+"use client";
+
+import { useState } from "react";
+import {
+  CalculatorNumberField,
+  CalculatorPrivacyNote,
+  calculatorNumber,
+  formatCalculatorCurrency,
+} from "./CalculatorFields";
+import { calculateTikTokEarnings } from "@/lib/calculators";
+
+export function TikTokMoneyCalculator() {
+  const [views, setViews] = useState("100000");
+  const [rpm, setRpm] = useState("0.50");
+  const estimatedEarnings = calculateTikTokEarnings(
+    calculatorNumber(views),
+    calculatorNumber(rpm),
+  );
+
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-4 rounded-xl border bg-card p-5 sm:grid-cols-2">
+        <CalculatorNumberField
+          id="tiktok-monthly-views"
+          label="Monthly video views"
+          value={views}
+          onChange={setViews}
+        />
+        <CalculatorNumberField
+          id="tiktok-rpm"
+          label="Estimated RPM (per 1,000 views)"
+          value={rpm}
+          onChange={setRpm}
+          step={0.01}
+          prefix="$"
+        />
+        <div className="sm:col-span-2">
+          <CalculatorPrivacyNote />
+        </div>
+      </div>
+      <div
+        aria-live="polite"
+        className="rounded-xl bg-foreground p-6 text-background"
+      >
+        <p className="text-sm font-medium opacity-75">Estimated monthly earnings</p>
+        <p className="mt-1 text-4xl font-bold tracking-tight">
+          {formatCalculatorCurrency(estimatedEarnings)}
+        </p>
+        <p className="mt-2 text-sm opacity-75">
+          Estimate only; actual creator payouts vary by program and qualified views.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/app/tools/engagement-rate-calculator/page.tsx
+========================================
+
+import { CalculatorRenderer } from "@/components/tools/calculators/CalculatorRenderer";
+import { JsonLd } from "@/components/JsonLd";
+import { ContentAttribution } from "@/components/seo/ContentAttribution";
+import { RelatedGuide } from "@/components/seo/RelatedGuide";
+import {
+  ENGAGEMENT_RATE_CALCULATOR,
+  ENGAGEMENT_RATE_FAQS,
+} from "@/lib/calculators";
+import {
+  buildCalculatorMetadata,
+  SEO_CONTENT_UPDATED_DATE,
+} from "@/lib/seo";
+import { SITE_CONFIG } from "@/lib/tools";
+
+export const metadata = buildCalculatorMetadata(
+  ENGAGEMENT_RATE_CALCULATOR,
+);
+
+const engagementRateDirectAnswer =
+  "Engagement rate is the percentage of your followers who interacted with a post. Add likes, comments, and shares, divide that total by your follower count, then multiply by 100. Use the calculator below to get an instant result and compare it with broad Instagram, TikTok, and YouTube reference ranges.";
+
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: ENGAGEMENT_RATE_FAQS.map(({ q, a }) => ({
+    "@type": "Question",
+    name: q,
+    acceptedAnswer: {
+      "@type": "Answer",
+      text: a,
+    },
+  })),
+};
+
+const softwareSchema = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: ENGAGEMENT_RATE_CALCULATOR.name,
+  description: engagementRateDirectAnswer,
+  url: `${SITE_CONFIG.url}/tools/${ENGAGEMENT_RATE_CALCULATOR.slug}`,
+  applicationCategory: "UtilitiesApplication",
+  operatingSystem: "Any",
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD",
+  },
+  featureList: [engagementRateDirectAnswer],
+};
+
+export default function EngagementRateCalculatorPage() {
+  return (
+    <article className="mx-auto max-w-4xl px-5 py-10 sm:px-6 lg:px-8">
+      <JsonLd data={softwareSchema} />
+      <JsonLd data={faqSchema} />
+
+      <header>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          Engagement Rate Calculator
+        </h1>
+        <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
+          {engagementRateDirectAnswer}
+        </p>
+      </header>
+
+      <section aria-label="Calculator" className="mt-8">
+        <CalculatorRenderer slug={ENGAGEMENT_RATE_CALCULATOR.slug} />
+      </section>
+
+      <section className="mt-10 space-y-3">
+        <h2 className="text-2xl font-semibold tracking-tight">
+          How do you calculate engagement rate?
+        </h2>
+        <p className="leading-relaxed text-muted-foreground">
+          This calculator uses a follower-based formula. It combines the three
+          interaction counts you enter, divides by followers, and converts the
+          result to a percentage.
+        </p>
+        <div className="rounded-xl border bg-card p-5">
+          <p className="font-mono text-sm leading-relaxed sm:text-base">
+            Engagement rate (%) = ((Likes + Comments + Shares) Ã· Followers) Ã—
+            100
+          </p>
+        </div>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          For example, 50 likes, 5 comments, and 2 shares from an account with
+          1,000 followers produce an engagement rate of 5.7%. Benchmark
+          definitions can vary, so use the platform ranges as general context
+          rather than a guarantee of performance.
+        </p>
+      </section>
+
+      <section aria-labelledby="faq-title" className="mt-10 space-y-5">
+        <h2 id="faq-title" className="text-2xl font-semibold tracking-tight">
+          What questions do people ask about engagement rate?
+        </h2>
+        {ENGAGEMENT_RATE_FAQS.map(({ q, a }) => (
+          <div key={q} className="space-y-2">
+            <h3 className="text-lg font-semibold">{q}</h3>
+            <p className="leading-relaxed text-muted-foreground">{a}</p>
+          </div>
+        ))}
+      </section>
+      <ContentAttribution
+        author="Convaudit Team"
+        lastUpdated={SEO_CONTENT_UPDATED_DATE}
+      />
+      <RelatedGuide
+        toolSlug={ENGAGEMENT_RATE_CALCULATOR.slug}
+        toolName={ENGAGEMENT_RATE_CALCULATOR.name}
+      />
+    </article>
+  );
+}
+
+
+========================================
+FILE: src/app/tools/follower-growth-calculator/page.tsx
+========================================
+
+import { CalculatorPageContent } from "@/components/tools/calculators/CalculatorPageContent";
+import { CalculatorRenderer } from "@/components/tools/calculators/CalculatorRenderer";
+import { FOLLOWER_GROWTH_CALCULATOR } from "@/lib/calculators";
+import { buildCalculatorMetadata } from "@/lib/seo";
+
+export const metadata = buildCalculatorMetadata(
+  FOLLOWER_GROWTH_CALCULATOR,
+);
+
+export default function FollowerGrowthCalculatorPage() {
+  return (
+    <CalculatorPageContent calculator={FOLLOWER_GROWTH_CALCULATOR}>
+      <CalculatorRenderer slug={FOLLOWER_GROWTH_CALCULATOR.slug} />
+    </CalculatorPageContent>
+  );
+}
+
+
+========================================
+FILE: src/app/tools/influencer-rate-calculator/page.tsx
+========================================
+
+import { CalculatorPageContent } from "@/components/tools/calculators/CalculatorPageContent";
+import { CalculatorRenderer } from "@/components/tools/calculators/CalculatorRenderer";
+import { INFLUENCER_RATE_CALCULATOR } from "@/lib/calculators";
+import { buildCalculatorMetadata } from "@/lib/seo";
+
+export const metadata = buildCalculatorMetadata(
+  INFLUENCER_RATE_CALCULATOR,
+);
+
+export default function InfluencerRateCalculatorPage() {
+  return (
+    <CalculatorPageContent calculator={INFLUENCER_RATE_CALCULATOR}>
+      <CalculatorRenderer slug={INFLUENCER_RATE_CALCULATOR.slug} />
+    </CalculatorPageContent>
+  );
+}
+
+
+========================================
+FILE: src/app/tools/roas-calculator/page.tsx
+========================================
+
+import { CalculatorPageContent } from "@/components/tools/calculators/CalculatorPageContent";
+import { CalculatorRenderer } from "@/components/tools/calculators/CalculatorRenderer";
+import { ROAS_CALCULATOR } from "@/lib/calculators";
+import { buildCalculatorMetadata } from "@/lib/seo";
+
+export const metadata = buildCalculatorMetadata(ROAS_CALCULATOR);
+
+export default function RoasCalculatorPage() {
+  return (
+    <CalculatorPageContent calculator={ROAS_CALCULATOR}>
+      <CalculatorRenderer slug={ROAS_CALCULATOR.slug} />
+    </CalculatorPageContent>
+  );
+}
+
+
+========================================
+FILE: src/app/tools/tiktok-money-calculator/page.tsx
+========================================
+
+import { CalculatorPageContent } from "@/components/tools/calculators/CalculatorPageContent";
+import { CalculatorRenderer } from "@/components/tools/calculators/CalculatorRenderer";
+import { TIKTOK_MONEY_CALCULATOR } from "@/lib/calculators";
+import { buildCalculatorMetadata } from "@/lib/seo";
+
+export const metadata = buildCalculatorMetadata(
+  TIKTOK_MONEY_CALCULATOR,
+);
+
+export default function TikTokMoneyCalculatorPage() {
+  return (
+    <CalculatorPageContent calculator={TIKTOK_MONEY_CALCULATOR}>
+      <CalculatorRenderer slug={TIKTOK_MONEY_CALCULATOR.slug} />
+    </CalculatorPageContent>
+  );
+}
+

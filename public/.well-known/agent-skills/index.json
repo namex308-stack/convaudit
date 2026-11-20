@@ -1,0 +1,1 @@
+{"$schema": "https://agentskills.io/schema/v0.2.0", "skills": [{"name": "file-processing", "type": "browser", "description": "Local file processing", "url": "https://convaudit.com/tools", "sha256": "dummy"}]}

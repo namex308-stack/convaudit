@@ -1,0 +1,1 @@
+Convaudit does not require authentication. All tools are free and public.

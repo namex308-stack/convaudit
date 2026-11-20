@@ -1,0 +1,133 @@
+{
+  "config": {
+    "argv": [
+      "C:\\nvm4w\\nodejs\\node.exe",
+      "C:\\Users\\IT\\Downloads\\convaudit\\node_modules\\@playwright\\test\\cli.js",
+      "test"
+    ],
+    "configFile": "C:\\Users\\IT\\Downloads\\convaudit\\playwright.config.js",
+    "rootDir": "C:/Users/IT/Downloads/convaudit/tests",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/IT/Downloads/convaudit/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "id": "",
+        "name": "",
+        "testDir": "C:/Users/IT/Downloads/convaudit/tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "filteredProjects": [
+      {
+        "grep": {},
+        "grepInvert": null,
+        "outputDir": "C:\\Users\\IT\\Downloads\\convaudit\\test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {},
+        "name": "",
+        "testDir": "C:\\Users\\IT\\Downloads\\convaudit\\tests",
+        "snapshotDir": "C:\\Users\\IT\\Downloads\\convaudit\\tests",
+        "testIgnore": [],
+        "testMatch": "**/*.@(spec|test).?(c|m)[jt]s?(x)",
+        "timeout": 60000,
+        "use": {
+          "baseURL": "https://convaudit.com",
+          "headless": true,
+          "browserName": "chromium",
+          "viewport": {
+            "width": 1365,
+            "height": 900
+          },
+          "ignoreHTTPSErrors": false
+        },
+        "dependencies": [],
+        "ignoreSnapshots": false,
+        "__projectId": ""
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "html",
+        {
+          "outputFolder": "test-results/html",
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/report.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "default",
+    "updateSourceMethod": "patch",
+    "version": "1.65.1",
+    "workers": 4,
+    "webServer": null
+  },
+  "suites": [],
+  "errors": [
+    {
+      "message": "TypeError: Expected a string, an ArrayBuffer, or a TypedArray to be returned for the \"source\" from the \"load\" hook but got null.",
+      "stack": "TypeError: Expected a string, an ArrayBuffer, or a TypedArray to be returned for the \"source\" from the \"load\" hook but got null.\n    at Object.<anonymous> (C:\\Users\\IT\\Downloads\\convaudit\\tests\\calculators.test.ts:2:1)",
+      "location": {
+        "file": "C:\\Users\\IT\\Downloads\\convaudit\\tests\\calculators.test.ts",
+        "column": 1,
+        "line": 2
+      },
+      "snippet": "\u001b[90m   at \u001b[39mcalculators.test.ts:2\n\n \u001b[90m 1 |\u001b[39m \u001b[36mimport\u001b[39m assert \u001b[36mfrom\u001b[39m \u001b[32m\"node:assert/strict\"\u001b[39m\u001b[33m;\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 2 |\u001b[39m \u001b[36mimport\u001b[39m test \u001b[36mfrom\u001b[39m \u001b[32m\"node:test\"\u001b[39m\u001b[33m;\u001b[39m\n \u001b[90m   |\u001b[39m \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 3 |\u001b[39m \u001b[36mimport\u001b[39m {\n \u001b[90m 4 |\u001b[39m   calculateEngagementRate\u001b[33m,\u001b[39m\n \u001b[90m 5 |\u001b[39m   calculateTikTokEarnings\u001b[33m,\u001b[39m"
+    },
+    {
+      "message": "Error: Run scripts/discover-tools.mjs first.",
+      "stack": "Error: Run scripts/discover-tools.mjs first.\n    at Object.<anonymous> (C:\\Users\\IT\\Downloads\\convaudit\\tests\\tools-pages.spec.js:7:9)",
+      "location": {
+        "file": "C:\\Users\\IT\\Downloads\\convaudit\\tests\\tools-pages.spec.js",
+        "column": 9,
+        "line": 7
+      },
+      "snippet": "\u001b[90m   at \u001b[39mtools-pages.spec.js:7\n\n \u001b[90m  5 |\u001b[39m\n \u001b[90m  6 |\u001b[39m \u001b[36mif\u001b[39m (\u001b[33m!\u001b[39mfs\u001b[33m.\u001b[39mexistsSync(file)) {\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m  7 |\u001b[39m   \u001b[36mthrow\u001b[39m \u001b[36mnew\u001b[39m \u001b[33mError\u001b[39m(\u001b[32m\"Run scripts/discover-tools.mjs first.\"\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m         \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m  8 |\u001b[39m }\n \u001b[90m  9 |\u001b[39m\n \u001b[90m 10 |\u001b[39m \u001b[36mconst\u001b[39m urls \u001b[33m=\u001b[39m \u001b[33mJSON\u001b[39m\u001b[33m.\u001b[39mparse(fs\u001b[33m.\u001b[39mreadFileSync(file\u001b[33m,\u001b[39m \u001b[32m\"utf8\"\u001b[39m))\u001b[33m;\u001b[39m"
+    },
+    {
+      "message": "Error: No tests found",
+      "stack": "Error: No tests found"
+    }
+  ],
+  "stats": {
+    "startTime": "2026-11-20T12:04:24.623Z",
+    "duration": 467.7040000000002,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

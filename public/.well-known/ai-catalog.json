@@ -1,0 +1,1 @@
+{"specVersion": "1.0", "host": {"name": "Convaudit"}, "entries": [{"urn": "urn:air:convaudit.com:tools:images", "displayName": "Image Tools", "type": "application/json", "url": "https://convaudit.com/tools", "representativeQueries": ["compress image", "remove background"]}]}

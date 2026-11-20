@@ -1,0 +1,2903 @@
+﻿CONVAUDIT SOURCE REVIEW
+
+========================================
+FILE: src/app/tools/[slug]/page.tsx
+========================================
+
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { TOOLS, getToolBySlug, type Tool } from "@/lib/tools";
+import {
+  buildToolMetadata,
+  SEO_CONTENT_UPDATED_DATE,
+} from "@/lib/seo";
+import { ToolLayout } from "@/components/tools/ToolLayout";
+import { ToolRenderer } from "@/components/tools/ToolRenderer";
+import { JsonLd } from "@/components/JsonLd";
+import { ContentAttribution } from "@/components/seo/ContentAttribution";
+import { RelatedGuide } from "@/components/seo/RelatedGuide";
+
+const compressImageFaqs = [
+  {
+    q: "Do my images leave my device during compression?",
+    a: "No. Image compression happens on your device using browser-based processing; selected image files are not sent to our server for compression. The page still needs an internet connection to load, but the image contents remain in your browser during the compression operation.",
+  },
+  {
+    q: "What does image compression cost?",
+    a: "Nothing. The tool is free to use and does not require an account or subscription. Select images, adjust the quality setting, and download the compressed copies without paying. Your internet connection may be needed to load the page, but compression itself runs in your browser rather than sending the image files to a paid service.",
+  },
+  {
+    q: "Which image formats can I compress?",
+    a: "JPG, PNG, and WebP are the primary supported formats for compression. The tool also accepts most common image formats, but output behavior can depend on the source type and browser support. For reliable results, use JPG, PNG, or WebP images and check the downloaded file before sharing it.",
+  },
+  {
+    q: "Will compressing an image reduce its quality?",
+    a: "Yes. Lossy compression can reduce image detail, especially at lower quality settings. Use the quality control to balance smaller files against visual clarity, then preview the downloaded result. PNG may remain lossless depending on the source and output encoding, so compare the result rather than assuming every format behaves identically.",
+  },
+];
+
+const compressImageSteps = [
+  "Select one or more JPG, PNG, or WebP images.",
+  "Set your preferred compression quality with the slider.",
+  "Start compression and wait for the progress indicator to finish.",
+  "Download each result individually or save them together as a ZIP file.",
+];
+
+function CompressImageCitationPage({ tool }: { tool: Tool }) {
+  const headline = "Compress Images Online â€” Free, In-Browser";
+
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: compressImageFaqs.map(({ q, a }) => ({
+      "@type": "Question",
+      name: q,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: a,
+      },
+    })),
+  };
+  const softwareSchema = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: tool.name,
+    applicationCategory: "MultimediaApplication",
+    operatingSystem: "Any",
+    offers: {
+      price: "0",
+      priceCurrency: "USD",
+    },
+    featureList: [
+      "The selected image files are not uploaded or sent to our server for compression.",
+      "Compress JPG, PNG, and WebP images.",
+      ...compressImageSteps,
+    ],
+  };
+
+  return (
+    <>
+      <article className="mx-auto max-w-4xl px-5 py-10 sm:px-6 lg:px-8">
+        <JsonLd data={faqSchema} />
+        <JsonLd data={softwareSchema} />
+
+        <header>
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+            {headline}
+          </h1>
+          <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
+            Compress Image reduces JPG, PNG, and WebP file sizes for easier
+            sharing and storage. It is free, requires no account, and processes
+            files locally in your browser, so image files are not sent to our
+            server for compression. Add images, adjust quality, and download
+            compressed files individually or together as a ZIP.
+          </p>
+        </header>
+
+        <nav
+          aria-label="Table of contents"
+          className="mt-8 rounded-xl border border-border/70 bg-card p-5"
+        >
+          <p className="text-base font-semibold">On this page</p>
+          <ul className="mt-3 list-inside list-disc space-y-2 text-sm">
+            <li>
+              <a className="text-primary underline-offset-4 hover:underline" href="#how-it-works">
+                How does the free image compressor work?
+              </a>
+            </li>
+            <li>
+              <a className="text-primary underline-offset-4 hover:underline" href="#formats">
+                Which image formats can you compress?
+              </a>
+            </li>
+            <li>
+              <a className="text-primary underline-offset-4 hover:underline" href="#privacy">
+                Are images processed privately in your browser?
+              </a>
+            </li>
+            <li>
+              <a className="text-primary underline-offset-4 hover:underline" href="#comparison">
+                How does this compare with online compressors?
+              </a>
+            </li>
+            <li>
+              <a className="text-primary underline-offset-4 hover:underline" href="#faq">
+                What are common questions about image compression?
+              </a>
+            </li>
+          </ul>
+        </nav>
+
+        <div className="mt-10 space-y-10">
+          <section id="how-it-works" className="scroll-mt-24">
+            <h2 className="text-2xl font-semibold tracking-tight">
+              How does the free image compressor work?
+            </h2>
+            <ol className="mt-4 list-inside list-decimal space-y-2 leading-relaxed text-muted-foreground">
+              {compressImageSteps.map((step) => (
+                <li key={step}>{step}</li>
+              ))}
+            </ol>
+          </section>
+
+          <section id="formats" className="scroll-mt-24">
+            <h2 className="text-2xl font-semibold tracking-tight">
+              Which image formats can you compress?
+            </h2>
+            <p className="mt-3 leading-relaxed text-muted-foreground">
+              Compress JPG, PNG, and WebP images. The tool accepts most common
+              image formats, though the output depends on the source format and
+              browser support. Check the downloaded image to confirm it looks
+              right and uses the format you expect.
+            </p>
+          </section>
+
+          <section id="privacy" className="scroll-mt-24">
+            <h2 className="text-2xl font-semibold tracking-tight">
+              Are images processed privately in your browser?
+            </h2>
+            <p className="mt-3 leading-relaxed text-muted-foreground">
+              Runs locally in browser. The selected image files are not uploaded
+              or sent to our server for compression. The browser performs the
+              work on your device, so available memory and processing speed can
+              affect how quickly large images finish.
+            </p>
+          </section>
+
+          <section id="comparison" className="scroll-mt-24">
+            <h2 className="text-2xl font-semibold tracking-tight">
+              How does this compare with online compressors?
+            </h2>
+            <div className="mt-4 overflow-x-auto rounded-lg border border-border/70">
+              <table className="w-full min-w-xl text-left text-sm">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th scope="col" className="px-4 py-3 font-semibold">
+                      Approach
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-semibold">
+                      Where processing happens
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-semibold">
+                      Consideration
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/70">
+                  <tr>
+                    <th scope="row" className="px-4 py-3 font-medium">
+                      Convaudit Compress Image
+                    </th>
+                    <td className="px-4 py-3">Locally in your browser</td>
+                    <td className="px-4 py-3">
+                      Uses your device&apos;s memory and processing capacity
+                    </td>
+                  </tr>
+                  <tr>
+                    <th scope="row" className="px-4 py-3 font-medium">
+                      Upload-based compressor
+                    </th>
+                    <td className="px-4 py-3">
+                      On the provider&apos;s service after upload
+                    </td>
+                    <td className="px-4 py-3">
+                      Requires sending image files to that provider
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="faq" className="scroll-mt-24">
+            <h2 className="text-2xl font-semibold tracking-tight">
+              What are common questions about image compression?
+            </h2>
+            <dl className="mt-4 space-y-6">
+              {compressImageFaqs.map(({ q, a }) => (
+                <div key={q}>
+                  <dt className="font-semibold">{q}</dt>
+                  <dd className="mt-2 leading-relaxed text-muted-foreground">
+                    {a}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        </div>
+
+        <ContentAttribution
+          author="Convaudit Team"
+          lastUpdated={SEO_CONTENT_UPDATED_DATE}
+        />
+      </article>
+
+      <section
+        aria-label="Interactive image compression tool"
+        className="mx-auto max-w-4xl px-5 pb-10 sm:px-6 lg:px-8"
+      >
+        <ToolRenderer slug={tool.slug} />
+      </section>
+      <RelatedGuide toolSlug={tool.slug} toolName={tool.name} />
+    </>
+  );
+}
+
+/**
+ * Pre-render every tool page at build time (SSG).
+ * This makes each tool page fast and SEO-friendly.
+ */
+export function generateStaticParams() {
+  return [...TOOLS.map((t) => ({ slug: t.slug })), { slug: "pdf-to-text" }];
+}
+
+/**
+ * Generate unique SEO metadata for each tool page.
+ * Uses the centralized buildToolMetadata helper which produces:
+ *  - unique title and concise description
+ *  - canonical: https://convaudit.com/tools/{slug}
+ *  - openGraph: title, description, url, type, siteName
+ *  - twitter: summary_large_image card
+ *  - alternates: canonical + languages (en, ar) for hreflang
+ *  - robots: index, follow
+ *
+ * OG image is auto-generated by app/tools/[slug]/opengraph-image.tsx.
+ */
+export function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  return (async () => {
+    const { slug } = await params;
+    const tool = getToolBySlug(slug);
+    if (!tool) {
+      return { title: "Tool not found" };
+    }
+    return buildToolMetadata(tool);
+  })();
+}
+
+/**
+ * Tool page â€” renders the ToolLayout with the matching tool component.
+ */
+export default async function ToolPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const tool = getToolBySlug(slug);
+  if (!tool) notFound();
+
+  if (slug === "compress-image") {
+    return <CompressImageCitationPage tool={tool} />;
+  }
+
+  return (
+    <ToolLayout tool={tool}>
+      <ToolRenderer slug={slug} />
+    </ToolLayout>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/ToolRenderer.tsx
+========================================
+
+"use client";
+
+import dynamic from "next/dynamic";
+import type { ComponentType } from "react";
+import { useInViewport } from "./useInViewport";
+
+const toolComponents: Record<string, ComponentType> = {
+  "compress-image": dynamic(() =>
+    import("./CompressImageTool").then((module) => module.CompressImageTool),
+  ),
+  "remove-background": dynamic(() =>
+    import("./RemoveBackgroundTool").then(
+      (module) => module.RemoveBackgroundTool,
+    ),
+  ),
+  "heic-to-jpg": dynamic(() =>
+    import("./HeicToJpgTool").then((module) => module.HeicToJpgTool),
+  ),
+  "merge-pdf": dynamic(() =>
+    import("./MergePdfTool").then((module) => module.MergePdfTool),
+  ),
+  "split-pdf": dynamic(() =>
+    import("./SplitPdfTool").then((module) => module.SplitPdfTool),
+  ),
+  "rotate-pdf": dynamic(() =>
+    import("./RotatePdfTool").then((module) => module.RotatePdfTool),
+  ),
+  "pdf-to-word": dynamic(() =>
+    import("./PdfToWordTool").then((module) => module.PdfToWordTool),
+  ),
+  "pdf-to-text": dynamic(() =>
+    import("./PdfToWordTool").then((module) => module.PdfToWordTool),
+  ),
+  "image-to-pdf": dynamic(() =>
+    import("./ImageToPdfTool").then((module) => module.ImageToPdfTool),
+  ),
+  "compress-pdf": dynamic(() =>
+    import("./CompressPdfTool").then((module) => module.CompressPdfTool),
+  ),
+  "webp-to-png": dynamic(() =>
+    import("./ImageFormatConverter").then((module) => module.WebpToPngTool),
+  ),
+  "png-to-jpg": dynamic(() =>
+    import("./ImageFormatConverter").then((module) => module.PngToJpgTool),
+  ),
+  "jpg-to-webp": dynamic(() =>
+    import("./ImageFormatConverter").then((module) => module.JpgToWebpTool),
+  ),
+  "remove-exif": dynamic(() =>
+    import("./RemoveExifTool").then((module) => module.RemoveExifTool),
+  ),
+  "pdf-to-image": dynamic(() =>
+    import("./PdfToImageTool").then((module) => module.PdfToImageTool),
+  ),
+  "youtube-thumbnail-downloader": dynamic(() =>
+    import("./youtube/YouTubeThumbnailDownloader").then(
+      (module) => module.YouTubeThumbnailDownloader,
+    ),
+  ),
+  "youtube-thumbnail-resizer": dynamic(() =>
+    import("./youtube/YouTubeThumbnailResizer").then(
+      (module) => module.YouTubeThumbnailResizer,
+    ),
+  ),
+  "youtube-tags-extractor": dynamic(() =>
+    import("./youtube/YouTubeTagsExtractor").then(
+      (module) => module.YouTubeTagsExtractor,
+    ),
+  ),
+  "youtube-title-generator": dynamic(() =>
+    import("./youtube/YouTubeTitleGenerator").then(
+      (module) => module.YouTubeTitleGenerator,
+    ),
+  ),
+  "youtube-description-generator": dynamic(() =>
+    import("./youtube/YouTubeDescriptionGenerator").then(
+      (module) => module.YouTubeDescriptionGenerator,
+    ),
+  ),
+  "youtube-hashtag-generator": dynamic(() =>
+    import("./youtube/YouTubeHashtagGenerator").then(
+      (module) => module.YouTubeHashtagGenerator,
+    ),
+  ),
+  "youtube-money-calculator": dynamic(() =>
+    import("./youtube/YouTubeMoneyCalculator").then(
+      (module) => module.YouTubeMoneyCalculator,
+    ),
+  ),
+  "youtube-thumbnail-tester": dynamic(() =>
+    import("./youtube/YouTubeThumbnailTester").then(
+      (module) => module.YouTubeThumbnailTester,
+    ),
+  ),
+  "youtube-channel-id-finder": dynamic(() =>
+    import("./youtube/YouTubeChannelIdFinder").then(
+      (module) => module.YouTubeChannelIdFinder,
+    ),
+  ),
+  "youtube-timestamp-link-generator": dynamic(() =>
+    import("./youtube/YouTubeTimestampLinkGenerator").then(
+      (module) => module.YouTubeTimestampLinkGenerator,
+    ),
+  ),
+  "engagement-rate-calculator": dynamic(() =>
+    import("./calculators/EngagementRateCalculator").then(
+      (module) => module.EngagementRateCalculator,
+    ),
+  ),
+  "tiktok-money-calculator": dynamic(() =>
+    import("./calculators/TikTokMoneyCalculator").then(
+      (module) => module.TikTokMoneyCalculator,
+    ),
+  ),
+  "influencer-rate-calculator": dynamic(() =>
+    import("./calculators/InfluencerRateCalculator").then(
+      (module) => module.InfluencerRateCalculator,
+    ),
+  ),
+  "roas-calculator": dynamic(() =>
+    import("./calculators/RoasCalculator").then(
+      (module) => module.RoasCalculator,
+    ),
+  ),
+  "follower-growth-calculator": dynamic(() =>
+    import("./calculators/FollowerGrowthCalculator").then(
+      (module) => module.FollowerGrowthCalculator,
+    ),
+  ),
+};
+
+export function ToolRenderer({ slug }: { slug: string }) {
+  const { ref, isInViewport } = useInViewport<HTMLDivElement>();
+  const ToolComponent = toolComponents[slug];
+
+  return (
+    <div ref={ref} className="min-h-120">
+      {isInViewport && ToolComponent ? <ToolComponent /> : null}
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/lib/tools.ts
+========================================
+
+/**
+ * Tool definitions for the Online Tools website.
+ * Each tool has SEO metadata, FAQs, and step-by-step instructions.
+ */
+
+import { CPM_RANGES, CREATOR_SHARE } from "./youtube-earnings";
+import {
+  ENGAGEMENT_RATE_FAQS,
+  FOLLOWER_GROWTH_CALCULATOR,
+  INFLUENCER_RATE_CALCULATOR,
+  ROAS_CALCULATOR,
+  TIKTOK_MONEY_CALCULATOR,
+} from "./calculators";
+
+const highestCpm = CPM_RANGES["Finance / Investing"];
+const lowestCpm = CPM_RANGES.Music;
+
+export type FAQ = { q: string; a: string };
+export type ToolPrivacyMode =
+  | "browser"
+  | "youtube-thumbnails"
+  | "youtube-thumbnail-preview"
+  | "youtube-and-proxy"
+  | "server-video-url";
+
+export type Tool = {
+  /** URL slug, e.g. "compress-image" */
+  slug: string;
+  /** Display name, e.g. "Compress Image" */
+  name: string;
+  /** SEO-friendly short description (under 160 chars recommended) */
+  description: string;
+  /** Category for grouping on the homepage */
+  category: "Image" | "PDF" | "Conversion" | "YouTube" | "Social Media";
+  /** Data handling mode used by the shared per-tool privacy badge */
+  privacyMode: ToolPrivacyMode;
+  /** Search keywords for filtering / SEO meta */
+  keywords: string[];
+  /** Long-form description used inside the tool page body */
+  longDescription: string;
+  /** Important limitation shown beside the tool. */
+  notice?: string;
+  /** Frequently asked questions for the FAQ section + JSON-LD */
+  faqs: FAQ[];
+  /** Step-by-step instructions displayed under the tool */
+  howToSteps: string[];
+  /** Accent color used for the tool card icon badge */
+  accent: string;
+  /** Promotional badge like "Popular", "New", "Essential" */
+  badge?: string;
+  /** Slug of companion in-depth blog post */
+  blogSlug?: string;
+};
+
+export const TOOLS: Tool[] = [
+  {
+    slug: "compress-image",
+    name: "Compress Image",
+    description:
+      "Compress JPG, PNG, and WebP images in the browser, with adjustable quality.",
+    category: "Image",
+    privacyMode: "browser",
+    keywords: [
+      "compress image",
+      "image compressor",
+      "reduce image size",
+      "optimize jpg",
+      "compress png",
+      "shrink photo",
+      "web image optimizer",
+    ],
+    longDescription:
+      "Our Compress Image tool shrinks JPG, PNG, and WebP photos in your browser. Image files are not sent to our server for compression. Pick a target quality, add a batch of files, and download the results.",
+    faqs: [
+      {
+        q: "Are my images uploaded to a server?",
+        a: "No. Compression uses the Canvas API and browser-image-compression in your browser; the selected image files are not sent to our server for compression.",
+      },
+      {
+        q: "What is the maximum file size I can compress?",
+        a: "There is no fixed file size limit. Very large images may still be limited by your device's available memory.",
+      },
+      {
+        q: "Which formats are supported?",
+        a: "You can compress JPG, PNG, WebP, and most common image formats. Output is generated based on the source type.",
+      },
+      {
+        q: "Will compression reduce quality?",
+        a: "Some quality loss is expected with lossy compression. You control the quality level with the slider, so you can balance size and clarity.",
+      },
+    ],
+    howToSteps: [
+      "Drag and drop one or more images into the upload area, or click to browse.",
+      "Adjust the quality slider to your preferred compression level (1-100).",
+      "Click the Compress button and wait for the progress bar to finish.",
+      "Download each compressed image individually, or grab them all as a ZIP.",
+    ],
+    accent: "#10b981",
+  },
+  {
+    slug: "remove-background",
+    name: "Remove Background",
+    description:
+      "Remove photo backgrounds in your browser with AI. Create transparent PNGs without uploading your images.",
+    category: "Image",
+    privacyMode: "browser",
+    keywords: [
+      "remove background from image free",
+      "transparent background maker",
+      "background remover for portraits",
+      "remove image background online",
+      "make photo background transparent",
+      "AI background remover no upload",
+      "remove background from PNG",
+      "batch background remover",
+    ],
+    longDescription:
+      "Remove Background uses the MODNet portrait-matting model with Transformers.js to create transparent PNGs on your device. Images are not uploaded. MODNet is primarily trained for portraits, so results vary for products, busy scenes, fine hair, and other complex edges. The quantized model is about 12 MB, with additional runtime assets; browser caching can make later visits faster.",
+    notice:
+      "This browser-based model is designed primarily for portraits and people. Results can vary on products, animals, busy backgrounds, fine hair, and complex edges.",
+    faqs: [
+      {
+        q: "How accurate is this background remover?",
+        a: "It uses MODNet, a portrait-matting model, and generally works best when a person is clearly separated from the background. It may produce imperfect edges or fail on products, animals, busy scenes, or images without a prominent person.",
+      },
+      {
+        q: "Will it preserve fine hair and detailed edges?",
+        a: "Not always. Fine strands, motion blur, transparent objects, and low-contrast edges can be softened or missed. A subtle 1.2-pixel feathering pass smooths the cutout boundary but cannot restore details the model did not detect.",
+      },
+      {
+        q: "How large is the AI model download?",
+        a: "The selected quantized model file is about 12 MB, plus smaller model configuration and runtime assets. It downloads the first time and is cached by the browser where supported; clearing browser data or cache eviction can require another download.",
+      },
+      {
+        q: "Can I use the output commercially?",
+        a: "Transformers.js and the Xenova/modnet model identify their licenses as Apache 2.0, which permits commercial use subject to its conditions. Review the applicable license notices and confirm they fit your use case.",
+      },
+      {
+        q: "Are my photos uploaded while removing the background?",
+        a: "No. Image decoding, inference, and PNG creation run in your browser. The browser downloads public model/runtime files when needed, but the selected image files are not sent to our server or to the model host.",
+      },
+    ],
+    howToSteps: [
+      "Add JPG, PNG, or WebP images by dropping them into the upload area or browsing.",
+      "Review the model-download progress on first use; the browser caches model files where supported.",
+      "Click Remove backgrounds and follow each image's processing progress.",
+      "Compare the original and transparent result, then download PNGs individually or as a ZIP.",
+    ],
+    accent: "#8b5cf6",
+    badge: "New",
+  },
+  {
+    slug: "heic-to-jpg",
+    name: "HEIC to JPG",
+    description:
+      "Convert Apple HEIC and HEIF iPhone photos to universally compatible JPG files in the browser.",
+    category: "Conversion",
+    privacyMode: "browser",
+    keywords: [
+      "heic to jpg",
+      "heic converter",
+      "heic to jpeg",
+      "iphone photo converter",
+      "convert heic",
+      "heif to jpg",
+    ],
+    longDescription:
+      "HEIC is the default photo format on modern iPhones, but many apps and websites still expect JPG. Our HEIC to JPG converter uses the heic2any library in your browser; selected photos are not sent to our server for conversion. Convert a single photo or a batch at once.",
+    faqs: [
+      {
+        q: "Is this HEIC converter free?",
+        a: "Yes, completely free with no watermarks, no sign-up, and no limits on the number of files you can convert.",
+      },
+      {
+        q: "Does it work on Android or Windows?",
+        a: "Yes. Because conversion runs in your browser using WebAssembly, it works on any modern browser regardless of operating system.",
+      },
+      {
+        q: "Are my photos uploaded anywhere?",
+        a: "HEIC decoding uses the heic2any library in your browser. The selected HEIC files are not sent to our server for conversion.",
+      },
+      {
+        q: "Why does conversion take a few seconds per image?",
+        a: "HEIC decoding is a CPU-intensive process. We use WebAssembly to decode locally, which is fast but still needs a moment per photo.",
+      },
+    ],
+    howToSteps: [
+      "Drag your HEIC files into the upload box, or click to select them.",
+      "Optionally choose an output quality for the resulting JPG.",
+      "Click Convert and watch the progress indicator.",
+      "Download each JPG individually or all together as a ZIP archive.",
+    ],
+    accent: "#f59e0b",
+  },
+  {
+    slug: "merge-pdf",
+    name: "Merge PDF",
+    description:
+      "Free online PDF merger: combine multiple PDF files in the browser. Reorder documents and download one file; processing stays local.",
+    category: "PDF",
+    privacyMode: "browser",
+    keywords: [
+      "pdf merger free",
+      "combine pdf files free",
+      "merge pdf files free",
+      "pdf combine free",
+      "merge pdf documents for free",
+      "merge pdf docs for free",
+      "combine pdf online free",
+      "merge pdf files online free",
+      "merge pdf documents free online",
+      "merge multiple pdf online free",
+      "combine pdf files free online",
+    ],
+    longDescription:
+      "Combine two or more PDF files into one document with this free online PDF merger. Reorder files with the up and down controls, remove files you don't need, and download the merged PDF. Processing happens locally in your browser; your documents are not uploaded for merging.",
+    faqs: [
+      {
+        q: "Can I merge PDF documents online for free?",
+        a: "Yes. Add two or more PDF files, arrange them in the order you want, and download one combined PDF at no charge. Processing happens in your browser.",
+      },
+      {
+        q: "Is there a limit on the number of PDFs I can merge?",
+        a: "There is no fixed file-count limit, but large PDFs or many files can be constrained by your browser's available memory.",
+      },
+      {
+        q: "Can I change the order of the PDFs before combining them?",
+        a: "Yes. Use the up and down controls beside each file to set the order. The tool combines whole files; it does not reorder individual pages within a file.",
+      },
+      {
+        q: "Are my PDFs uploaded to a server?",
+        a: "No. The merge runs locally in your browser, and the PDF file contents are not uploaded to our server for processing.",
+      },
+      {
+        q: "Will the merged PDF keep every feature from the originals?",
+        a: "The tool copies pages into a new PDF without rasterizing them, but interactive forms, bookmarks, attachments, metadata, and digital signatures may not be retained as in the source files. Review the result before relying on it.",
+      },
+    ],
+    howToSteps: [
+      "Add two or more PDF files using drag-and-drop or the file picker.",
+      "Use the up and down controls to put the files in the desired order.",
+      "Click Merge PDFs to combine them.",
+      "Download the resulting single PDF file.",
+    ],
+    accent: "#ef4444",
+  },
+  {
+    slug: "split-pdf",
+    name: "Split PDF",
+    description:
+      "Extract PDF pages or split a document into multiple files by page range, right in the browser.",
+    category: "PDF",
+    privacyMode: "browser",
+    keywords: [
+      "split pdf",
+      "pdf splitter",
+      "extract pdf pages",
+      "divide pdf",
+      "separate pdf pages",
+    ],
+    longDescription:
+      "The Split PDF tool lets you carve a PDF into smaller pieces. Provide page ranges like 1-3, 5, 7-9, and each range becomes a separate PDF. Powered by pdf-lib in the browser, so your sensitive documents stay on your computer.",
+    faqs: [
+      {
+        q: "How do I specify which pages to extract?",
+        a: "Use comma-separated ranges such as 1-3, 5, 7-9. Each range will produce a separate output PDF.",
+      },
+      {
+        q: "Are my PDFs uploaded anywhere?",
+        a: "Splitting is performed in your browser with pdf-lib; the selected PDF is not sent to our server for processing.",
+      },
+      {
+        q: "What's the largest PDF I can split?",
+        a: "There is no fixed file size limit. Very large or complex PDFs may still be limited by your device's available memory.",
+      },
+      {
+        q: "Can I split a password-protected PDF?",
+        a: "No, this tool does not handle encrypted PDFs. Please remove the password first using your PDF reader.",
+      },
+    ],
+    howToSteps: [
+      "Upload a PDF file using drag-and-drop or the file picker.",
+      "Enter page ranges in the format 1-3, 5, 7-9.",
+      "Click Split PDF and wait for processing.",
+      "Download each resulting PDF, or grab them all as a ZIP.",
+    ],
+    accent: "#8b5cf6",
+  },
+  {
+    slug: "rotate-pdf",
+    name: "Rotate PDF",
+    description:
+      "Rotate all pages or selected pages in a PDF by 90, 180, or 270 degrees. Files are processed locally in your browser.",
+    category: "PDF",
+    privacyMode: "browser",
+    keywords: [
+      "rotate pdf online free",
+      "rotate pdf pages",
+      "rotate single page in pdf",
+      "rotate pdf permanently",
+      "turn pdf pages online",
+      "change pdf page orientation",
+      "rotate pdf 90 degrees",
+      "rotate pdf 180 degrees",
+    ],
+    longDescription:
+      "Rotate PDF lets you select every page or specific pages, then rotate them by 90, 180, or 270 degrees. Preview page thumbnails before applying the change. Processing runs in your browser with pdf-lib and pdfjs-dist; your PDF is not uploaded.",
+    faqs: [
+      {
+        q: "Can I rotate only certain PDF pages?",
+        a: "Yes. Select the pages you want to rotate from their thumbnails, or select all pages to rotate the entire document.",
+      },
+      {
+        q: "Which rotation angles are available?",
+        a: "You can rotate selected pages by 90, 180, or 270 degrees clockwise. Existing page rotation is preserved and combined with your selection.",
+      },
+      {
+        q: "Are my PDF files uploaded?",
+        a: "No. Page previews and rotation are processed locally in your browser; the selected PDF is not sent to our server.",
+      },
+      {
+        q: "Can I rotate a password-protected PDF?",
+        a: "No. This tool cannot open encrypted or password-protected PDFs. Remove the password with a trusted PDF reader before using the tool.",
+      },
+      {
+        q: "Will rotating pages change the PDF content?",
+        a: "Rotation changes the page orientation without intentionally rasterizing or editing the page contents. Review the downloaded PDF before relying on it.",
+      },
+    ],
+    howToSteps: [
+      "Upload a PDF by dragging it into the drop area or clicking to browse.",
+      "Select all pages or choose individual page thumbnails.",
+      "Choose a clockwise rotation of 90, 180, or 270 degrees.",
+      "Click Rotate PDF and download the rotated document.",
+    ],
+    accent: "#0ea5e9",
+    badge: "New",
+  },
+  {
+    slug: "pdf-to-word",
+    name: "PDF to Text & Word Converter",
+    description:
+      "Extract selectable PDF text to copy, download as plain .txt, or save as a Word-compatible .doc. Text-focused output; original layout is not preserved.",
+    category: "Conversion",
+    privacyMode: "browser",
+    keywords: [
+      "pdf to word",
+      "pdf to doc",
+      "extract text from pdf",
+      "convert pdf to editable",
+      "pdf text extractor",
+      "pdf converter to word",
+      "pdf converter to word free",
+      "pdf to word converter",
+      "pdf to word converter free",
+      "pdf to word free",
+      "pdf to word doc",
+      "pdf to word converter online free",
+      "pdf to word document",
+      "pdf to word doc converter",
+      "pdf to word conversion",
+    ],
+    longDescription:
+      "PDF to Text uses the pdfjs-dist library to extract text content from your PDF locally in your browser. Copy the extracted text, download it as a plain .txt file, or package it as a Word-compatible .doc file for Microsoft Word, Google Docs, or LibreOffice. It extracts text, not the original page design: tables, columns, images, and complex layouts may change or be omitted.",
+    notice:
+      "This tool extracts text for copying or .txt and Word-compatible .doc downloads; it does not preserve the original PDF layout, images, or complex tables.",
+    faqs: [
+      {
+        q: "Will the layout be preserved?",
+        a: "Text is extracted line by line. Tables, images, and complex layouts may not match the original perfectly. The tool prioritizes text accuracy over visual fidelity.",
+      },
+      {
+        q: "Is this PDF to Text tool free?",
+        a: "Yes. Conversion runs in your browser, and the selected files are not sent to our server for conversion.",
+      },
+      {
+        q: "Can I convert scanned PDFs?",
+        a: "No. Scanned PDFs contain images of text, not actual text. You would need an OCR tool to extract text from scans.",
+      },
+      {
+        q: "What output format is used?",
+        a: "Copy the extracted text, download it as plain .txt, or generate a Word-compatible .doc file that opens in Microsoft Word, Google Docs, and LibreOffice. Neither format preserves the PDF's exact page layout.",
+      },
+    ],
+    howToSteps: [
+      "Drop a PDF file into the upload area or click to browse.",
+      "Click Convert to Word and wait for text extraction to complete.",
+      "Preview the extracted text in the panel.",
+      "Copy the text, download a .txt file, or save a Word-compatible .doc file.",
+    ],
+    accent: "#3b82f6",
+  },
+  {
+    slug: "image-to-pdf",
+    name: "Image to PDF",
+    description:
+      "Convert JPG, PNG, and WebP images into a single PDF document. Reorder, set page size, and download instantly.",
+    category: "PDF",
+    privacyMode: "browser",
+    keywords: [
+      "image to pdf",
+      "jpg to pdf",
+      "png to pdf",
+      "convert images to pdf",
+      "picture to pdf",
+    ],
+    longDescription:
+      "Turn one or more images into a single PDF with our Image to PDF tool. Choose page size (A4, Letter, or fit-to-image), reorder pages by dragging, and download the result. The selected images are processed in your browser with pdf-lib and are not sent to our server for conversion.",
+    faqs: [
+      {
+        q: "Which image formats are supported?",
+        a: "JPG, PNG, and WebP are supported. Each image becomes one page in the output PDF.",
+      },
+      {
+        q: "Can I choose the page size?",
+        a: "Yes. Choose A4, US Letter, or fit-to-image. The image is centered on the chosen page size.",
+      },
+      {
+        q: "Are my images uploaded to a server?",
+        a: "This tool processes the selected images in your browser using pdf-lib; the image contents are not sent to our server for processing.",
+      },
+      {
+        q: "Is there a file size limit?",
+        a: "There is no fixed file size limit. Very large images or batches may still be limited by your device's available memory.",
+      },
+    ],
+    howToSteps: [
+      "Drag and drop images into the upload area, or click to browse.",
+      "Reorder images by dragging them in the list.",
+      "Choose a page size (A4, Letter, or fit-to-image).",
+      "Click Create PDF and download the result.",
+    ],
+    accent: "#06b6d4",
+  },
+  {
+    slug: "compress-pdf",
+    name: "Compress PDF",
+    description:
+      "Reduce PDF file size by rasterizing each page to an image. Processing runs in the browser; output text is no longer selectable or searchable.",
+    category: "PDF",
+    privacyMode: "browser",
+    keywords: [
+      "compress pdf",
+      "reduce pdf size",
+      "pdf compressor",
+      "shrink pdf",
+      "optimize pdf",
+      "pdf compressor free",
+      "pdf compressor online free",
+      "pdf compressor online",
+    ],
+    longDescription:
+      "Compress PDF reduces a file's size by rasterizing each page to a JPEG image at a resolution you choose. The new PDF contains page images, so its text is no longer selectable or searchable. This is most effective on PDFs that contain large embedded images. Text-heavy PDFs may not compress as dramatically. All processing happens locally with pdf-lib and pdfjs-dist.",
+    notice:
+      "Important: pages are rasterized into images. Text in the compressed PDF will no longer be selectable or searchable; keep your original file.",
+    faqs: [
+      {
+        q: "How does PDF compression work?",
+        a: "Each page is rendered to a JPEG image at the chosen quality, then reassembled into a new PDF. This dramatically reduces size for image-heavy PDFs.",
+      },
+      {
+        q: "Will text still be searchable?",
+        a: "No. After compression, the text in the PDF is part of an image and is no longer selectable or searchable. Use this for archival copies only.",
+      },
+      {
+        q: "Are my PDFs uploaded anywhere?",
+        a: "Compression runs in your browser using pdfjs-dist and pdf-lib; the selected PDF contents are not sent to our server for processing.",
+      },
+      {
+        q: "What quality should I choose?",
+        a: "Medium (72 DPI) is good for screen viewing. High (150 DPI) balances quality and size. Use High if you need to print the result.",
+      },
+    ],
+    howToSteps: [
+      "Upload a PDF file using drag-and-drop or the file picker.",
+      "Choose a quality level (Low, Medium, or High).",
+      "Click Compress PDF and wait for processing.",
+      "Compare the original and compressed sizes, then download.",
+    ],
+    accent: "#ec4899",
+  },
+  {
+    slug: "webp-to-png",
+    name: "WebP to PNG",
+    description:
+      "Convert WebP images to PNG format with full transparency support. Fast, free, and 100% browser-based.",
+    category: "Conversion",
+    privacyMode: "browser",
+    keywords: [
+      "webp to png",
+      "convert webp",
+      "webp converter",
+      "webp to png online",
+    ],
+    longDescription:
+      "WebP is great for the web, but some applications still need PNG. Our WebP to PNG converter preserves transparency and runs entirely in your browser using the Canvas API. Convert a single image or a batch at once.",
+    faqs: [
+      {
+        q: "Is transparency preserved?",
+        a: "Yes. The PNG output preserves the alpha channel of the original WebP image.",
+      },
+      {
+        q: "Are my images uploaded to a server?",
+        a: "No. Conversion happens locally using the HTML Canvas API. Your images stay on your device.",
+      },
+      {
+        q: "Can I convert multiple files at once?",
+        a: "Yes. Drag in a batch of WebP files and download them all as PNGs, either individually or as a ZIP.",
+      },
+      {
+        q: "Is there a file size limit?",
+        a: "There is no fixed file size limit. Very large images may still be constrained by your device's available memory.",
+      },
+    ],
+    howToSteps: [
+      "Drag and drop WebP files into the upload area, or click to browse.",
+      "Click Convert to PNG.",
+      "Wait for the progress bar to complete.",
+      "Download each PNG individually or all together as a ZIP.",
+    ],
+    accent: "#14b8a6",
+  },
+  {
+    slug: "png-to-jpg",
+    name: "PNG to JPG",
+    description:
+      "Convert PNG images to JPG format to reduce file size. Choose a background color for transparent areas.",
+    category: "Conversion",
+    privacyMode: "browser",
+    keywords: [
+      "png to jpg",
+      "convert png",
+      "png converter",
+      "png to jpeg",
+    ],
+    longDescription:
+      "PNG to JPG converts your PNG images into smaller JPG files. Because JPG doesn't support transparency, you can choose a background color to fill transparent areas. Runs entirely in your browser using the Canvas API.",
+    faqs: [
+      {
+        q: "What happens to transparent areas?",
+        a: "You can choose a background color (white by default) that fills transparent areas before saving as JPG.",
+      },
+      {
+        q: "Are my images uploaded anywhere?",
+        a: "Conversion uses the Canvas API in your browser; the selected images are not sent to our server for conversion.",
+      },
+      {
+        q: "Can I convert multiple PNGs at once?",
+        a: "Yes. Batch conversion is supported â€” drop in multiple files and download them all as a ZIP.",
+      },
+      {
+        q: "Will the output quality match the original?",
+        a: "JPG is a lossy format, so there may be slight quality loss. You can adjust the quality slider to balance size and clarity.",
+      },
+    ],
+    howToSteps: [
+      "Drag and drop PNG files into the upload area, or click to browse.",
+      "Choose a background color for transparent areas.",
+      "Optionally adjust the JPG quality slider.",
+      "Click Convert and download each JPG or all as a ZIP.",
+    ],
+    accent: "#f97316",
+  },
+  {
+    slug: "jpg-to-webp",
+    name: "JPG to WebP",
+    description:
+      "Convert JPG images to modern WebP format for smaller file sizes and better web performance.",
+    category: "Conversion",
+    privacyMode: "browser",
+    keywords: [
+      "jpg to webp",
+      "convert to webp",
+      "jpeg to webp",
+      "webp converter",
+    ],
+    longDescription:
+      "WebP files can be smaller than JPGs at comparable visual quality, depending on the image and settings. Our JPG to WebP converter uses the Canvas API in your browser.",
+    faqs: [
+      {
+        q: "How much smaller will WebP be than JPG?",
+        a: "WebP is typically 25-35% smaller than JPG at equivalent visual quality, depending on the image content.",
+      },
+      {
+        q: "Are my images uploaded to a server?",
+        a: "Conversion happens with the Canvas API in your browser; the selected files are not sent to our server for conversion.",
+      },
+      {
+        q: "Can I batch convert multiple JPGs?",
+        a: "Yes. Drop in multiple JPG files and download them all as WebP, either individually or as a ZIP.",
+      },
+      {
+        q: "Does every browser support WebP?",
+        a: "All modern browsers (Chrome, Edge, Firefox, Safari 14+) support WebP. If you're targeting very old browsers, consider keeping a JPG fallback.",
+      },
+    ],
+    howToSteps: [
+      "Drag and drop JPG files into the upload area, or click to browse.",
+      "Adjust the quality slider (1-100) if needed.",
+      "Click Convert to WebP.",
+      "Download each WebP file individually or all as a ZIP.",
+    ],
+    accent: "#22c55e",
+  },
+  // â”€â”€â”€ YouTube Creator Tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  {
+    slug: "youtube-thumbnail-downloader",
+    name: "YouTube Thumbnail Downloader",
+    description:
+      "Download HD thumbnails from any YouTube video in one click. Supports maxres, SD, HQ, and MQ resolutions â€” no sign-up, no watermark.",
+    category: "YouTube",
+    privacyMode: "youtube-thumbnails",
+    keywords: [
+      "youtube thumbnail downloader",
+      "download youtube thumbnail",
+      "youtube thumbnail grabber",
+      "save youtube thumbnail hd",
+      "get youtube thumbnail",
+    ],
+    longDescription:
+      "Paste a YouTube URL to retrieve public thumbnails at available resolutions. The tool requests video metadata and thumbnail images directly from YouTube.",
+    faqs: [
+      {
+        q: "Is this thumbnail downloader free?",
+        a: "Yes, completely free with no sign-up, no watermark, and no limits on how many thumbnails you download.",
+      },
+      {
+        q: "Which resolutions can I download?",
+        a: "We check maxresdefault (1280Ã—720), sddefault (640Ã—480), hqdefault (480Ã—360), mqdefault (320Ã—180), and default (120Ã—90). Not all videos have maxres â€” older uploads may only go up to SD.",
+      },
+      {
+        q: "Can I use downloaded thumbnails commercially?",
+        a: "Thumbnails are owned by the video creator. Downloading for research, inspiration, or personal use is fine, but you should not republish someone else's thumbnail without permission.",
+      },
+      {
+        q: "Why does maxresdefault sometimes fail?",
+        a: "Not all videos have a maxres thumbnail. Videos uploaded before 2013 or those with low-quality source files may not have a 1280Ã—720 version. We automatically fall back to the next best resolution.",
+      },
+    ],
+    howToSteps: [
+      "Copy the YouTube video URL from your browser's address bar or the share button.",
+      "Paste the URL into the input field above.",
+      "Click Fetch Thumbnails and wait for the preview to load.",
+      "Click Download on the resolution you want â€” the image saves directly to your device.",
+    ],
+    accent: "#ff0000",
+  },
+  {
+    slug: "youtube-thumbnail-resizer",
+    name: "YouTube Thumbnail Resizer",
+    description:
+      "Resize and crop YouTube thumbnails to 1280Ã—720 with a safe-zone overlay that keeps text clear on mobile.",
+    category: "YouTube",
+    privacyMode: "browser",
+    keywords: [
+      "youtube thumbnail resizer",
+      "resize youtube thumbnail",
+      "thumbnail crop 1280x720",
+      "youtube thumbnail safe zone",
+      "thumbnail size converter",
+    ],
+    longDescription:
+      "YouTube requires thumbnails to be exactly 1280Ã—720 pixels. Our resizer crops your image to that exact size while showing a safe-zone overlay â€” the area where text and faces won't be cut off by YouTube's player UI on mobile devices. Drag to reposition, then download a production-ready thumbnail.",
+    faqs: [
+      {
+        q: "What is the YouTube thumbnail safe zone?",
+        a: "YouTube's player overlays a timestamp and progress bar at the bottom of thumbnails, and mobile interfaces can crop the edges. The safe zone is roughly the central 80% of the image where important text and faces should be placed.",
+      },
+      {
+        q: "What size should a YouTube thumbnail be?",
+        a: "1280Ã—720 pixels (16:9 aspect ratio), under 2 MB, in JPG, PNG, BMP, or GIF format. Our tool crops to exactly 1280Ã—720.",
+      },
+      {
+        q: "Can I upload any image format?",
+        a: "Yes, we support JPG, PNG, WebP, and GIF (first frame). The output is always a PNG to preserve quality.",
+      },
+      {
+        q: "Are my images uploaded to a server?",
+        a: "Cropping and resizing happen in your browser using the Canvas API. The selected image is not sent to our server for processing.",
+      },
+    ],
+    howToSteps: [
+      "Upload an image by dragging it into the drop zone or clicking to browse.",
+      "Drag the image to reposition it within the 1280Ã—720 crop frame.",
+      "Toggle the safe-zone overlay to see where text won't be cut off.",
+      "Click Download to save the cropped thumbnail as a PNG.",
+    ],
+    accent: "#ff0033",
+  },
+  {
+    slug: "youtube-tags-extractor",
+    name: "YouTube Tags Extractor",
+    description:
+      "Check a YouTube video's public page for tags. Its URL is sent to our server to fetch the page; tags may be unavailable.",
+    category: "YouTube",
+    privacyMode: "server-video-url",
+    keywords: [
+      "youtube tags extractor",
+      "extract youtube tags",
+      "youtube keyword extractor",
+      "see youtube video tags",
+      "youtube tag finder",
+    ],
+    longDescription:
+      "Our extractor sends the video URL to our server, which fetches the public YouTube video page and reads its keyword metadata. The server receives the URL, not a video or file upload.",
+    faqs: [
+      {
+        q: "How does the tags extractor work?",
+        a: "The tool sends the video URL to our server. The server validates it, fetches the public YouTube page without following redirects, and reads its keyword metadata.",
+      },
+      {
+        q: "Why are no tags showing for some videos?",
+        a: "Some creators don't add tags, and YouTube has de-emphasized them in recent years. If the keyword meta tag is empty, the video simply has no tags.",
+      },
+      {
+        q: "Do YouTube tags still matter for SEO?",
+        a: "YouTube has stated tags play a minimal role for search, but they can help with disambiguation and related-video suggestions. Title, description, and engagement matter far more.",
+      },
+      {
+        q: "Can I copy the tags for my own video?",
+        a: "You can copy them, but blindly copying a competitor's tags won't help. Use them as research to understand the topic landscape, then craft your own relevant tags.",
+      },
+    ],
+    howToSteps: [
+      "Copy a YouTube video URL from the address bar or share button.",
+      "Paste it into the input field above.",
+      "Click Extract Tags and wait a few seconds for the page to be fetched.",
+      "Copy individual tags or all of them at once to your clipboard.",
+    ],
+    accent: "#cc0000",
+  },
+  {
+    slug: "youtube-title-generator",
+    name: "YouTube Title Generator",
+    description:
+      "Generate SEO-optimized YouTube titles from any topic, with a live character counter to stay under 100 characters.",
+    category: "YouTube",
+    privacyMode: "browser",
+    keywords: [
+      "youtube title generator",
+      "generate youtube titles",
+      "youtube title ideas",
+      "seo title generator youtube",
+      "youtube title optimizer",
+    ],
+    longDescription:
+      "A great title is the single biggest factor in YouTube click-through rate. Our generator takes your topic and produces proven title patterns â€” how-to, listicle, question, curiosity gap, and more. Each title includes a live character counter so you stay within YouTube's 100-character display limit.",
+    faqs: [
+      {
+        q: "How does the title generator work?",
+        a: "We use proven title templates backed by YouTube CTR research. Enter your topic and we generate variations using patterns like 'How to X', 'X Tips for Y', 'The Truth About X', and more.",
+      },
+      {
+        q: "What's the ideal YouTube title length?",
+        a: "YouTube displays up to 100 characters in search results and 70 on mobile. Aim for 60-70 characters to ensure the full title is visible. Our counter turns red past 100.",
+      },
+      {
+        q: "Are the generated titles unique?",
+        a: "The templates produce combinations from your input. You should always review and customize the title to match your specific video content and brand voice.",
+      },
+      {
+        q: "Can I use this for free?",
+        a: "Yes, completely free with no sign-up. Generate as many titles as you need.",
+      },
+    ],
+    howToSteps: [
+      "Type your video topic or main keyword into the input field.",
+      "Click Generate Titles to produce variations using proven templates.",
+      "Review the character count â€” green means good, red means too long.",
+      "Click any title to copy it to your clipboard.",
+    ],
+    accent: "#e60000",
+  },
+  {
+    slug: "youtube-description-generator",
+    name: "YouTube Description Generator",
+    description:
+      "Generate structured YouTube descriptions with timestamps, social links, and hashtags. SEO-ready in seconds.",
+    category: "YouTube",
+    privacyMode: "browser",
+    keywords: [
+      "youtube description generator",
+      "generate youtube description",
+      "youtube description template",
+      "youtube description with timestamps",
+      "seo description youtube",
+    ],
+    longDescription:
+      "YouTube's algorithm reads your description for SEO, and viewers scan it for navigation. Our generator produces a structured description with a hook, summary, timestamp chapters, social links, and hashtags â€” all editable. Just fill in your video details and copy the result.",
+    faqs: [
+      {
+        q: "Why do YouTube descriptions matter?",
+        a: "The first 125 characters appear in search results and influence click-through. The full description is parsed for keywords that help your video rank. Timestamps also create chapters in the player.",
+      },
+      {
+        q: "How do timestamps work?",
+        a: "Add lines starting with a time (e.g. 0:00 Intro, 1:23 Main Topic) and YouTube automatically creates chapter markers in the video player. Our generator formats these correctly for you.",
+      },
+      {
+        q: "How long should a YouTube description be?",
+        a: "YouTube allows up to 5,000 characters. Aim for at least 250 characters with a clear summary, links, and relevant keywords. The first two lines matter most.",
+      },
+      {
+        q: "Should I include hashtags?",
+        a: "Yes â€” the first three hashtags appear above the title on mobile. Use relevant, specific hashtags (not generic ones like #youtube). Our generator includes a hashtag section.",
+      },
+    ],
+    howToSteps: [
+      "Enter your video title, topic, and a one-sentence summary.",
+      "Add timestamp entries (e.g. 0:00 Intro, 2:15 Tips, 5:30 Outro).",
+      "Fill in your social media links and channel description.",
+      "Click Copy Description and paste it into YouTube Studio.",
+    ],
+    accent: "#ff1a1a",
+  },
+  {
+    slug: "youtube-hashtag-generator",
+    name: "YouTube Hashtag Generator",
+    description:
+      "Generate relevant YouTube hashtags for a topic or niche. Boost discoverability with researched tag combinations.",
+    category: "YouTube",
+    privacyMode: "browser",
+    keywords: [
+      "youtube hashtag generator",
+      "generate youtube hashtags",
+      "youtube tags generator",
+      "youtube hashtag ideas",
+      "hashtag generator for youtube",
+    ],
+    longDescription:
+      "Hashtags help YouTube understand your video's topic and surface it in related content. Our generator takes your niche or topic and produces a mix of broad, niche, and long-tail hashtags. The first three hashtags you use appear above your title on mobile, so choose wisely.",
+    faqs: [
+      {
+        q: "How many hashtags should I use on YouTube?",
+        a: "YouTube allows up to 60 hashtags in the description, but more than 15 can be flagged as spam. We recommend 5-10 highly relevant hashtags. The first three appear above the title.",
+      },
+      {
+        q: "Do hashtags help with YouTube SEO?",
+        a: "Yes, but modestly. They help YouTube group your video with related content. They're most useful for trending or niche topics. Overusing generic hashtags can hurt.",
+      },
+      {
+        q: "Should I use the same hashtags on every video?",
+        a: "No. Tailor hashtags to each specific video's topic. Repeating the same tags across unrelated videos can be seen as tag stuffing.",
+      },
+      {
+        q: "Are these hashtags researched or random?",
+        a: "We generate hashtags by combining your topic with proven patterns (#howto, #tutorial, #2025, niche modifiers). Always review and select the ones most relevant to your specific content.",
+      },
+    ],
+    howToSteps: [
+      "Enter your video topic, niche, or main keyword.",
+      "Click Generate Hashtags to produce a list of relevant tags.",
+      "Click any hashtag to copy it, or use Copy All.",
+      "Paste 5-10 of the most relevant hashtags into your video description.",
+    ],
+    accent: "#cc0033",
+  },
+  {
+    slug: "youtube-money-calculator",
+    name: "YouTube Money Calculator",
+    description:
+      "Estimate YouTube earnings based on views, niche, and CPM. See potential ad revenue across 16 content categories.",
+    category: "YouTube",
+    privacyMode: "browser",
+    keywords: [
+      "youtube money calculator",
+      "youtube earnings calculator",
+      "youtube revenue estimator",
+      "youtube cpm calculator",
+      "how much youtube pays",
+    ],
+    longDescription:
+      `Wondering how much a YouTube channel earns? Our calculator estimates ad revenue based on monthly views and content niche. We use CPM ranges from ${Object.keys(CPM_RANGES).length} categories â€” from finance ($${highestCpm.low}-${highestCpm.high} CPM) to music ($${lowestCpm.low}-${lowestCpm.high} CPM) â€” and apply a ${CREATOR_SHARE * 100}% creator share. Estimates depend on geography, watch time, ad format, and season.`,
+    faqs: [
+      {
+        q: "How accurate is the YouTube money calculator?",
+        a: `Our estimates apply a ${CREATOR_SHARE * 100}% creator share to niche CPM ranges. Actual earnings vary based on audience geography, watch time, ad format, and season. Sponsorships and merchandise are not included.`,
+      },
+      {
+        q: "What is CPM?",
+        a: "CPM (cost per mille) is what advertisers pay per 1,000 ad impressions. RPM (revenue per mille) is what the creator actually receives after YouTube's cut. Our calculator factors in both.",
+      },
+      {
+        q: "Does this include sponsorships or merchandise?",
+        a: "No. This calculator only estimates ad revenue. Sponsorships, channel memberships, Super Chat, and merchandise can add significantly to a creator's income â€” often more than ads for larger channels.",
+      },
+      {
+        q: "Which niches pay the most on YouTube?",
+        a: "Finance, investing, and business/tech typically have the highest CPMs ($15-35). Entertainment and music have the lowest ($1-4). Educational content sits in the middle.",
+      },
+    ],
+    howToSteps: [
+      "Enter the channel's monthly views (e.g. 500000).",
+      "Select the content niche that best matches the channel.",
+      "Click Calculate to see the estimated monthly earnings range.",
+      "Review the low, mid, and high estimates based on niche CPM data.",
+    ],
+    accent: "#00cc44",
+  },
+  {
+    slug: "youtube-thumbnail-tester",
+    name: "YouTube Thumbnail Tester",
+    description:
+      "Preview thumbnails at real-world sizes â€” mobile feed, desktop search, TV, and small preview â€” to see how they look to viewers.",
+    category: "YouTube",
+    privacyMode: "youtube-thumbnail-preview",
+    keywords: [
+      "youtube thumbnail tester",
+      "preview youtube thumbnail",
+      "thumbnail size preview",
+      "youtube thumbnail mockup",
+      "test thumbnail mobile desktop",
+    ],
+    longDescription:
+      "A thumbnail that looks great full-size might be unreadable as a 120px preview on mobile. Our tester shows your thumbnail at the actual sizes YouTube uses â€” mobile feed, desktop search results, sidebar suggestions, and the tiny notification preview â€” so you can verify text is legible and faces are visible before publishing.",
+    faqs: [
+      {
+        q: "Which sizes does the tester show?",
+        a: "We render your thumbnail at the real-world display sizes YouTube uses: mobile feed (210Ã—118), desktop search (246Ã—138), sidebar suggestion (168Ã—94), TV (1280Ã—720), and notification (120Ã—68).",
+      },
+      {
+        q: "Why should I test my thumbnail at different sizes?",
+        a: "Over 70% of YouTube watch time is on mobile. If your title text or face isn't legible at 210 pixels wide, viewers will scroll past. Testing helps you design for the smallest size first.",
+      },
+      {
+        q: "Are my images uploaded anywhere?",
+        a: "If you enter a YouTube URL, your browser requests the public thumbnail images directly from YouTube. If you select an image file, it is previewed in your browser and is not sent to our server.",
+      },
+      {
+        q: "Can I test a thumbnail from an existing YouTube video?",
+        a: "Yes â€” paste a YouTube URL and we'll fetch the video's current thumbnail for testing. Or upload your own image to test before publishing.",
+      },
+    ],
+    howToSteps: [
+      "Upload an image or paste a YouTube URL to load a thumbnail.",
+      "Scroll through the preview cards showing different display sizes.",
+      "Check that text is legible and faces are visible at the smallest sizes.",
+      "Redesign if needed and re-test until the thumbnail works at every size.",
+    ],
+    accent: "#ff3333",
+  },
+  {
+    slug: "youtube-channel-id-finder",
+    name: "YouTube Channel ID Finder",
+    description:
+      "Find any YouTube channel ID from a video URL, handle, or channel link. Get the UC... ID instantly for APIs and integrations.",
+    category: "YouTube",
+    privacyMode: "youtube-and-proxy",
+    keywords: [
+      "youtube channel id finder",
+      "find youtube channel id",
+      "get youtube channel id",
+      "youtube channel id extractor",
+      "youtube uc id",
+    ],
+    longDescription:
+      "Need a channel ID for the YouTube API, RSS feeds, or third-party tools? Video lookups send the video URL to YouTube's public oEmbed endpoint; handle lookups send the channel URL to the AllOrigins proxy. Direct channel-ID links are parsed in your browser.",
+    faqs: [
+      {
+        q: "What is a YouTube channel ID?",
+        a: "It's a unique 24-character identifier starting with 'UC' (e.g. UCxxxxxxxxxxxxxxxxxxxxxx). YouTube uses it internally for API calls, RSS feeds, and analytics integrations.",
+      },
+      {
+        q: "Can I find a channel ID from a @handle?",
+        a: "Yes. The tool sends the channel URL to the AllOrigins proxy, which fetches the public channel page so the ID can be extracted.",
+      },
+      {
+        q: "Can I find a channel ID from a video URL?",
+        a: "Yes. The tool sends the video URL directly to YouTube's public oEmbed endpoint, then extracts the channel ID from the response.",
+      },
+      {
+        q: "Is this free?",
+        a: "Yes, completely free with no sign-up and no API key. We use YouTube's public oEmbed endpoint and public channel pages.",
+      },
+    ],
+    howToSteps: [
+      "Copy a YouTube URL â€” either a video URL or a channel/handle URL.",
+      "Paste it into the input field above.",
+      "Click Find Channel ID.",
+      "Copy the channel ID to your clipboard for use in APIs or tools.",
+    ],
+    accent: "#ff0066",
+  },
+  {
+    slug: "youtube-timestamp-link-generator",
+    name: "YouTube Timestamp Link Generator",
+    description:
+      "Create shareable YouTube links that start at a specific timestamp. Skip intros and link directly to the good part.",
+    category: "YouTube",
+    privacyMode: "browser",
+    keywords: [
+      "youtube timestamp link generator",
+      "youtube link with timestamp",
+      "share youtube video at specific time",
+      "youtube t parameter link",
+      "deep link youtube video",
+    ],
+    longDescription:
+      "Want to share a YouTube video starting at a specific moment? Our generator creates a timestamped link (youtu.be/VIDEO_ID?t=123s) from any video URL and time. Perfect for sharing the relevant part of a long podcast, tutorial, or stream without making viewers scrub.",
+    faqs: [
+      {
+        q: "How do YouTube timestamp links work?",
+        a: "YouTube supports a ?t= parameter on video URLs that specifies the start time in seconds. For example, youtu.be/dQw4w9WgXcQ?t=43 starts the video at 43 seconds.",
+      },
+      {
+        q: "Can I use minutes and seconds instead of counting seconds?",
+        a: "Yes. Enter '1:30' and we'll convert it to 90 seconds automatically. You can also enter pure seconds (90) or hours:minutes:seconds (1:02:03).",
+      },
+      {
+        q: "Do timestamp links work on mobile?",
+        a: "Yes. The youtu.be short URL with ?t= works in the YouTube mobile app and in mobile browsers. The app opens and starts at the specified time.",
+      },
+      {
+        q: "Can I create multiple timestamp links at once?",
+        a: "Yes â€” add as many timestamps as you need and we'll generate a link for each. Great for creating a table of contents for a long video.",
+      },
+    ],
+    howToSteps: [
+      "Paste a YouTube video URL (or just the video ID).",
+      "Enter the timestamp you want to link to (e.g. 1:30 or 90).",
+      "Click Generate Link to create the shareable URL.",
+      "Copy the link and share it anywhere â€” it opens at your chosen time.",
+    ],
+    accent: "#ff0099",
+  },
+  {
+    slug: "remove-exif",
+    name: "Remove EXIF Data",
+    description:
+      "Strip EXIF, GPS location, camera details, and privacy metadata from JPG, PNG, and WebP images locally.",
+    category: "Image",
+    privacyMode: "browser",
+    keywords: [
+      "remove exif",
+      "exif remover",
+      "remove metadata from photo",
+      "strip gps from image",
+      "delete photo metadata",
+      "clean exif online",
+      "remove photo location",
+    ],
+    longDescription:
+      "Protect your personal privacy by stripping hidden EXIF metadata from photos before sharing them online. Modern smartphone photos contain sensitive data like exact GPS coordinates, date taken, camera make and model, device serial numbers, and software version. Our Remove EXIF tool extracts and displays all embedded metadata, alerts you if GPS coordinates are found, and cleanly wipes it all directly in your browser without uploading your files.",
+    faqs: [
+      {
+        q: "What metadata is removed from my photos?",
+        a: "All EXIF, GPS coordinates (latitude, longitude, altitude), camera make/model, date & time, lens info, software tags, thumbnail data, and device serial numbers are completely stripped.",
+      },
+      {
+        q: "Are my photos uploaded to a server?",
+        a: "Inspection and stripping use HTML5 Canvas and WebAssembly in your browser; the selected photos are not sent to our server for processing.",
+      },
+      {
+        q: "Will removing EXIF reduce photo quality?",
+        a: "No. You can choose Lossless PNG or high-quality JPG (95-100%) to preserve full visual fidelity while stripping all hidden tracking tags.",
+      },
+      {
+        q: "Can I batch process multiple images?",
+        a: "Yes. Drag and drop multiple photos to clean them all at once, then download them individually or as a single ZIP archive.",
+      },
+    ],
+    howToSteps: [
+      "Upload one or more images using drag-and-drop or the file picker.",
+      "Review the detected EXIF metadata and GPS location tags.",
+      "Select your output format and quality settings.",
+      "Click Remove EXIF and download your cleaned, privacy-safe photos.",
+    ],
+    accent: "#6366f1",
+  },
+  {
+    slug: "pdf-to-image",
+    name: "PDF to Image",
+    description:
+      "Convert PDF pages to high-resolution JPG, PNG, or WebP images in the browser, up to 300 DPI print quality.",
+    category: "PDF",
+    privacyMode: "browser",
+    keywords: [
+      "pdf to image",
+      "pdf to jpg",
+      "pdf to png",
+      "convert pdf to image high quality",
+      "pdf to high resolution image",
+      "pdf to 300 dpi image",
+      "extract pdf pages as images",
+      "pdf converter to jpg",
+      "pdf to jpg converter",
+      "pdf to jpg free",
+      "pdf to jpg free converter",
+      "pdf to jpg converter free online",
+      "pdf to jpg online free",
+      "pdf to jpg high quality",
+    ],
+    longDescription:
+      "Convert every page of a PDF document into high-resolution, crystal-clear images. Select from standard 72 DPI up to ultra 300 DPI / 400 DPI print quality, or use custom scaling for razor-sharp text and vector graphics. Choose between lossless PNG, JPEG, or modern WebP, preview all rendered pages in real time, and download single pages or the entire document as a ZIP file.",
+    faqs: [
+      {
+        q: "What resolution / DPI can I convert PDFs to?",
+        a: "You can choose from Screen (72 DPI), Balanced (150 DPI), Super HD (200 DPI), Ultra Print (300 DPI), or Maximum 4K (400 DPI). You can also set a custom scale multiplier up to 5x.",
+      },
+      {
+        q: "Which image formats are supported?",
+        a: "You can export pages as lossless PNG (best for text and diagrams), high-quality JPG, or modern WebP.",
+      },
+      {
+        q: "Can I convert only specific pages?",
+        a: "Yes. Enter a page range like 1-3, 5 to convert selected pages, or leave blank to convert all pages in the PDF.",
+      },
+      {
+        q: "Are my PDF files uploaded anywhere?",
+        a: "Conversion uses pdfjs-dist in your browser; the selected PDF contents are not sent to our server for conversion.",
+      },
+    ],
+    howToSteps: [
+      "Upload a PDF document using drag-and-drop or the file browser.",
+      "Choose your desired resolution (e.g. Ultra Print 300 DPI) and output format (PNG, JPG, or WebP).",
+      "Optionally specify a page range.",
+      "Click Convert PDF to Images and download your high-quality images individually or as a ZIP.",
+    ],
+    accent: "#0ea5e9",
+  },
+  {
+    slug: "engagement-rate-calculator",
+    name: "Engagement Rate Calculator",
+    description:
+      "Calculate post engagement and compare it with social-platform benchmarks.",
+    category: "YouTube",
+    privacyMode: "browser",
+    keywords: [
+      "engagement rate calculator",
+      "social media engagement rate",
+      "instagram engagement rate",
+      "tiktok engagement rate",
+      "youtube engagement rate",
+      "likes comments shares followers",
+    ],
+    longDescription:
+      "Calculate a post's follower-based engagement rate from likes, comments, and shares, then compare the result with broad Instagram, TikTok, and YouTube reference ranges.",
+    faqs: ENGAGEMENT_RATE_FAQS,
+    howToSteps: [
+      "Enter the account's follower count.",
+      "Add the post's likes, comments, and shares.",
+      "Read the calculated engagement rate and compare it with the platform ranges.",
+    ],
+    accent: "#8b5cf6",
+    badge: "New",
+  },
+  {
+    slug: TIKTOK_MONEY_CALCULATOR.slug,
+    name: TIKTOK_MONEY_CALCULATOR.name,
+    description:
+      "Turn TikTok views into a quick earnings estimateâ€”no account access needed.",
+    category: "Social Media",
+    privacyMode: "browser",
+    keywords: [
+      "TikTok money calculator",
+      "TikTok earnings calculator",
+      "TikTok creator income",
+      "TikTok RPM",
+      "TikTok views to money",
+    ],
+    longDescription: TIKTOK_MONEY_CALCULATOR.directAnswer,
+    faqs: TIKTOK_MONEY_CALCULATOR.faqs,
+    howToSteps: [
+      "Enter your estimated monthly TikTok video views.",
+      "Enter your estimated revenue per 1,000 views (RPM).",
+      "Review the estimated earnings.",
+    ],
+    accent: "#111827",
+    badge: "New",
+  },
+  {
+    slug: INFLUENCER_RATE_CALCULATOR.slug,
+    name: INFLUENCER_RATE_CALCULATOR.name,
+    description:
+      "Estimate sponsorship rates for a brand deal using average views per post.",
+    category: "Social Media",
+    privacyMode: "browser",
+    keywords: [
+      "influencer rate calculator",
+      "sponsorship rate calculator",
+      "influencer pricing",
+      "creator sponsorship quote",
+      "brand deal rate",
+    ],
+    longDescription: INFLUENCER_RATE_CALCULATOR.directAnswer,
+    faqs: INFLUENCER_RATE_CALCULATOR.faqs,
+    howToSteps: [
+      "Enter your average views per sponsored post.",
+      "Choose a target CPM and enter the number of deliverables.",
+      "Use the estimate as a starting point for your campaign quote.",
+    ],
+    accent: "#ec4899",
+    badge: "New",
+  },
+  {
+    slug: ROAS_CALCULATOR.slug,
+    name: ROAS_CALCULATOR.name,
+    description:
+      "Compare attributed ad revenue with ad spend using a ROAS calculator.",
+    category: "Social Media",
+    privacyMode: "browser",
+    keywords: [
+      "ROAS calculator",
+      "return on ad spend",
+      "advertising return calculator",
+      "ad revenue to spend ratio",
+      "calculate campaign ROAS",
+    ],
+    longDescription: ROAS_CALCULATOR.directAnswer,
+    faqs: ROAS_CALCULATOR.faqs,
+    howToSteps: [
+      "Enter revenue attributed to the advertising campaign.",
+      "Enter the campaign's advertising spend.",
+      "Read the ROAS ratio and compare it with your target.",
+    ],
+    accent: "#14b8a6",
+    badge: "New",
+  },
+  {
+    slug: FOLLOWER_GROWTH_CALCULATOR.slug,
+    name: FOLLOWER_GROWTH_CALCULATOR.name,
+    description:
+      "Track audience growth or loss as a clear percentage between two counts.",
+    category: "Social Media",
+    privacyMode: "browser",
+    keywords: [
+      "follower growth rate calculator",
+      "social media follower growth",
+      "Instagram follower growth",
+      "TikTok follower growth",
+      "audience growth percentage",
+    ],
+    longDescription: FOLLOWER_GROWTH_CALCULATOR.directAnswer,
+    faqs: FOLLOWER_GROWTH_CALCULATOR.faqs,
+    howToSteps: [
+      "Enter the follower count at the start of the period.",
+      "Enter the follower count at the end of the period.",
+      "Review the growth rate and net follower change.",
+    ],
+    accent: "#6366f1",
+    badge: "New",
+  },
+];
+
+/**
+ * Accepts only a real AdSense publisher ID (ca-pub- + 16 digits).
+ * Placeholder values such as "ca-pub-XXXXXXXXXXXXXXXX" are ignored so they
+ * never leak into the page HTML or load a broken ad script.
+ */
+function sanitizeAdsenseClient(value: string | undefined): string {
+  const client = (value || "").trim();
+  return /^ca-pub-\d{16}$/.test(client) ? client : "";
+}
+
+/** Site-wide config used for metadata, sitemap, and JSON-LD */
+export const SITE_CONFIG = {
+  name: "Convaudit",
+  title: "Images, PDFs and YouTube Creator Tools",
+  description:
+    "Free tools for images, PDFs and YouTube creator tasks. Processing and data sharing vary by tool; see each tool's privacy badge.",
+  url: "https://convaudit.com",
+  adsenseClient: sanitizeAdsenseClient(process.env.NEXT_PUBLIC_ADSENSE_CLIENT),
+  analyticsProvider:
+    "Plausible, Google Analytics 4, Vercel Analytics, and Vercel Speed Insights",
+  analyticsMeasurementId: "G-MDR2NP5CJ3",
+};
+
+export function getToolBySlug(slug: string): Tool | undefined {
+  if (slug === "pdf-to-text") {
+    return TOOLS.find((tool) => tool.slug === "pdf-to-word");
+  }
+  return TOOLS.find((t) => t.slug === slug);
+}
+
+
+========================================
+FILE: src/lib/tool-content.ts
+========================================
+
+/**
+ * Unique long-form SEO content for each tool page.
+ *
+ * Each entry is markdown that renders as a short blog post on the tool page.
+ * This gives every tool page unique, keyword-rich content that search
+ * engines can index â€” improving ranking for long-tail queries.
+ *
+ * Content guidelines:
+ *  - 200-400 words per tool
+ *  - Includes H2 headings (## ...)
+ *  - Mentions the tool name and primary keywords naturally
+ *  - Links to related tools using relative paths
+ *  - Avoids duplicate content across tools
+ */
+
+import { CPM_RANGES, CREATOR_SHARE, lastReviewed } from "./youtube-earnings";
+
+const cpmRangeCopy = Object.entries(CPM_RANGES)
+  .map(([niche, range]) => `- **${niche}**: $${range.low}-${range.high} CPM`)
+  .join("\n");
+
+export const TOOL_CONTENT: Record<string, string> = {
+  "compress-image": `## Why compress images before uploading?
+
+Every image you upload to a website, attach to an email, or share on social media travels across networks and sits in storage. Large images slow down page loads, eat into mobile data plans, and eat cloud storage. Compressing images before they leave your device is the single most effective way to reduce their footprint without sacrificing the visual quality your viewers expect.
+
+Our [Compress Image tool](/tools/compress-image) uses the Canvas API and the \`browser-image-compression\` library in your browser. The selected photo files are not sent to our server for compression.
+
+## How does browser-based compression work?
+
+When you drop an image into the tool, your browser decodes it into a pixel buffer, re-encodes it at the quality level you choose (1-100), and produces a smaller Blob you can download. Because no server roundtrip is involved, compression happens at the speed of your device's CPU â€” typically under a second for images under 10 MB.
+
+For batch compression, the tool processes each file sequentially and updates a progress bar so you always know how far along it is.
+
+## What are the best practices for image compression?
+
+- **Start at quality 75** â€” visually identical to most viewers, cuts file size by 60-80%
+- **Use PNG for screenshots** with text â€” JPG artifacts make text look fuzzy
+- **Use JPG or WebP for photos** â€” much smaller than PNG at equivalent quality
+- **Avoid re-compressing** already-compressed images â€” quality degrades with each pass
+
+If you need an even smaller format, convert your compressed JPG to [WebP](/tools/jpg-to-webp) for an additional 25-35% reduction.`,
+
+  "heic-to-jpg": `## Why convert HEIC to JPG?
+
+Apple adopted HEIC as the default photo format on iPhones starting with iOS 11 in 2017. HEIC files are roughly half the size of equivalent JPGs, which is great for storage â€” but they break the moment they leave the Apple ecosystem. Windows PCs, most web upload forms, email clients, and older software simply don't know what to do with a \`.heic\` file.
+
+That's where our [HEIC to JPG converter](/tools/heic-to-jpg) comes in. It uses the \`heic2any\` library, which wraps libheif compiled to WebAssembly, to decode HEIC files in your browser. The selected HEIC files are not sent to our server for conversion.
+
+Having trouble opening HEIC files on Windows? [Read our troubleshooting guide](/blog/heic-windows-fix).
+
+## How does HEIC-to-JPG conversion work?
+
+When you drop a HEIC file into the tool, the WASM decoder reads the HEVC-encoded image data, decompresses it into raw pixels, and re-encodes those pixels as JPEG. You control the JPG quality (30-100) with a slider â€” lower quality means smaller files but more visible artifacts.
+
+Conversion typically takes 1-3 seconds per image depending on resolution and your device's CPU. Batch conversion is supported: drop in 20 HEIC files and download them all as JPGs.
+
+## When should you keep HEIC or convert to JPG?
+
+Keep HEIC when:
+- Photos stay on your iPhone or Mac
+- You're archiving to iCloud
+- Storage space matters more than compatibility
+
+Convert to JPG when:
+- Sharing with Android or Windows users
+- Uploading to websites that reject HEIC
+- Sending photos via email
+- Using older image editing software
+
+For web publishing, consider converting further to [WebP](/tools/jpg-to-webp) for smaller file sizes.`,
+
+  "merge-pdf": `  ## How can you combine files with a free online PDF merger?
+
+Use the [free PDF merger](/tools/merge-pdf) to combine two or more PDF files into one document in your browser. If you want to merge PDF files online for free or combine PDF documents without installing software, add your files, choose their order, and download the merged PDF. There is no charge to use the tool.
+
+The merge runs locally in your browser; the PDF file contents are not uploaded to our server for processing. The website itself needs an internet connection to load. Very large files or many PDFs may be limited by available browser memory.
+
+## How do you put the PDFs in the right order?
+
+Add the PDFs, then use the up and down controls beside each file to set the sequence. The first file supplies the opening pages, followed by each file in the displayed order. You can remove a file before merging if you change your mind.
+
+This tool combines whole files, not selected pages. To change the order of pages within a document or include only certain pages, first use [Split PDF](/tools/split-pdf) to extract the pages you need.
+
+## What should you check in a merged PDF?
+
+The tool copies pages into a new PDF without converting them to images. Do not assume that every document-level featureâ€”such as forms, bookmarks, attachments, metadata, or digital signaturesâ€”will be preserved. In particular, a source digital signature does not validate the newly merged document. Open the result and check its content and features before sharing or relying on it.
+
+Combining PDFs is useful for assembling contracts and appendices, putting a portfolio in one file, or joining document scans. For best results, make sure each source PDF opens correctly and that you have permission to combine its contents.
+
+For a reverse workflow, see [how to split a PDF](/blog/how-to-split-pdf-pages).`,
+
+  "split-pdf": `  ## How do you extract pages from a PDF?
+
+PDFs often arrive as one large file when you only need a few pages. A 200-page manual where you only want chapter 3. A scanned tax return where you only need page 4. A combined contract where you only need the signature page.
+
+Our [Split PDF tool](/tools/split-pdf) lets you extract exactly the pages you want using a simple range syntax. Type \`1-3, 5, 7-9\` and you get a new PDF containing pages 1, 2, 3, 5, 7, 8, and 9 â€” nothing more.
+
+## How does PDF page-range syntax work?
+
+The parser accepts:
+- **Ranges**: \`1-10\` extracts pages 1 through 10 (inclusive)
+- **Single pages**: \`5\` extracts just page 5
+- **Mixed**: \`1-3, 5, 7-9\` combines ranges and singles, comma-separated
+- **Whitespace**: \`1 - 3 , 5\` works too â€” spaces are ignored
+
+Each range produces one output PDF. So \`1-3, 5, 7-9\` produces three files: pages 1-3, page 5, and pages 7-9. Download them individually or as a batch.
+
+## When should you extract pages from a PDF?
+
+- **Extract a chapter** from a long manual or textbook
+- **Pull signature pages** from a multi-party contract
+- **Save specific slides** from a presentation deck
+- **Split a scan batch** into individual documents
+
+The tool uses \`pdf-lib\` in your browser; the selected PDF contents are not sent to our server for splitting. For the reverse operation, see [Merge PDF](/tools/merge-pdf). To shrink a PDF before splitting, try [Compress PDF](/tools/compress-pdf).`,
+
+  "pdf-to-word": `  ## How can you extract text from PDFs for editing?
+
+PDF is a final-format document type â€” designed for printing and viewing, not editing. But sometimes you need to edit the text inside a PDF: update a contract clause, fix a typo in a resume, or repurpose content from a white paper.
+
+Our [PDF to Text tool](/tools/pdf-to-word) extracts selectable text from a PDF using Mozilla's PDF.js library. Copy the result, download it as plain \`.txt\`, or save it as a Word-compatible \`.doc\` file you can open in Microsoft Word, Google Docs, or LibreOffice. Extraction runs in your browser.
+
+## What does PDF-to-Word conversion preserve?
+
+**Preserved:**
+- All selectable text in the PDF
+- Paragraph breaks (roughly)
+- Reading order (top-to-bottom, left-to-right)
+
+**Not preserved:**
+- Embedded images (logos, photos, charts)
+- Complex table layouts
+- Custom fonts and styling
+- Hyperlinks
+- Form fields
+
+This tool prioritizes text extraction over visual fidelity: original page layout, images, complex tables, and custom formatting are not preserved.
+
+## What should you know about scanned PDFs?
+
+If your PDF was created by scanning paper documents, it contains images of text â€” not actual text characters. The extractor can't read text from images. You'd need an OCR tool (like Tesseract) to convert the scanned images back to editable text.
+
+For original digital PDFs (exported from Word, Google Docs, InDesign), the extractor works great. Combine the result with our [Compress Image tool](/tools/compress-image) if you need to embed extracted images later.`,
+
+  "image-to-pdf": `## Turning images into a single PDF
+
+There are plenty of reasons to convert images into a PDF: assembling a photo album, creating a portfolio, packaging scanned receipts for an expense report, or sending multiple images as a single attachment.
+
+Our [Image to PDF tool](/tools/image-to-pdf) accepts JPG, PNG, and WebP images and combines them into one PDF. You can reorder images by dragging, choose the page size (A4, US Letter, or fit-to-image), and download the result. Everything happens in your browser via the \`pdf-lib\` library.
+
+## How do you choose the right PDF page size?
+
+- **A4 (210Ã—297mm)** â€” international standard, best for documents meant to be printed in Europe/Asia
+- **US Letter (8.5Ã—11in)** â€” North American standard, best for documents meant to be printed in the US/Canada
+- **Fit to image** â€” each page is exactly the size of its image, no margins. Best for digital-only viewing.
+
+Images are centered on the page and scaled to fit while preserving aspect ratio. White space fills the rest of the page.
+
+## How can you get the best image-to-PDF results?
+
+- **Order matters**: drag images into the order you want pages to appear
+- **Use consistent orientation**: mixing portrait and landscape images in the same PDF works but looks jarring
+- **Compress first**: if your images are large, run them through [Compress Image](/tools/compress-image) first to keep the PDF manageable
+- **Convert HEIC first**: if your images are in HEIC format, use [HEIC to JPG](/tools/heic-to-jpg) before this tool
+
+For the reverse â€” extracting images from a PDF â€” use [PDF to Image](/tools/pdf-to-image); for text, try [PDF to Text](/tools/pdf-to-word).`,
+
+  "compress-pdf": `## Shrinking oversized PDF files
+
+PDFs have a habit of growing large. Image-heavy reports, scanned documents, and embedded fonts can balloon a 200 KB file into 20 MB â€” too big for email attachments, too slow for website downloads, and too costly for cloud storage.
+
+Our [Compress PDF tool](/tools/compress-pdf) reduces PDF file size by rasterizing each page to a JPEG image at a quality level you choose, then reassembling those images into a new PDF. The output text is no longer selectable or searchable. It uses \`pdfjs-dist\` (Mozilla's PDF.js) and \`pdf-lib\` together, all in your browser.
+
+## What do the three PDF compression quality levels mean?
+
+- **Low (smallest file)**: renders pages at 1.5Ã— scale with JPEG quality 0.45. Best for screen-only viewing. Text may look slightly soft.
+- **Medium (recommended)**: 1.5Ã— scale, JPEG quality 0.65. Good balance of size and readability. Most documents look fine.
+- **High (best quality)**: 1.5Ã— scale, JPEG quality 0.82. Largest output but clearest text. Use for archival copies.
+
+Typical compression ratios: 60-85% smaller for image-heavy PDFs, 30-50% for text-heavy PDFs.
+
+## What do you trade for a smaller PDF?
+
+After compression, **text is no longer searchable or selectable** â€” it's part of the rasterized image. Use this tool for archival copies or sharing, not for documents you need to search inside. Keep your original PDF for that.
+
+## When should you use another PDF tool?
+
+- For [merging](/tools/merge-pdf) multiple PDFs into one (no quality loss)
+- For [splitting](/tools/split-pdf) a PDF into smaller pieces (no quality loss)
+- For [extracting text](/tools/pdf-to-word) from a PDF (preserves searchability)
+
+Compress PDF is best when you need to shrink a single PDF for sharing or storage.`,
+
+  "webp-to-png": `## Converting WebP images to PNG
+
+WebP is Google's modern image format â€” it produces files 25-35% smaller than JPG and 60-80% smaller than PNG. Most modern browsers support it, but some older software doesn't. If you've downloaded a WebP image and need it as a PNG for compatibility, our [WebP to PNG converter](/tools/webp-to-png) is the fastest way.
+
+The tool uses your browser's Canvas API to decode the WebP and re-encode it as PNG. Transparency is fully preserved â€” if the original WebP had an alpha channel, the PNG will too.
+
+## When should you convert WebP to PNG?
+
+- **Editing in older software**: Photoshop CS6 and earlier don't support WebP natively
+- **Email attachments**: some email clients reject WebP attachments
+- **Print workflows**: many print shops expect JPG or PNG, not WebP
+- **Embedded systems**: industrial displays, kiosks, and older e-readers often only support JPG/PNG
+- **Documentation**: Word documents, PDFs, and presentations sometimes don't accept WebP inserts
+
+## When should you keep WebP instead?
+
+- **Web publishing** â€” WebP is universally supported in modern browsers and significantly smaller
+- **Mobile apps** â€” modern iOS and Android both support WebP natively
+- **Email signatures** â€” most modern email clients (Gmail, Outlook 2019+) handle WebP
+
+## PNG vs JPG: which to choose?
+
+If your image has transparency, PNG is your only option (JPG doesn't support alpha channels). If it's a photo with no transparency, [PNG to JPG](/tools/png-to-jpg) will produce a smaller file. For web use, consider [JPG to WebP](/tools/jpg-to-webp) instead â€” same visual quality, 25-35% smaller.`,
+
+  "png-to-jpg": `## Converting PNG to JPG
+
+PNG is the format of choice for screenshots, diagrams, and images with transparency â€” but it's a lossless format, which means file sizes balloon for photographs. A 5 MB JPG photo saved as PNG becomes 25 MB.
+
+Our [PNG to JPG converter](/tools/png-to-jpg) re-encodes PNG images as JPG, which uses lossy compression to achieve dramatically smaller file sizes. The tool runs entirely in your browser using the Canvas API.
+
+## How does JPG handle image transparency?
+
+JPG doesn't support transparency â€” every pixel must be a solid color. When you convert a PNG with transparent areas, the tool fills those areas with a background color you choose (white by default). This is important for:
+
+- **Logos with transparent backgrounds** â€” pick a background color that matches where you'll use them
+- **Icons and UI elements** â€” typically white or black backgrounds
+- **Stickers and clip art** â€” choose a color that complements the design
+
+## What quality trade-offs come with PNG-to-JPG conversion?
+
+JPG compression is lossy â€” some image data is discarded to achieve smaller files. The tool lets you choose quality (1-100):
+
+- **90-100**: visually identical to the PNG, modest size reduction
+- **75-85**: most users can't tell the difference, 60-80% smaller
+- **60-75**: visible artifacts in detailed areas, 80-90% smaller
+
+## When should you keep a PNG instead of converting?
+
+- **Screenshots with text** â€” JPG artifacts make text look fuzzy
+- **Images with transparency** â€” unless you can commit to a background color
+- **Images you'll edit again** â€” every JPG re-save loses quality
+
+For web publishing, consider [JPG to WebP](/tools/jpg-to-webp) for an additional size reduction over JPG.`,
+
+  "jpg-to-webp": `## Converting JPG to WebP
+
+WebP is the modern image format developed by Google. It produces files 25-35% smaller than JPG at equivalent visual quality, plus it supports transparency (which JPG doesn't) and animation (which JPG doesn't). Every major browser has supported WebP since 2020.
+
+Our [JPG to WebP converter](/tools/jpg-to-webp) re-encodes JPG images as WebP using your browser's Canvas API. The selected files are not sent to our server for conversion.
+
+## Why can WebP work well for web images?
+
+- **25-35% smaller** than JPG at the same visual quality â€” directly faster page loads
+- **Supports transparency** â€” replaces PNG for graphics with alpha channels
+- **Supports animation** â€” replaces GIF with 60-80% smaller files
+- **Universally supported** â€” Chrome, Firefox, Safari, Edge all support it
+
+For a website with 50 product images, switching from JPG to WebP can cut total page weight by 1-3 MB â€” directly improving Core Web Vitals and SEO rankings.
+
+## How should you choose WebP quality settings?
+
+The tool accepts quality 1-100 (default 85). For most photographs:
+- **80-85**: visually identical to the JPG, 25-30% smaller
+- **70-75**: minor artifacts in detailed areas, 35-40% smaller
+- **60-65**: visible artifacts, 45-50% smaller â€” use for thumbnails
+
+## When should you avoid WebP?
+
+- **Email signatures** â€” Outlook desktop doesn't support WebP
+- **Older embedded systems** â€” industrial displays, kiosks
+- **Print workflows** â€” WebP is optimized for screen, not print
+
+For the reverse conversion, see [WebP to PNG](/tools/webp-to-png). To compress JPGs without converting, use [Compress Image](/tools/compress-image).`,
+
+  // YouTube tools
+
+  "youtube-thumbnail-downloader": `## Downloading YouTube thumbnails in HD
+
+Every YouTube video has multiple thumbnail images at different resolutions â€” from the tiny 120Ã—90 default up to the full 1280Ã—720 HD version. These thumbnails are stored on Google's CDN at predictable URLs, and our [YouTube Thumbnail Downloader](/tools/youtube-thumbnail-downloader) makes it easy to grab any of them in one click.
+
+Just paste a YouTube URL (watch, youtu.be, shorts, or embed links all work), and the tool fetches the video metadata via YouTube's oEmbed API, then offers download links for every available resolution.
+
+## What can you do with downloaded thumbnails?
+
+- **Study what makes top creators' thumbnails click-worthy** â€” analyze composition, text placement, color choices
+- **Grab a still frame** from a video for use as a custom thumbnail elsewhere
+- **Save a backup** of your own video's thumbnail before YouTube's algorithm tests a different one
+- **Create tutorial content** showing thumbnail examples
+
+## Which thumbnail resolution should you choose?
+
+- **maxresdefault (1280Ã—720)** â€” the full HD thumbnail. Best for analysis and reuse. Not all videos have this â€” older uploads may cap out at SD.
+- **sddefault (640Ã—480)** â€” standard definition. Good fallback when maxres is missing.
+- **hqdefault (480Ã—360)** â€” always available, decent quality.
+- **mqdefault (320Ã—180)** and **default (120Ã—90)** â€” small thumbnails for quick reference.
+
+## What should you know about thumbnail copyright?
+
+Thumbnails are owned by the video creator. Downloading for personal research, inspiration, or commentary is generally fine. Don't republish someone else's thumbnail without permission â€” especially not commercially.
+
+Once you've studied what works, design your own with our [YouTube Thumbnail Resizer](/tools/youtube-thumbnail-resizer) and test it with the [Thumbnail Tester](/tools/youtube-thumbnail-tester).`,
+
+  "youtube-thumbnail-resizer": `## Sizing thumbnails for YouTube
+
+YouTube requires custom thumbnails to be exactly 1280Ã—720 pixels (16:9 aspect ratio), under 2 MB, in JPG, PNG, BMP, or GIF format. If your image isn't already 16:9, YouTube will crop it â€” and you won't get to choose what gets cut.
+
+Our [YouTube Thumbnail Resizer](/tools/youtube-thumbnail-resizer) puts you in control. Upload any image, drag to reposition it within the 1280Ã—720 frame, and the tool crops it precisely. The optional **safe zone overlay** shows you the central 80% where text and faces won't be clipped by YouTube's mobile UI.
+
+## Why does the thumbnail safe zone matter?
+
+YouTube's player overlays elements on top of your thumbnail:
+- **Timestamp** in the bottom-right corner
+- **Progress bar** along the bottom
+- **Duration** badge
+- **Mobile UI** can crop the edges on phones
+
+Important text, faces, and key visuals should stay inside the central 80% (the safe zone). Anything outside might be hidden.
+
+## How do you use the thumbnail resizer?
+
+1. Upload an image (JPG, PNG, or WebP â€” any dimensions)
+2. The tool auto-fits the image to cover the 1280Ã—720 frame
+3. Drag to reposition â€” the image always fills the frame
+4. Toggle the safe-zone overlay to verify your text/faces are inside
+5. Click Download to save a 1280Ã—720 PNG, ready for YouTube upload
+
+The cropping uses the Canvas API, so your image stays on your device. Once you've designed your thumbnail, [test it at different sizes](/tools/youtube-thumbnail-tester) to make sure it's legible on mobile.`,
+
+  "youtube-tags-extractor": `## Finding the tags any YouTube video uses
+
+YouTube tags are hidden from viewers â€” they're stored in the video's metadata and used by YouTube's algorithm to understand what the video is about. While YouTube has said tags play a minimal role in search ranking, they still help with disambiguation and related-video suggestions.
+
+Our [YouTube Tags Extractor](/tools/youtube-tags-extractor) sends the video URL to our server, which fetches the public YouTube page and parses its \`<meta name="keywords">\` tag. The video URL, not a video file, is sent to our server.
+
+## How can you use extracted tags?
+
+- **Competitor research**: see what tags top-ranking videos in your niche use
+- **Keyword gap analysis**: compare your tags to a competitor's to find missed opportunities
+- **Topic discovery**: tags reveal how creators categorize their content
+- **Trend spotting**: clusters of similar tags across popular videos suggest trending topics
+
+## Why do some videos have no tags?
+
+YouTube de-emphasized tags in 2023, and many creators stopped adding them. If the extractor finds no tags, the video simply doesn't have any. This isn't an error â€” it's a signal that the creator relies on title, description, and engagement for discovery instead.
+
+## Why shouldn't you copy tags without review?
+
+Blindly copying a competitor's tags won't help your videos rank. Tags work best when they accurately describe your specific content. Use the extracted tags as research to understand the topic landscape, then craft your own relevant tags.
+
+For keyword research beyond tags, try our [YouTube Title Generator](/tools/youtube-title-generator) and [YouTube Hashtag Generator](/tools/youtube-hashtag-generator).`,
+
+  "youtube-title-generator": `## Writing YouTube titles that get clicks
+
+Your video's title is the single biggest factor in click-through rate (CTR). A great title can 5x your views; a bad one can sink an otherwise excellent video. But writing titles is hard â€” you need to balance SEO keywords, curiosity, clarity, and length.
+
+Our [YouTube Title Generator](/tools/youtube-title-generator) takes your topic and produces 20 title variations using proven CTR templates: how-to, listicle, question, curiosity gap, and more. Each title includes a live character counter that turns amber past 70 characters (mobile truncation point) and red past 100 (hard limit).
+
+## How long should a YouTube title be?
+
+- **Under 70 characters**: full title visible on mobile and in search results
+- **70-100 characters**: may truncate on mobile, fully visible on desktop
+- **Over 100 characters**: hard limit â€” YouTube cuts it off
+
+Aim for 60-70 characters whenever possible. Front-load the most important words so even truncated titles make sense.
+
+## Which YouTube title patterns can you test?
+
+- **How to X** â€” clear value, searches well
+- **X Tips for Y** â€” listicle promise, easy to scan
+- **The Truth About X** â€” curiosity gap
+- **I Tried X for 30 Days** â€” personal experience
+- **X Mistakes to Avoid** â€” fear of missing out
+- **X Explained in Y Minutes** â€” time-bounded promise
+
+## Why should you avoid clickbait in a YouTube title?
+
+YouTube's algorithm now penalizes titles that promise something the video doesn't deliver. If viewers click but bounce in 10 seconds, your watch time tanks and YouTube stops recommending the video. Make sure your title accurately reflects the content.
+
+Pair your title with a great thumbnail using the [Thumbnail Resizer](/tools/youtube-thumbnail-resizer), and write a structured [description](/tools/youtube-description-generator) for SEO.`,
+
+  "youtube-description-generator": `## Writing YouTube descriptions that rank
+
+Your video's description is the second-most-important SEO field after the title. YouTube's algorithm reads it for keywords, viewers scan it for context, and the first 125 characters appear in search results.
+
+Our [YouTube Description Generator](/tools/youtube-description-generator) builds a structured description with: a hook (first 1-2 lines), timestamp chapters, an "about this video" section, social links, and hashtags. Fill in your details, copy the result, paste into YouTube Studio.
+
+## Why do the first 125 description characters matter?
+
+YouTube shows only the first 1-2 lines of your description in search results and above the "Show more" fold on mobile. Those lines need to:
+- Repeat your primary keyword naturally
+- Promise what the video delivers
+- Compel the viewer to click
+
+Don't waste those lines with "Hey guys, welcome back to my channel." Get straight to the value.
+
+## How do timestamps create video chapters?
+
+Add lines starting with a time (e.g. \`0:00 Intro\`, \`1:23 Main Topic\`) and YouTube automatically creates chapter markers in the video player. Chapters:
+- Improve viewer retention (people can jump to what they want)
+- Show up in Google search results as video segments
+- Make your video more accessible
+
+## How long should a description be?
+
+YouTube allows up to 5,000 characters. Aim for at least 250 â€” enough to include a summary, timestamps, links, and relevant keywords. Don't stuff keywords unnaturally; write for humans first.
+
+For maximum SEO, pair your description with optimized [hashtags](/tools/youtube-hashtag-generator) and a compelling [title](/tools/youtube-title-generator).`,
+
+  "youtube-hashtag-generator": `## Using hashtags on YouTube
+
+Hashtags on YouTube help the algorithm group your video with related content and surface it in the "Hashtag" pages. When you add hashtags to your description, the first three appear above your title on mobile â€” making them visible at a glance.
+
+Our [YouTube Hashtag Generator](/tools/youtube-hashtag-generator) takes your topic or niche and produces a mix of broad, niche, and long-tail hashtags. Click to copy individual tags, or copy the top 10 at once.
+
+## How many hashtags should you use?
+
+YouTube allows up to 60 hashtags per description, but more than 15 can be flagged as spam. Best practice:
+
+- **5-10 highly relevant hashtags** â€” sweet spot for most videos
+- **First 3 matter most** â€” these appear above the title on mobile
+- **Mix broad and specific** â€” \`#personal finance\` (broad) + \`#investingforbeginners\` (specific)
+
+## What are good practices for YouTube hashtags?
+
+- **Be specific**: \`#personalfinance\` is too broad to surface your video; \`#investingforbeginners\` has less competition
+- **Use trending tags when relevant**: \`#2025\`, \`#shorts\` if they actually fit
+- **Avoid spammy repetition**: don't repeat the same tag with slight variations
+- **Match the video**: tags that don't reflect content hurt retention
+
+## How do hashtags differ from video tags?
+
+YouTube tags (hidden metadata) and hashtags (visible in description) are different systems with different roles. Tags help with disambiguation; hashtags help with grouping. Use both â€” extract competitor tags with our [Tags Extractor](/tools/youtube-tags-extractor).`,
+
+  "youtube-money-calculator": `## How much do YouTubers actually make?
+
+YouTube earnings vary by niche, audience geography, and ad format. Our [YouTube Money Calculator](/tools/youtube-money-calculator) estimates ad revenue from monthly views and CPM (cost per mille) ranges.
+
+## How does YouTube ad revenue work?
+
+Advertisers pay YouTube per 1,000 ad impressions (CPM). For this estimate, creators receive ${CREATOR_SHARE * 100}% of the CPM as RPM (revenue per mille). Actual CPMs depend on:
+
+- **Niche**: finance and tech attract premium advertisers; entertainment and music pay less
+- **Audience geography**: viewers in the US/UK/Canada generate higher CPMs than viewers in lower-GDP countries
+- **Watch time**: longer videos serve more ads
+- **Ad format**: skippable video ads pay more than display ads
+
+## How do CPM ranges vary by niche?
+
+${cpmRangeCopy}
+
+These are estimates, not guarantees. Actual earnings depend on audience geography, watch time, ad format, and season. CPM ranges last reviewed ${lastReviewed}.
+
+## What does this calculator leave out?
+
+- **Sponsorships**: often 2-5x ad revenue for mid-sized channels
+- **Channel memberships**: recurring monthly revenue
+- **Super Chat & Super Thanks**: viewer tips during streams
+- **Merchandise**: physical product sales
+- **Affiliate links**: commissions on recommended products
+
+For serious income estimation, add these on top of the ad revenue estimate. Then write better [titles](/tools/youtube-title-generator) and [descriptions](/tools/youtube-description-generator) to grow your views.`,
+
+  "youtube-thumbnail-tester": `## Why you need to test thumbnails at small sizes
+
+Over 70% of YouTube watch time happens on mobile. On a phone, your thumbnail is rendered at roughly 210Ã—118 pixels â€” smaller than a postage stamp. If your text isn't legible and your face isn't recognizable at that size, viewers will scroll past.
+
+Our [YouTube Thumbnail Tester](/tools/youtube-thumbnail-tester) shows your thumbnail at the actual pixel sizes YouTube uses across devices: mobile feed (210Ã—118), desktop search (246Ã—138), sidebar suggestion (168Ã—94), notification (120Ã—68), and TV (1280Ã—720).
+
+## How do you use the thumbnail tester?
+
+1. **Upload your thumbnail** (any image format) OR paste a YouTube URL to load an existing video's thumbnail
+2. **Scroll through the preview cards** showing each display size
+3. **Verify text is legible** at the smallest sizes (120Ã—68 notification is the toughest test)
+4. **Check face visibility** â€” faces should be recognizable at 168Ã—94
+5. **Redesign if needed** â€” make text bigger, simplify the composition, increase contrast
+
+## Why should you design for the smallest thumbnail size first?
+
+A common mistake is designing a thumbnail at full 1280Ã—720 size and assuming it'll look good everywhere. It won't. Design for the smallest size first â€” if it works at 120 pixels, it'll work everywhere.
+
+Tips for small-size legibility:
+- **Limit text to 3-5 words** â€” long sentences become illegible
+- **Use high contrast** â€” white text on dark background or vice versa
+- **Make faces large** â€” at least 30% of the frame
+- **Avoid thin fonts** â€” they disappear at small sizes
+
+Once your thumbnail passes the test, [resize it to 1280Ã—720](/tools/youtube-thumbnail-resizer) and upload it to YouTube.`,
+
+  "youtube-channel-id-finder": `## Finding a YouTube channel ID
+
+Every YouTube channel has a unique 24-character identifier starting with "UC" (e.g. \`UCxxxxxxxxxxxxxxxxxxxxxx\`). This ID is what the YouTube Data API, RSS feeds, and third-party analytics tools use to reference the channel.
+
+Finding the channel ID used to require digging through page source. Our [YouTube Channel ID Finder](/tools/youtube-channel-id-finder) resolves it automatically from any YouTube URL â€” video, channel link, or @handle â€” using the public oEmbed API. No API key required.
+
+## How can you find a YouTube channel ID?
+
+1. **From a video URL** (most reliable): paste a video URL from the channel. The browser sends that URL to YouTube's oEmbed API, then extracts the channel ID from the author URL.
+2. **From a /channel/ URL**: paste a URL like \`youtube.com/channel/UCxxxx\` and we extract the ID directly.
+3. **From a @handle URL**: paste \`youtube.com/@name\`; the browser sends the channel URL to the AllOrigins proxy to fetch the channel page and extract the ID from its metadata.
+
+## What are YouTube channel IDs used for?
+
+- **YouTube Data API v3**: every API request requires the channel ID
+- **RSS feeds**: \`https://www.youtube.com/feeds/videos.xml?channel_id=UCxxxx\` gives you the channel's latest videos as RSS
+- **Analytics tools**: SocialBlade, Noxinfluencer, and similar tools use the channel ID
+- **Embedding**: some embed widgets require the channel ID rather than the URL
+
+## Why are video URLs the most reliable way to find a channel ID?
+
+YouTube's @handle system is relatively new (2022), and the mapping from handle to channel ID isn't always exposed cleanly. Video URLs, on the other hand, always include the channel ID via the oEmbed API â€” which has been stable for over a decade.
+
+Once you have the channel ID, estimate the channel's earnings with our [YouTube Money Calculator](/tools/youtube-money-calculator).`,
+
+  "youtube-timestamp-link-generator": `## Sharing YouTube videos at specific timestamps
+
+Ever wanted to share a YouTube video but skip the 3-minute intro? Or link directly to the moment in a podcast where someone says something interesting? YouTube supports timestamp links â€” URLs that automatically start the video at a specific time.
+
+Our [YouTube Timestamp Link Generator](/tools/youtube-timestamp-link-generator) takes a YouTube URL and one or more timestamps, then generates shareable deep links in the format \`youtu.be/VIDEO_ID?t=SECONDS\`.
+
+## How do YouTube timestamp links work?
+
+YouTube's URL parameter \`?t=\` accepts seconds (not minutes:seconds). The link \`https://youtu.be/dQw4w9WgXcQ?t=43\` starts the video at 43 seconds. When a viewer clicks the link:
+- **Desktop browser**: opens YouTube at the timestamp
+- **Mobile browser**: opens YouTube at the timestamp
+- **YouTube app**: opens the app and starts at the timestamp
+
+## Which timestamp formats does the generator accept?
+
+The generator accepts:
+- **Pure seconds**: \`90\` â†’ 1:30
+- **Minutes:seconds**: \`1:30\` â†’ 90 seconds
+- **Hours:minutes:seconds**: \`1:02:03\` â†’ 3,723 seconds
+
+It converts all formats to seconds automatically for the URL parameter, but displays the human-readable timestamp next to each link.
+
+## When should you share a timestamp link?
+
+- **Share the best moment** from a long podcast without making viewers scrub
+- **Create a table of contents** for a tutorial video â€” generate links for each chapter
+- **Cite a specific quote** in a research document
+- **Link to a specific play** in a sports highlight video
+
+You can also create timestamp chapters inside your own video description with our [Description Generator](/tools/youtube-description-generator).`,
+};
+
+/**
+ * Get the markdown content for a tool by slug.
+ * Returns undefined if no content exists for the slug.
+ */
+export function getToolContent(slug: string): string | undefined {
+  return TOOL_CONTENT[slug];
+}
+
+
+========================================
+FILE: src/lib/file-validation.ts
+========================================
+
+export const FILE_SIZE_GUIDANCE =
+  "No fixed size limit. Very large files may be constrained by your device's available memory.";
+
+function matchesAcceptedType(file: File, accept: string): boolean {
+  const acceptedTypes = accept
+    .split(",")
+    .map((type) => type.trim().toLowerCase())
+    .filter(Boolean);
+
+  return acceptedTypes.some((type) => {
+    if (type.startsWith(".")) {
+      return file.name.toLowerCase().endsWith(type);
+    }
+    if (type.endsWith("/*")) {
+      return file.type.toLowerCase().startsWith(type.slice(0, -1));
+    }
+    return file.type.toLowerCase() === type;
+  });
+}
+
+export function validateToolFile(file: File, accept: string): string | null {
+  if (!matchesAcceptedType(file, accept)) {
+    return `${file.name} is not a supported file type. Choose a supported file.`;
+  }
+  return null;
+}
+
+export function throwIfCancelled(signal: AbortSignal): void {
+  if (signal.aborted) {
+    throw new DOMException("Operation cancelled.", "AbortError");
+  }
+}
+
+
+========================================
+FILE: src/lib/download.ts
+========================================
+
+"use client";
+
+import { saveAs } from "file-saver";
+
+/**
+ * Trigger a browser download for a single Blob using file-saver.
+ */
+export function downloadBlob(blob: Blob, filename: string) {
+  saveAs(blob, filename);
+}
+
+/**
+ * Trigger a download for raw bytes by wrapping them in a Blob.
+ */
+export function downloadBytes(bytes: Uint8Array, filename: string, mime: string) {
+  // Copy into a fresh ArrayBuffer so file-saver's typing is happy.
+  const ab = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(ab).set(bytes);
+  downloadBlob(new Blob([ab], { type: mime }), filename);
+}
+
+/**
+ * Copy text to the clipboard.
+ *
+ * navigator.clipboard.writeText() only exists in secure contexts
+ * (HTTPS or localhost) and can reject when permission is denied.
+ * Every copy button in the app called it bare â€” on plain HTTP
+ * (or with clipboard permission blocked) the click handler threw
+ * "Cannot read properties of undefined" and the "Copied!" UI
+ * showed even though nothing was copied. This helper falls back
+ * to the legacy execCommand path and returns success/failure.
+ */
+export async function copyText(text: string): Promise<boolean> {
+  try {
+    if (
+      typeof navigator !== "undefined" &&
+      navigator.clipboard &&
+      typeof navigator.clipboard.writeText === "function"
+    ) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // fall through to legacy path
+  }
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.cssText = "position:fixed;opacity:0;pointer-events:none;";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Generate a short unique id (good enough for client-side lists).
+ */
+export function shortId(): string {
+  return Math.random().toString(36).slice(2, 10);
+}
+
+/**
+ * Format bytes into a human-readable string.
+ */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+
+========================================
+FILE: src/lib/calculators.ts
+========================================
+
+export type CalculatorFaq = {
+  q: string;
+  a: string;
+};
+
+export type EngagementRateFaq = CalculatorFaq;
+
+export type EngagementRateBenchmark = {
+  platform: string;
+  minimum: number;
+  maximum: number;
+};
+
+export const ENGAGEMENT_RATE_CALCULATOR = {
+  slug: "engagement-rate-calculator",
+  name: "Engagement Rate Calculator",
+  title: "Engagement Rate Calculator: Calculate Social Engagement",
+  description:
+    "Calculate engagement rate from followers, likes, comments, and shares, then compare it with broad Instagram, TikTok, and YouTube benchmarks.",
+};
+
+export const ENGAGEMENT_RATE_BENCHMARKS: EngagementRateBenchmark[] = [
+  { platform: "Instagram", minimum: 1, maximum: 3 },
+  { platform: "TikTok", minimum: 3, maximum: 6 },
+  { platform: "YouTube", minimum: 2, maximum: 5 },
+];
+
+export function calculateEngagementRate(
+  followers: number,
+  likes: number,
+  comments: number,
+  shares: number,
+) {
+  const interactions = likes + comments + shares;
+  return followers > 0 ? (interactions / followers) * 100 : 0;
+}
+
+export function calculateTikTokEarnings(views: number, rpm: number) {
+  return (views / 1000) * rpm;
+}
+
+export const ENGAGEMENT_RATE_FAQS: EngagementRateFaq[] = [
+  {
+    q: "How do you calculate engagement rate?",
+    a: "Add the likes, comments, and shares on a post, divide their total by your follower count, and multiply by 100. This calculator uses that follower-based formula.",
+  },
+  {
+    q: "What is a good engagement rate?",
+    a: "A good rate depends on the platform, audience size, content format, and how engagement is measured. The ranges shown here are broad reference points, not official platform standards or guarantees.",
+  },
+  {
+    q: "Can I use this calculator for any social platform?",
+    a: "Yes. Enter the relevant follower or subscriber count and the post's likes, comments, and shares. The formula works across platforms, although their typical benchmarks and measurement methods may differ.",
+  },
+];
+
+export type CalculatorContent = {
+  slug: string;
+  name: string;
+  title: string;
+  description: string;
+  directAnswer: string;
+  definitionTitle: string;
+  definition: string;
+  formula: string;
+  faqs: CalculatorFaq[];
+};
+
+export const TIKTOK_MONEY_CALCULATOR: CalculatorContent = {
+  slug: "tiktok-money-calculator",
+  name: "TikTok Money Calculator",
+  title: "TikTok Money Calculator: Estimate Creator Earnings",
+  description:
+    "Estimate TikTok creator earnings from monthly video views and RPM with a free, private calculator.",
+  directAnswer:
+    "The TikTok Money Calculator estimates potential creator earnings by multiplying monthly video views by your estimated revenue per 1,000 views (RPM). Enter both numbers for an instant estimate. It is free because calculations run in your browser, with no account, payment, or data upload required; actual TikTok payouts can differ.",
+  definitionTitle: "What is TikTok creator revenue?",
+  definition:
+    "TikTok creator revenue is money earned through eligible platform monetization, sponsorships, and other creator programs. This calculator estimates view-based revenue only; it does not fetch private account data or guarantee a payout. RPM is the estimated amount earned per 1,000 views, and it can vary with eligibility, audience, region, and program terms.",
+  formula:
+    "Estimated earnings = (Monthly views Ã· 1,000) Ã— estimated RPM",
+  faqs: [
+    {
+      q: "How does the TikTok Money Calculator estimate earnings?",
+      a: "It divides your monthly video views by 1,000 and multiplies that figure by the RPM you enter. RPM means estimated revenue per thousand views. The result is a planning estimate, not a report of actual TikTok payments, and it does not include sponsorships, gifts, subscriptions, or other income unless you account for them separately.",
+    },
+    {
+      q: "What RPM should I enter for TikTok?",
+      a: "Enter a revenue-per-thousand-views figure that reflects your own eligible account and the monetization program you want to estimate. There is no single RPM that applies to every creator: audience location, qualified views, content, and program rules can affect results. If you do not know your RPM, try a few values to compare scenarios.",
+    },
+    {
+      q: "Does this calculator show guaranteed TikTok payouts?",
+      a: "No. This is an independent estimate based only on the views and RPM you provide. TikTok eligibility requirements, qualified-view definitions, program availability, and payment rules can change, so the result may not match your earnings dashboard. Check TikTokâ€™s current terms and your account analytics before making financial or business decisions.",
+    },
+  ],
+};
+
+export const INFLUENCER_RATE_CALCULATOR: CalculatorContent = {
+  slug: "influencer-rate-calculator",
+  name: "Influencer Sponsorship Rate Calculator",
+  title: "Influencer Sponsorship Rate Calculator: Estimate Brand Pricing",
+  description:
+    "Build a starting sponsorship quote from average views, CPM, and deliverablesâ€”free and private.",
+  directAnswer:
+    "The Influencer Sponsorship Rate Calculator estimates a starting brand quote from average post views, a target cost per thousand views (CPM), and the number of deliverables. Enter your campaign assumptions to see an instant estimate. The tool is free and runs in your browser; the result is a negotiation starting point, not a fixed market rate.",
+  definitionTitle: "What is an influencer sponsorship rate?",
+  definition:
+    "An influencer sponsorship rate is the fee a creator charges for agreed promotional work. Pricing can reflect expected views, audience fit, engagement, production, usage rights, exclusivity, and turnaround time. This calculator uses an adjustable CPM-based estimate and deliverable count, so creators and brands can model a starting price before negotiating the full campaign scope.",
+  formula:
+    "Estimated sponsorship rate = (Average views Ã· 1,000) Ã— target CPM Ã— deliverables",
+  faqs: [
+    {
+      q: "How does the sponsorship rate estimate work?",
+      a: "The calculator converts average post views into groups of 1,000, multiplies by your chosen CPM, and scales the amount by the number of deliverables. CPM is your chosen target price per thousand expected views. The estimate is a simple planning baseline and does not automatically price production, usage rights, exclusivity, or other contract terms.",
+    },
+    {
+      q: "What CPM should I use when setting an influencer rate?",
+      a: "Choose a CPM that reflects your audience, content format, campaign goals, niche, and past performance. Sponsorship pricing has no universal standard, and actual rates can vary substantially. If you are unsure, use several CPM assumptions to create a low, expected, and high quote, then compare them with your costs and the value offered to the brand.",
+    },
+    {
+      q: "Does the result include usage rights or exclusivity?",
+      a: "No. The estimate only multiplies average views, your selected CPM, and deliverable quantity. Paid usage, whitelisting, category exclusivity, revisions, rush production, and licensing can all require separate fees. Define those items in the campaign agreement and adjust your final quote rather than treating this calculatorâ€™s result as a complete contract price.",
+    },
+  ],
+};
+
+export const ROAS_CALCULATOR: CalculatorContent = {
+  slug: "roas-calculator",
+  name: "ROAS Calculator",
+  title: "ROAS Calculator: Measure Return on Ad Spend",
+  description:
+    "Calculate return on ad spend instantly from ad-attributed revenue and campaign costs.",
+  directAnswer:
+    "The ROAS Calculator measures how much revenue your advertising generates for each unit of ad spend. Enter the revenue attributed to your ads and the campaignâ€™s advertising cost to get the return-on-ad-spend ratio instantly. It is free to use because the calculation runs in your browser and does not require an account or data upload.",
+  definitionTitle: "What is a good ROAS?",
+  definition:
+    "Return on ad spend (ROAS) is attributed revenue divided by advertising cost, commonly expressed as a ratio such as 4:1 or 4x. A â€œgoodâ€ ROAS depends on margins, operating costs, attribution quality, and business goals. ROAS measures revenue efficiency, not profit, and should be interpreted alongside contribution margin and other campaign results.",
+  formula: "ROAS = Ad-attributed revenue Ã· advertising spend",
+  faqs: [
+    {
+      q: "How do you calculate ROAS?",
+      a: "Divide the revenue attributed to an advertising campaign by the amount spent on that advertising. For example, $4,000 in attributed revenue from $1,000 in ad spend is a 4x ROAS. Use revenue and spend from the same campaign, currency, and reporting period for a meaningful comparison.",
+    },
+    {
+      q: "What is considered a good ROAS?",
+      a: "There is no universal good ROAS target. A campaignâ€™s break-even point depends on gross margin, product costs, fulfillment, discounts, platform fees, and other operating expenses. A high revenue-to-spend ratio can still lose money if margins are low. Set a target from your economics and compare campaigns using consistent attribution.",
+    },
+    {
+      q: "Is ROAS the same as advertising profit?",
+      a: "No. ROAS compares attributed revenue with ad spend, but it does not subtract the cost of goods, shipping, agency fees, taxes, or other expenses. Profit measures what remains after relevant costs. Use ROAS to assess advertising efficiency, and pair it with margin or profit analysis to judge overall business performance.",
+    },
+  ],
+};
+
+export const FOLLOWER_GROWTH_CALCULATOR: CalculatorContent = {
+  slug: "follower-growth-calculator",
+  name: "Follower Growth Rate Calculator",
+  title: "Follower Growth Rate Calculator: Track Audience Growth",
+  description:
+    "Measure follower growth or decline between two counts with a quick, free percentage calculator.",
+  directAnswer:
+    "The Follower Growth Rate Calculator shows the percentage change between a starting and ending follower count. Enter both counts to see net followers gained or lost and the growth rate instantly. It is free because the calculation happens in your browser without an account, tracking connection, or upload of your audience data.",
+  definitionTitle: "What is follower growth rate?",
+  definition:
+    "Follower growth rate is the percentage increase or decrease in an accountâ€™s follower count over a selected period. It compares the net change with the starting audience, which makes growth easier to compare across account sizes. The rate alone does not explain why followers changed or whether new followers are active and relevant.",
+  formula:
+    "Follower growth rate (%) = ((Ending followers âˆ’ Starting followers) Ã· Starting followers) Ã— 100",
+  faqs: [
+    {
+      q: "How do you calculate follower growth rate?",
+      a: "Subtract the starting follower count from the ending count, divide the difference by the starting count, and multiply by 100. A positive result means the account gained followers; a negative result means it lost followers. The starting count must be greater than zero because percentage change cannot be calculated from a zero baseline.",
+    },
+    {
+      q: "What is a good follower growth rate?",
+      a: "A useful growth rate depends on the platform, time period, account size, posting strategy, and audience quality. There is no universal target that applies to every creator or brand. Compare your rate with your own previous periods using the same measurement window, and consider reach, engagement, and relevant audience growth alongside the percentage.",
+    },
+    {
+      q: "Can follower growth rate be negative?",
+      a: "Yes. If the ending follower count is lower than the starting count, the formula returns a negative percentage that represents audience decline. This can happen because people unfollow, inactive accounts are removed, or a platform updates its counts. Review the same time period and data source before drawing conclusions about performance.",
+    },
+  ],
+};
+
+
+========================================
+FILE: src/lib/youtube.ts
+========================================
+
+/**
+ * Shared utilities for YouTube creator tools.
+ *
+ * Browser-safe helpers for YouTube creator tools. Metadata and thumbnail
+ * helpers make direct requests to YouTube; tag extraction is handled by the
+ * same-origin API route so its network access can be constrained.
+ */
+
+/** Result from the YouTube oEmbed endpoint. */
+export type YouTubeOEmbed = {
+  title: string;
+  author_name: string;
+  author_url: string;
+  type: string;
+  provider_name: string;
+  provider_url: string;
+  thumbnail_url: string;
+  thumbnail_width: number;
+  thumbnail_height: number;
+  html: string;
+  width: number;
+  height: number;
+  version: string;
+};
+
+/** All standard YouTube thumbnail resolutions for a given video ID. */
+export type ThumbnailSet = {
+  maxres: string; // 1280Ã—720 (may not exist for older videos)
+  sd: string; // 640Ã—480
+  hq: string; // 480Ã—360
+  mq: string; // 320Ã—180
+  default: string; // 120Ã—90
+};
+
+/**
+ * Ordered fallback chain, best â†’ worst. maxres 404s on older/low-res
+ * videos, so callers should walk this list instead of assuming
+ * maxres exists.
+ */
+export const THUMBNAIL_FALLBACK_ORDER: (keyof ThumbnailSet)[] = [
+  "maxres",
+  "sd",
+  "hq",
+  "mq",
+  "default",
+];
+
+/**
+ * Extract the 11-character video ID from any common YouTube URL format:
+ *  - https://www.youtube.com/watch?v=VIDEO_ID
+ *  - https://youtu.be/VIDEO_ID
+ *  - https://www.youtube.com/embed/VIDEO_ID
+ *  - https://www.youtube.com/shorts/VIDEO_ID
+ *  - https://www.youtube.com/live/VIDEO_ID
+ * Returns null if no valid ID is found.
+ */
+export function extractVideoId(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) return trimmed;
+
+  try {
+    const url = new URL(trimmed);
+    if (
+      url.protocol !== "https:" ||
+      url.username ||
+      url.password ||
+      url.port ||
+      !["youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"].includes(
+        url.hostname.toLowerCase(),
+      )
+    ) {
+      return null;
+    }
+
+    const match =
+      url.hostname.toLowerCase() === "youtu.be"
+        ? url.pathname.match(/^\/([A-Za-z0-9_-]{11})\/?$/)
+        : url.pathname === "/watch"
+          ? [null, url.searchParams.get("v") ?? ""]
+          : url.pathname.match(/^\/(?:embed|shorts|live)\/([A-Za-z0-9_-]{11})\/?$/);
+    const id = match?.[1] ?? null;
+    return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Build all standard thumbnail URLs for a video ID.
+ * maxresdefault may return a 404 for older videos â€” callers should handle
+ * image load errors and fall back to sd/hq.
+ */
+export function getThumbnailUrls(videoId: string): ThumbnailSet {
+  const base = `https://img.youtube.com/vi/${videoId}`;
+  return {
+    maxres: `${base}/maxresdefault.jpg`,
+    sd: `${base}/sddefault.jpg`,
+    hq: `${base}/hqdefault.jpg`,
+    mq: `${base}/mqdefault.jpg`,
+    default: `${base}/default.jpg`,
+  };
+}
+
+/**
+ * Fetch oEmbed metadata for a YouTube video URL.
+ * The oEmbed endpoint supports CORS and requires no API key.
+ * Throws on network error or non-OK response.
+ */
+export async function fetchOEmbed(
+  videoUrl: string,
+  signal?: AbortSignal
+): Promise<YouTubeOEmbed> {
+  const endpoint = `https://www.youtube.com/oembed?url=${encodeURIComponent(
+    videoUrl
+  )}&format=json`;
+  const res = await fetch(endpoint, { signal });
+  if (!res.ok) {
+    throw new Error(
+      res.status === 404
+        ? "Video not found. Check the URL and try again."
+        : `Failed to fetch video metadata (HTTP ${res.status}).`
+    );
+  }
+  return (await res.json()) as YouTubeOEmbed;
+}
+
+/**
+ * Parse a timestamp string ("1:23", "01:23:45", "83") into seconds.
+ * Returns -1 for invalid input so callers can distinguish "0:00"
+ * (valid) from garbage (invalid). Previously every invalid string
+ * returned 0, so "abc" silently generated a link to the start of
+ * the video.
+ */
+export function parseTimestampToSeconds(input: string): number {
+  const trimmed = input.trim();
+  if (!trimmed) return -1;
+
+  // Pure number â†’ seconds
+  if (/^\d+$/.test(trimmed)) return parseInt(trimmed, 10);
+
+  const parts = trimmed.split(":").map((p) => p.trim());
+  if (parts.some((p) => !/^\d+$/.test(p))) return -1;
+
+  if (parts.length === 2) {
+    // MM:SS
+    return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+  }
+  if (parts.length === 3) {
+    // HH:MM:SS
+    return (
+      parseInt(parts[0], 10) * 3600 +
+      parseInt(parts[1], 10) * 60 +
+      parseInt(parts[2], 10)
+    );
+  }
+  return -1;
+}
+
+/**
+ * Format seconds as a human-readable timestamp.
+ * 83 â†’ "1:23", 3661 â†’ "1:01:01"
+ */
+export function formatSecondsToTimestamp(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) {
+    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+/**
+ * Build a shareable YouTube timestamp link.
+ * https://youtu.be/VIDEO_ID?t=SECONDS
+ */
+export function buildTimestampLink(videoId: string, seconds: number): string {
+  return `https://youtu.be/${videoId}?t=${seconds}`;
+}
+
+/**
+ * Extract a channel ID (UC...) from a YouTube channel URL.
+ * Returns null if the URL doesn't contain a channel ID.
+ */
+export function extractChannelId(url: string): string | null {
+  const match = url.match(/\/channel\/(UC[a-zA-Z0-9_-]{22})/);
+  return match ? match[1] : null;
+}
+
+/**
+ * Format a USD amount for display.
+ */
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+/**
+ * Format a large number (e.g. 1.5M views).
+ */
+export function formatLargeNumber(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return n.toString();
+}
+
+
+========================================
+FILE: src/lib/youtube-earnings.ts
+========================================
+
+export const CREATOR_SHARE = 0.55;
+
+// TODO_OWNER: Verify CREATOR_SHARE against the YouTube Help Center:
+// https://support.google.com/youtube/answer/72902?hl=en
+export const CPM_RANGES = {
+  "Finance / Investing": { low: 15, high: 35 },
+  "Tech / Software": { low: 8, high: 20 },
+  "Business / Marketing": { low: 8, high: 18 },
+  "Education / How-to": { low: 6, high: 15 },
+  Gaming: { low: 3, high: 8 },
+  Entertainment: { low: 2, high: 6 },
+  "Vlog / Lifestyle": { low: 3, high: 8 },
+  "Beauty / Fashion": { low: 4, high: 10 },
+  "Food / Cooking": { low: 4, high: 9 },
+  "Health / Fitness": { low: 5, high: 12 },
+  Music: { low: 1, high: 4 },
+  "Kids / Family": { low: 1, high: 3 },
+  "News / Politics": { low: 3, high: 10 },
+  Sports: { low: 3, high: 8 },
+  "Auto / Vehicles": { low: 5, high: 12 },
+  Travel: { low: 4, high: 10 },
+} as const satisfies Record<string, Readonly<{ low: number; high: number }>>;
+
+export const lastReviewed = "2026-10-19";
+
+export type YouTubeNiche = keyof typeof CPM_RANGES;
+
+export type NicheCPM = {
+  niche: YouTubeNiche;
+  cpmLow: number;
+  cpmHigh: number;
+};
+
+export const YOUTUBE_NICHES: NicheCPM[] = (
+  Object.keys(CPM_RANGES) as YouTubeNiche[]
+).map((niche) => ({
+  niche,
+  cpmLow: CPM_RANGES[niche].low,
+  cpmHigh: CPM_RANGES[niche].high,
+}));
+
+export type EarningsEstimate = {
+  low: number;
+  mid: number;
+  high: number;
+};
+
+export type YouTubeEarnings = {
+  monthly: EarningsEstimate;
+  annual: EarningsEstimate;
+  rpm: EarningsEstimate;
+};
+
+function roundToCents(amount: number): number {
+  return Math.round((amount + Number.EPSILON) * 100) / 100;
+}
+
+export function calculateEarnings(
+  views: number,
+  niche: NicheCPM,
+): YouTubeEarnings {
+  const cpmMid = (niche.cpmLow + niche.cpmHigh) / 2;
+  const rpm = {
+    low: roundToCents(niche.cpmLow * CREATOR_SHARE),
+    mid: roundToCents(cpmMid * CREATOR_SHARE),
+    high: roundToCents(niche.cpmHigh * CREATOR_SHARE),
+  };
+  const monthly = {
+    low: roundToCents((views / 1000) * rpm.low),
+    mid: roundToCents((views / 1000) * rpm.mid),
+    high: roundToCents((views / 1000) * rpm.high),
+  };
+
+  return {
+    monthly,
+    rpm,
+    annual: {
+      low: roundToCents(monthly.low * 12),
+      mid: roundToCents(monthly.mid * 12),
+      high: roundToCents(monthly.high * 12),
+    },
+  };
+}
+

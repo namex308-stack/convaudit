@@ -12,6 +12,10 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: "/",
         disallow: ["/api/", "/admin/"],
+        other: {
+          "Content-Signal": "ai-train=no, search=yes, ai-input=yes",
+          Host: "https://convaudit.com",
+        },
       },
       {
         userAgent: [
@@ -25,8 +29,19 @@ export default function robots(): MetadataRoute.Robots {
         ],
         allow: "/",
         disallow: ["/api/", "/admin/"],
+        other: {
+          "Content-Signal": "ai-train=no, search=yes, ai-input=yes",
+          Host: "https://convaudit.com",
+        },
       },
-      { userAgent: ["GPTBot", "ClaudeBot", "CCBot"], disallow: "/" },
+      {
+        userAgent: ["GPTBot", "ClaudeBot", "CCBot"],
+        disallow: "/",
+        other: {
+          "Content-Signal": "ai-train=no, search=yes, ai-input=yes",
+          Host: "https://convaudit.com",
+        },
+      },
     ],
     sitemap: `${SITE_CONFIG.url}/sitemap.xml`,
     host: SITE_CONFIG.url,

@@ -1,0 +1,5151 @@
+﻿CONVAUDIT SOURCE REVIEW
+
+========================================
+FILE: src/components/tools/FileUploader.tsx
+========================================
+
+"use client";
+
+import { useCallback, useId, useRef, useState } from "react";
+import { UploadCloud, X, FileText } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  FILE_SIZE_GUIDANCE,
+  validateToolFile,
+} from "@/lib/file-validation";
+
+export type UploadedFile = {
+  file: File;
+  id: string;
+  previewUrl?: string;
+};
+
+type FileUploaderProps = {
+  /** Accept attribute for the file input, e.g. "image/*" or ".pdf" */
+  accept: string;
+  /** Allow multiple files */
+  multiple?: boolean;
+  /** Called when files are added (with the new files only) */
+  onFilesAdded?: (files: File[]) => void;
+  /** Currently displayed files (controlled) */
+  files: UploadedFile[];
+  /** Called when a file is removed */
+  onFileRemove?: (id: string) => void;
+  /** Hint text shown under the dropzone */
+  hint?: string;
+  /** Disable the input while processing */
+  disabled?: boolean;
+};
+
+/**
+ * Drag-and-drop file uploader used by all tool components.
+ *
+ * Renders a stylized dropzone with a hidden <input type="file">. Files
+ * are surfaced to the parent via onFilesAdded and rendered as chips with
+ * remove buttons.
+ */
+export function FileUploader({
+  accept,
+  multiple = false,
+  onFilesAdded,
+  files,
+  onFileRemove,
+  hint,
+  disabled = false,
+}: FileUploaderProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const validationErrorId = useId();
+  const [isDragging, setIsDragging] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const addFiles = useCallback(
+    (selectedFiles: File[]) => {
+      const validFiles: File[] = [];
+      const errors: string[] = [];
+      for (const file of selectedFiles) {
+        const error = validateToolFile(file, accept);
+        if (error) errors.push(error);
+        else validFiles.push(file);
+      }
+      setValidationError(errors.length ? errors.join(" ") : null);
+      if (validFiles.length > 0 && onFilesAdded) {
+        onFilesAdded(multiple ? validFiles : [validFiles[0]]);
+      }
+    },
+    [accept, multiple, onFilesAdded]
+  );
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      setIsDragging(false);
+      if (disabled) return;
+      const dropped = Array.from(e.dataTransfer.files);
+      addFiles(multiple ? dropped : dropped.slice(0, 1));
+    },
+    [addFiles, disabled, multiple]
+  );
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (disabled) return;
+    const selected = e.target.files ? Array.from(e.target.files) : [];
+    if (selected.length > 0) addFiles(selected);
+    // Reset so the same file can be re-selected later
+    if (inputRef.current) inputRef.current.value = "";
+  };
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  };
+
+  return (
+    <div className="w-full">
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label={`Upload files. ${hint ?? ""} ${FILE_SIZE_GUIDANCE}`}
+        aria-describedby={validationError ? validationErrorId : undefined}
+        aria-disabled={disabled}
+        onClick={() => !disabled && inputRef.current?.click()}
+        onKeyDown={(e) => {
+          if ((e.key === "Enter" || e.key === " ") && !disabled) {
+            e.preventDefault();
+            inputRef.current?.click();
+          }
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!disabled) setIsDragging(true);
+        }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={handleDrop}
+        className={cn(
+          "flex min-h-[180px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          isDragging
+            ? "border-primary bg-primary/5"
+            : "border-border hover:border-primary/50 hover:bg-muted/30",
+          disabled && "cursor-not-allowed opacity-60"
+        )}
+      >
+        <UploadCloud className="h-10 w-10 text-muted-foreground" aria-hidden />
+        <p className="mt-3 text-sm font-medium">
+          Drop files here, or click to browse
+        </p>
+        {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
+        <p className="mt-2 text-xs text-muted-foreground">{FILE_SIZE_GUIDANCE}</p>
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        multiple={multiple}
+        onChange={handleChange}
+        className="hidden"
+        tabIndex={-1}
+        disabled={disabled}
+      />
+
+      {validationError && (
+        <p
+          id={validationErrorId}
+          className="mt-3 rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+          role="alert"
+        >
+          {validationError}
+        </p>
+      )}
+
+      {files.length > 0 && (
+        <ul className="mt-4 space-y-2">
+          {files.map((f) => (
+            <li
+              key={f.id}
+              className="flex items-center gap-3 rounded-lg border bg-card p-3 text-sm"
+            >
+              <span className="flex h-9 w-9 flex-none items-center justify-center rounded-md bg-muted">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium">{f.file.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatSize(f.file.size)}
+                </p>
+              </div>
+              {!disabled && onFileRemove && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  aria-label={`Remove ${f.file.name}`}
+                  onClick={() => onFileRemove(f.id)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/CompressImageTool.tsx
+========================================
+
+"use client";
+
+import { useState } from "react";
+import { Loader2, Shield, Archive } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { FileUploader, type UploadedFile } from "./FileUploader";
+import { CancelOperationButton } from "./CancelOperationButton";
+import { useOperationCancellation } from "./useOperationCancellation";
+import { downloadBlob, formatBytes, shortId } from "@/lib/download";
+import { throwIfCancelled } from "@/lib/file-validation";
+
+type ResultItem = {
+  name: string;
+  blob: Blob;
+  originalSize: number;
+  compressedSize: number;
+};
+
+export function CompressImageTool() {
+  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [quality, setQuality] = useState(70);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [results, setResults] = useState<ResultItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const cancellation = useOperationCancellation();
+
+  const handleFilesAdded = (newFiles: File[]) => {
+    // Browsers may report an empty MIME type for some formats (notably
+    // HEIC), so fall back to extension matching to avoid silently
+    // dropping valid files.
+    const accepted = newFiles.filter(
+      (f) =>
+        f.type.startsWith("image/") ||
+        /\.(jpe?g|png|webp|gif|bmp|avif|tiff?|heic|heif)$/i.test(f.name)
+    );
+    setFiles((prev) => [
+      ...prev,
+      ...accepted.map((f) => ({ file: f, id: shortId() })),
+    ]);
+    setResults([]);
+    setError(null);
+  };
+
+  const handleRemove = (id: string) => {
+    setFiles((prev) => prev.filter((f) => f.id !== id));
+  };
+
+  const handleProcessAnotherFile = () => {
+    setFiles([]);
+    setResults([]);
+    setError(null);
+    setProgress(0);
+    setQuality(70);
+  };
+
+  const compressInBrowser = async (
+    signal: AbortSignal
+  ): Promise<ResultItem[]> => {
+    const imageCompression = (await import("browser-image-compression")).default;
+    const out: ResultItem[] = [];
+    for (let i = 0; i < files.length; i++) {
+      throwIfCancelled(signal);
+      const f = files[i].file;
+      const targetMb = Math.max(
+        0.05,
+        (f.size / (1024 * 1024)) * (quality / 100)
+      );
+      const compressed = await imageCompression(f, {
+        maxSizeMB: targetMb,
+        maxWidthOrHeight: 4096,
+        useWebWorker: true,
+        initialQuality: quality / 100,
+        signal,
+      });
+      throwIfCancelled(signal);
+      const baseName = f.name.replace(/\.[^.]+$/, "");
+      const ext = f.name.split(".").pop()?.toLowerCase() || "jpg";
+      out.push({
+        name: `${baseName}-compressed.${ext}`,
+        blob: compressed,
+        originalSize: f.size,
+        compressedSize: compressed.size,
+      });
+      setProgress(Math.round(((i + 1) / files.length) * 100));
+    }
+    return out;
+  };
+
+  const handleCompress = async () => {
+    if (files.length === 0) return;
+    setIsProcessing(true);
+    setProgress(0);
+    setError(null);
+    setResults([]);
+    const controller = cancellation.start();
+
+    try {
+      setResults(await compressInBrowser(controller.signal));
+    } catch (err) {
+      if (controller.signal.aborted) {
+        setError("Compression cancelled. No partial results were saved.");
+      } else {
+        console.error(err);
+        setError("Failed to compress one or more images. Please try again.");
+      }
+    } finally {
+      cancellation.finish(controller);
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDownloadAllZip = async () => {
+    setError(null);
+    try {
+      const { default: JSZip } = await import("jszip");
+      const zip = new JSZip();
+      for (const result of results) zip.file(result.name, result.blob);
+      const blob = await zip.generateAsync({ type: "blob" });
+      downloadBlob(blob, "convaudit-compressed-images.zip");
+    } catch (err) {
+      console.error(err);
+      setError("Failed to prepare the ZIP download. Please try again.");
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-2 rounded-lg border bg-muted/30 p-3 text-sm text-muted-foreground">
+        <Shield className="h-4 w-4 flex-none text-emerald-500" />
+        Images are compressed in your browser; the image files are not sent to our server.
+      </div>
+
+      <FileUploader
+        accept="image/*,.heic,.heif,.tiff,.tif,.bmp,.gif,.avif"
+        multiple
+        files={files}
+        onFilesAdded={handleFilesAdded}
+        onFileRemove={handleRemove}
+        hint="Supports common image formats. Batch processing is supported."
+        disabled={isProcessing}
+      />
+
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="quality">Quality</Label>
+          <span className="text-sm font-medium tabular-nums">{quality}</span>
+        </div>
+        <Slider
+          id="quality"
+          min={10}
+          max={100}
+          step={5}
+          value={[quality]}
+          onValueChange={(v) => setQuality(v[0])}
+          disabled={isProcessing}
+        />
+        <p className="text-xs text-muted-foreground">
+          Lower quality = smaller file size. Try 60-80 for photos, 80-95 for
+          screenshots.
+        </p>
+      </div>
+
+      {error && (
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      )}
+
+      {isProcessing && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3 text-xs">
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              {cancellation.isCancelling
+                ? "Stopping compression..."
+                : `Compressing... ${progress}%`}
+            </span>
+            <CancelOperationButton
+              onCancel={cancellation.cancel}
+              isCancelling={cancellation.isCancelling}
+            />
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full bg-foreground transition-all"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      <Button
+        onClick={handleCompress}
+        disabled={files.length === 0 || isProcessing}
+        className="w-full"
+        size="lg"
+      >
+        {isProcessing ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <Shield className="mr-2 h-4 w-4" />
+        )}
+        {isProcessing
+          ? "Compressing..."
+          : `Compress ${files.length || ""} Image${files.length === 1 ? "" : "s"}`}
+      </Button>
+
+      {results.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold">Results</h3>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" variant="outline" onClick={handleProcessAnotherFile}>
+                Process another file
+              </Button>
+              {results.length > 1 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDownloadAllZip}
+                >
+                  <Archive className="mr-1 h-3.5 w-3.5" /> Download all as ZIP
+                </Button>
+              )}
+            </div>
+          </div>
+          <ul className="space-y-2">
+            {results.map((r, i) => {
+              const savedPct = Math.round(
+                (1 - r.compressedSize / r.originalSize) * 100
+              );
+              return (
+                <li
+                  key={i}
+                  className="flex items-center justify-between rounded-lg border bg-card p-3 text-sm"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{r.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatBytes(r.originalSize)} â†’{" "}
+                      <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                        {formatBytes(r.compressedSize)}
+                      </span>{" "}
+                      ({savedPct >= 0 ? `-${savedPct}%` : `+${Math.abs(savedPct)}%`})
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => downloadBlob(r.blob, r.name)}
+                  >
+                    Download
+                  </Button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/CompressPdfTool.tsx
+========================================
+
+"use client";
+
+import { useRef, useState } from "react";
+import { Download, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { FileUploader, type UploadedFile } from "./FileUploader";
+import { CancelOperationButton } from "./CancelOperationButton";
+import { useOperationCancellation } from "./useOperationCancellation";
+import { downloadBytes, formatBytes, shortId } from "@/lib/download";
+import { throwIfCancelled } from "@/lib/file-validation";
+
+type Quality = "low" | "medium" | "high";
+
+const QUALITY_MAP: Record<Quality, { scale: number; jpegQuality: number; label: string }> = {
+  low: { scale: 1.0, jpegQuality: 0.45, label: "Low (smallest file)" },
+  medium: { scale: 1.0, jpegQuality: 0.65, label: "Medium (recommended)" },
+  high: { scale: 1.5, jpegQuality: 0.82, label: "High (best quality)" },
+};
+
+/**
+ * Compress PDF tool.
+ *
+ * Strategy: Render each page to a JPEG image at a chosen quality using
+ * pdfjs-dist, then re-assemble those images into a new PDF with pdf-lib.
+ *
+ * This is most effective on PDFs that contain large embedded images.
+ * Text-heavy PDFs may not shrink much, and the resulting PDF is no
+ * longer text-searchable.
+ */
+export function CompressPdfTool() {
+  const [file, setFile] = useState<UploadedFile | null>(null);
+  const [quality, setQuality] = useState<Quality>("medium");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [result, setResult] = useState<{ bytes: Uint8Array; size: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const renderTaskRef = useRef<{ cancel: () => void } | null>(null);
+  const cancellation = useOperationCancellation();
+
+  const handleFilesAdded = (newFiles: File[]) => {
+    if (newFiles.length === 0) return;
+    const f = newFiles[0];
+    if (!f.name.toLowerCase().endsWith(".pdf")) {
+      setError("Please upload a PDF file.");
+      return;
+    }
+    setError(null);
+    setFile({ file: f, id: shortId() });
+    setResult(null);
+  };
+
+  const handleRemove = () => {
+    setFile(null);
+    setResult(null);
+  };
+
+  const handleProcessAnotherFile = () => {
+    setFile(null);
+    setResult(null);
+    setError(null);
+    setProgress(0);
+    setQuality("medium");
+  };
+
+  const handleCompress = async () => {
+    if (!file) return;
+    setIsProcessing(true);
+    setError(null);
+    setProgress(0);
+    setResult(null);
+    const controller = cancellation.start();
+    try {
+      throwIfCancelled(controller.signal);
+      const pdfjs = await import("pdfjs-dist/build/pdf.mjs");
+      pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+        "pdfjs-dist/build/pdf.worker.mjs",
+        import.meta.url
+      ).toString();
+
+      const { PDFDocument } = await import("pdf-lib");
+
+      const buf = await file.file.arrayBuffer();
+      throwIfCancelled(controller.signal);
+      const src = await pdfjs.getDocument({ data: buf }).promise;
+      const out = await PDFDocument.create();
+      const cfg = QUALITY_MAP[quality];
+
+      for (let i = 1; i <= src.numPages; i++) {
+        throwIfCancelled(controller.signal);
+        const page = await src.getPage(i);
+        const viewport = page.getViewport({ scale: cfg.scale * 1.5 });
+        const canvas = document.createElement("canvas");
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Canvas not supported");
+        // White background so transparent areas don't go black in JPEG
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        const renderTask = page.render({ canvasContext: ctx, viewport, canvas });
+        renderTaskRef.current = renderTask;
+        try {
+          await renderTask.promise;
+        } finally {
+          if (renderTaskRef.current === renderTask) renderTaskRef.current = null;
+        }
+        throwIfCancelled(controller.signal);
+        const blob = await new Promise<Blob>((resolve, reject) =>
+          canvas.toBlob(
+            (b) => (b ? resolve(b) : reject(new Error("Failed to encode page"))),
+            "image/jpeg",
+            cfg.jpegQuality
+          )
+        );
+        const ab = await blob.arrayBuffer();
+        const jpg = await out.embedJpg(new Uint8Array(ab));
+        // Preserve original page size in PDF points (1 px @ 72dpi = 1pt)
+        const ptW = viewport.width / 1.5;
+        const ptH = viewport.height / 1.5;
+        const newPage = out.addPage([ptW, ptH]);
+        newPage.drawImage(jpg, { x: 0, y: 0, width: ptW, height: ptH });
+        setProgress(Math.round((i / src.numPages) * 100));
+      }
+
+      throwIfCancelled(controller.signal);
+      const bytes = await out.save();
+      setResult({ bytes, size: bytes.byteLength });
+    } catch (err) {
+      if (controller.signal.aborted) {
+        setError("Compression cancelled. No partial result was saved.");
+      } else {
+        console.error(err);
+        setError("Failed to compress PDF. The file may be corrupted or encrypted.");
+      }
+    } finally {
+      renderTaskRef.current = null;
+      cancellation.finish(controller);
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <FileUploader
+        accept="application/pdf,.pdf"
+        files={file ? [file] : []}
+        onFilesAdded={handleFilesAdded}
+        onFileRemove={handleRemove}
+        hint="Upload a single PDF. Best results on image-heavy PDFs."
+        disabled={isProcessing}
+      />
+
+      <div className="space-y-2">
+        <Label htmlFor="quality-select">Compression quality</Label>
+        <Select value={quality} onValueChange={(v) => setQuality(v as Quality)} disabled={isProcessing}>
+          <SelectTrigger id="quality-select">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(Object.keys(QUALITY_MAP) as Quality[]).map((q) => (
+              <SelectItem key={q} value={q}>
+                {QUALITY_MAP[q].label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          Note: After compression, text in the PDF is no longer searchable.
+        </p>
+      </div>
+
+      {error && (
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      )}
+
+      {isProcessing && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              {cancellation.isCancelling ? "Cancelling..." : `Rendering pages... ${progress}%`}
+            </p>
+            <CancelOperationButton
+              onCancel={() => {
+                cancellation.cancel();
+                renderTaskRef.current?.cancel();
+              }}
+              isCancelling={cancellation.isCancelling}
+            />
+          </div>
+          <Progress value={progress} />
+        </div>
+      )}
+
+      <Button
+        onClick={handleCompress}
+        disabled={!file || isProcessing}
+        className="w-full"
+        size="lg"
+      >
+        {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+        {isProcessing ? "Compressing..." : "Compress PDF"}
+      </Button>
+
+      {result && file && (
+        <div className="rounded-lg border bg-card p-4 text-sm">
+          <p className="font-medium">Compression complete!</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Original: {formatBytes(file.file.size)} â†’{" "}
+            <span className="font-medium text-emerald-600 dark:text-emerald-400">
+              {formatBytes(result.size)}
+            </span>{" "}
+            ({Math.max(0, Math.round((1 - result.size / file.file.size) * 100))}% smaller)
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              onClick={() => {
+                const baseName = file.file.name.replace(/\.pdf$/i, "");
+                downloadBytes(result.bytes, `${baseName}-compressed.pdf`, "application/pdf");
+              }}
+            >
+              <Download className="mr-1 h-3.5 w-3.5" /> Download compressed PDF
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleProcessAnotherFile}
+            >
+              Process another file
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/HeicToJpgTool.tsx
+========================================
+
+"use client";
+
+import { useState } from "react";
+import { Download, Loader2, Archive } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Progress } from "@/components/ui/progress";
+import { FileUploader, type UploadedFile } from "./FileUploader";
+import { CancelOperationButton } from "./CancelOperationButton";
+import { useOperationCancellation } from "./useOperationCancellation";
+import { downloadBlob, formatBytes, shortId } from "@/lib/download";
+import { throwIfCancelled } from "@/lib/file-validation";
+
+type ResultItem = {
+  name: string;
+  blob: Blob;
+  size: number;
+  originalSize: number;
+};
+
+/**
+ * HEIC to JPG tool.
+ * Uses heic2any (which internally uses libheif.js WebAssembly) to decode
+ * HEIC/HEIF images and re-encode them as JPEG blobs in the browser.
+ */
+export function HeicToJpgTool() {
+  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [quality, setQuality] = useState(85);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [results, setResults] = useState<ResultItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const cancellation = useOperationCancellation();
+
+  const handleFilesAdded = (newFiles: File[]) => {
+    // Note: many browsers report HEIC files with an empty MIME type,
+    // so we accept by extension as well as by MIME.
+    const accepted = newFiles.filter(
+      (f) =>
+        f.type === "image/heic" ||
+        f.type === "image/heif" ||
+        f.type === "image/heic-sequence" ||
+        f.type === "image/heif-sequence" ||
+        /\.hei[cf]$/i.test(f.name)
+    );
+    if (accepted.length < newFiles.length) {
+      setError("Some files were skipped â€” only HEIC/HEIF files are supported.");
+    } else {
+      setError(null);
+    }
+    setFiles((prev) => [
+      ...prev,
+      ...accepted.map((f) => ({ file: f, id: shortId() })),
+    ]);
+    setResults([]);
+  };
+
+  const handleRemove = (id: string) =>
+    setFiles((prev) => prev.filter((f) => f.id !== id));
+
+  const handleProcessAnotherFile = () => {
+    setFiles([]);
+    setResults([]);
+    setError(null);
+    setProgress(0);
+    setQuality(85);
+  };
+
+  const handleConvert = async () => {
+    if (files.length === 0) return;
+    setIsProcessing(true);
+    setProgress(0);
+    setError(null);
+    setResults([]);
+    const controller = cancellation.start();
+
+    try {
+      // Lazy-load heic2any â€” it touches `window` at import time, so we
+      // can only import it from inside an event handler in the browser.
+      const { default: heic2any } = await import("heic2any");
+      throwIfCancelled(controller.signal);
+      const out: ResultItem[] = [];
+      for (let i = 0; i < files.length; i++) {
+        throwIfCancelled(controller.signal);
+        const f = files[i].file;
+        const converted = (await heic2any({
+          blob: f,
+          toType: "image/jpeg",
+          quality: quality / 100,
+        })) as Blob | Blob[];
+        throwIfCancelled(controller.signal);
+        const blob = Array.isArray(converted) ? converted[0] : converted;
+        const baseName = f.name.replace(/\.[^.]+$/, "");
+        out.push({
+          name: `${baseName}.jpg`,
+          blob,
+          size: blob.size,
+          originalSize: f.size,
+        });
+        setProgress(Math.round(((i + 1) / files.length) * 100));
+      }
+      setResults(out);
+    } catch (err) {
+      if (controller.signal.aborted) {
+        setError("Conversion cancelled. No partial results were saved.");
+      } else {
+        console.error(err);
+        setError("Failed to convert one or more HEIC files. They may be corrupted.");
+      }
+    } finally {
+      cancellation.finish(controller);
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDownloadAllZip = async () => {
+    setError(null);
+    try {
+      const { default: JSZip } = await import("jszip");
+      const zip = new JSZip();
+      for (const result of results) zip.file(result.name, result.blob);
+      const blob = await zip.generateAsync({ type: "blob" });
+      downloadBlob(blob, "convaudit-converted-jpgs.zip");
+    } catch (err) {
+      console.error(err);
+      setError("Failed to prepare the ZIP download. Please try again.");
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <FileUploader
+        accept=".heic,.heif,image/heic,image/heif"
+        multiple
+        files={files}
+        onFilesAdded={handleFilesAdded}
+        onFileRemove={handleRemove}
+        hint="Supports HEIC and HEIF files from iPhone. Batch processing is supported."
+        disabled={isProcessing}
+      />
+
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="quality">JPG Quality</Label>
+          <span className="text-sm font-medium tabular-nums">{quality}</span>
+        </div>
+        <Slider
+          id="quality"
+          min={30}
+          max={100}
+          step={5}
+          value={[quality]}
+          onValueChange={(v) => setQuality(v[0])}
+          disabled={isProcessing}
+        />
+      </div>
+
+      {error && (
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      )}
+
+      {isProcessing && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              {cancellation.isCancelling
+                ? "Stopping after the current image finishes..."
+                : `Converting... ${progress}%`}
+            </p>
+            <CancelOperationButton
+              onCancel={cancellation.cancel}
+              isCancelling={cancellation.isCancelling}
+              cancelLabel="Cancel after this image"
+              cancellingLabel="Stopping after this image..."
+            />
+          </div>
+          <Progress value={progress} />
+          <p className="text-xs text-muted-foreground">
+            HEIC decoding can take a few seconds per image.
+          </p>
+        </div>
+      )}
+
+      <Button
+        onClick={handleConvert}
+        disabled={files.length === 0 || isProcessing}
+        className="w-full"
+        size="lg"
+      >
+        {isProcessing ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : null}
+        {isProcessing ? "Converting..." : `Convert ${files.length || ""} HEIC File${files.length === 1 ? "" : "s"}`}
+      </Button>
+
+      {results.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold">Results</h3>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" variant="outline" onClick={handleProcessAnotherFile}>
+                Process another file
+              </Button>
+              {results.length > 1 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDownloadAllZip}
+                >
+                  <Archive className="mr-1 h-3.5 w-3.5" /> Download all as ZIP
+                </Button>
+              )}
+            </div>
+          </div>
+          <ul className="space-y-2">
+            {results.map((r, i) => (
+              <li
+                key={i}
+                className="flex items-center justify-between rounded-lg border bg-card p-3 text-sm"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{r.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatBytes(r.originalSize)} â†’ {formatBytes(r.size)}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => downloadBlob(r.blob, r.name)}
+                >
+                  <Download className="mr-1 h-3.5 w-3.5" /> Download
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/ImageFormatConverter.tsx
+========================================
+
+"use client";
+
+import { useState } from "react";
+import { Download, Loader2, Archive } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { FileUploader, type UploadedFile } from "./FileUploader";
+import { CancelOperationButton } from "./CancelOperationButton";
+import { useOperationCancellation } from "./useOperationCancellation";
+import { downloadBlob, formatBytes, shortId } from "@/lib/download";
+import { throwIfCancelled } from "@/lib/file-validation";
+
+type Props = {
+  /** Source MIME prefix filter, e.g. "image/webp" */
+  accept: string;
+  /** File extension to append, e.g. "png" */
+  outputExtension: string;
+  /** Output MIME type for the Blob */
+  outputMime: string;
+  /** Canvas encode quality (0-1) â€” used for lossy formats like image/jpeg */
+  quality?: number;
+  /** Background fill color for transparent areas (used when outputting JPG). */
+  backgroundColor?: string;
+  /** Hint shown under the dropzone. */
+  hint: string;
+};
+
+type ResultItem = {
+  name: string;
+  blob: Blob;
+  size: number;
+  originalSize: number;
+};
+
+/**
+ * Generic image-format converter used by WebPâ†’PNG, PNGâ†’JPG, and JPGâ†’WebP.
+ *
+ * Each source image is drawn onto a canvas and re-encoded with
+ * canvas.toBlob() in the target format. Transparent areas are filled
+ * with `backgroundColor` (defaults to white) when the target is JPG.
+ */
+export function ImageFormatConverter({
+  accept,
+  outputExtension,
+  outputMime,
+  quality = 0.92,
+  backgroundColor,
+  hint,
+}: Props) {
+  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [results, setResults] = useState<ResultItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const cancellation = useOperationCancellation();
+
+  const handleFilesAdded = (newFiles: File[]) => {
+    // Fall back to extension matching: some browsers report an empty
+    // MIME type (notably for HEIC/WebP), which previously caused valid
+    // files to be silently dropped.
+    const images = newFiles.filter(
+      (f) =>
+        f.type.startsWith("image/") ||
+        /\.(jpe?g|png|webp|gif|bmp|avif|tiff?|heic|heif)$/i.test(f.name)
+    );
+    setFiles((prev) => [
+      ...prev,
+      ...images.map((f) => ({ file: f, id: shortId() })),
+    ]);
+    setResults([]);
+    setError(null);
+  };
+
+  const handleRemove = (id: string) =>
+    setFiles((prev) => prev.filter((f) => f.id !== id));
+
+  const handleProcessAnotherFile = () => {
+    setFiles([]);
+    setResults([]);
+    setError(null);
+    setProgress(0);
+  };
+
+  const handleConvert = async () => {
+    if (files.length === 0) return;
+    setIsProcessing(true);
+    setProgress(0);
+    setError(null);
+    setResults([]);
+    const controller = cancellation.start();
+    try {
+      const out: ResultItem[] = [];
+      for (let i = 0; i < files.length; i++) {
+        throwIfCancelled(controller.signal);
+        const f = files[i].file;
+        const url = URL.createObjectURL(f);
+        try {
+          const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+            const im = new Image();
+            const onAbort = () => {
+              im.src = "";
+              reject(new DOMException("Operation cancelled.", "AbortError"));
+            };
+            im.onload = () => {
+              controller.signal.removeEventListener("abort", onAbort);
+              resolve(im);
+            };
+            im.onerror = () => {
+              controller.signal.removeEventListener("abort", onAbort);
+              reject(new Error("Failed to load image"));
+            };
+            controller.signal.addEventListener("abort", onAbort, { once: true });
+            im.src = url;
+          });
+          throwIfCancelled(controller.signal);
+          const canvas = document.createElement("canvas");
+          canvas.width = img.naturalWidth;
+          canvas.height = img.naturalHeight;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) throw new Error("Canvas not supported");
+          if (backgroundColor) {
+            ctx.fillStyle = backgroundColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+          }
+          ctx.drawImage(img, 0, 0);
+          const blob = await new Promise<Blob>((resolve, reject) =>
+            canvas.toBlob(
+              (b) =>
+                b
+                  ? resolve(b)
+                  : reject(new Error("Failed to encode image")),
+              outputMime,
+              quality
+            )
+          );
+          throwIfCancelled(controller.signal);
+          const baseName = f.name.replace(/\.[^.]+$/, "");
+          out.push({
+            name: `${baseName}.${outputExtension}`,
+            blob,
+            size: blob.size,
+            originalSize: f.size,
+          });
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+        setProgress(Math.round(((i + 1) / files.length) * 100));
+      }
+      throwIfCancelled(controller.signal);
+      setResults(out);
+    } catch (err) {
+      if (controller.signal.aborted) {
+        setError("Conversion cancelled. No partial results were saved.");
+      } else {
+        console.error(err);
+        setError("Failed to convert one or more images.");
+      }
+    } finally {
+      cancellation.finish(controller);
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDownloadAllZip = async () => {
+    setError(null);
+    try {
+      const { default: JSZip } = await import("jszip");
+      const zip = new JSZip();
+      for (const result of results) zip.file(result.name, result.blob);
+      const blob = await zip.generateAsync({ type: "blob" });
+      downloadBlob(blob, `convaudit-converted-${outputExtension}.zip`);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to prepare the ZIP download. Please try again.");
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <FileUploader
+        accept={accept}
+        multiple
+        files={files}
+        onFilesAdded={handleFilesAdded}
+        onFileRemove={handleRemove}
+        hint={hint}
+        disabled={isProcessing}
+      />
+
+      {error && (
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      )}
+
+      {isProcessing && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              {cancellation.isCancelling ? "Cancelling..." : `Converting... ${progress}%`}
+            </p>
+            <CancelOperationButton
+              onCancel={cancellation.cancel}
+              isCancelling={cancellation.isCancelling}
+              cancelLabel="Cancel after this image"
+              cancellingLabel="Stopping after this image..."
+            />
+          </div>
+          <Progress value={progress} />
+        </div>
+      )}
+
+      <Button
+        onClick={handleConvert}
+        disabled={files.length === 0 || isProcessing}
+        className="w-full"
+        size="lg"
+      >
+        {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+        {isProcessing ? "Converting..." : `Convert ${files.length || ""} Image${files.length === 1 ? "" : "s"}`}
+      </Button>
+
+      {results.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold">Results</h3>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" variant="outline" onClick={handleProcessAnotherFile}>
+                Process another file
+              </Button>
+              {results.length > 1 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDownloadAllZip}
+                >
+                  <Archive className="mr-1 h-3.5 w-3.5" /> Download all as ZIP
+                </Button>
+              )}
+            </div>
+          </div>
+          <ul className="space-y-2">
+            {results.map((r, i) => (
+              <li
+                key={i}
+                className="flex items-center justify-between rounded-lg border bg-card p-3 text-sm"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{r.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatBytes(r.originalSize)} â†’ {formatBytes(r.size)}
+                  </p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => downloadBlob(r.blob, r.name)}>
+                  <Download className="mr-1 h-3.5 w-3.5" /> Download
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Pre-configured WebP â†’ PNG converter. */
+export function WebpToPngTool() {
+  return (
+    <ImageFormatConverter
+      accept="image/webp,.webp"
+      outputExtension="png"
+      outputMime="image/png"
+      hint="Upload WebP files. Transparency is preserved in the output PNG."
+    />
+  );
+}
+
+/** Pre-configured PNG â†’ JPG converter (with quality slider and bg color). */
+export function PngToJpgTool() {
+  return (
+    <ImageFormatConverter
+      accept="image/png,.png"
+      outputExtension="jpg"
+      outputMime="image/jpeg"
+      quality={0.9}
+      backgroundColor="#ffffff"
+      hint="Upload PNG files. Transparent areas will be filled with white in the JPG output."
+    />
+  );
+}
+
+/** Pre-configured JPG â†’ WebP converter. */
+export function JpgToWebpTool() {
+  return (
+    <ImageFormatConverter
+      accept="image/jpeg,.jpg,.jpeg"
+      outputExtension="webp"
+      outputMime="image/webp"
+      quality={0.85}
+      hint="Upload JPG files. Output is WebP for smaller file sizes on the web."
+    />
+  );
+}
+
+
+========================================
+FILE: src/components/tools/ImageToPdfTool.tsx
+========================================
+
+"use client";
+
+import { useState } from "react";
+import NextImage from "next/image";
+import type { PDFDocument as PDFDocumentType, PDFImage } from "pdf-lib";
+import {
+  ArrowDown,
+  ArrowUp,
+  Download,
+  Loader2,
+  Trash2,
+  FileCheck2,
+  Settings2,
+  Sparkles,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { FileUploader, type UploadedFile } from "./FileUploader";
+import { CancelOperationButton } from "./CancelOperationButton";
+import { useOperationCancellation } from "./useOperationCancellation";
+import { formatBytes, shortId } from "@/lib/download";
+import { throwIfCancelled } from "@/lib/file-validation";
+
+type ImageEntry = UploadedFile & {
+  objectUrl: string;
+  width: number;
+  height: number;
+};
+
+type PageSize = "Fit" | "A4" | "Letter" | "Legal";
+type Orientation = "auto" | "portrait" | "landscape";
+type MarginSize = "none" | "compact" | "standard";
+type QualityMode = "lossless" | "high" | "balanced";
+
+export function ImageToPdfTool() {
+  const [files, setFiles] = useState<ImageEntry[]>([]);
+  const [pageSize, setPageSize] = useState<PageSize>("Fit");
+  const [orientation, setOrientation] = useState<Orientation>("auto");
+  const [marginSize, setMarginSize] = useState<MarginSize>("none");
+  const [qualityMode, setQualityMode] = useState<QualityMode>("lossless");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [outputUrl, setOutputUrl] = useState<string | null>(null);
+  const [outputSize, setOutputSize] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const cancellation = useOperationCancellation();
+
+  const getImageDimensions = (url: string): Promise<{ width: number; height: number }> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+      img.onerror = () => resolve({ width: 0, height: 0 });
+      img.src = url;
+    });
+  };
+
+  const handleFilesAdded = async (newFiles: File[]) => {
+    const images = newFiles.filter(
+      (f) => f.type.startsWith("image/") || /\.(jpg|jpeg|png|webp|heic|tiff|bmp)$/i.test(f.name)
+    );
+    if (images.length < newFiles.length) {
+      setError("Some files were skipped â€” only image files are supported.");
+    } else {
+      setError(null);
+    }
+
+    const newEntries: ImageEntry[] = [];
+    for (const f of images) {
+      const objectUrl = URL.createObjectURL(f);
+      const dims = await getImageDimensions(objectUrl);
+      newEntries.push({
+        file: f,
+        id: shortId(),
+        objectUrl,
+        width: dims.width,
+        height: dims.height,
+      });
+    }
+
+    setFiles((prev) => [...prev, ...newEntries]);
+    setOutputUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setOutputSize(null);
+  };
+
+  const handleRemove = (id: string) => {
+    setFiles((prev) => {
+      const entry = prev.find((f) => f.id === id);
+      if (entry) URL.revokeObjectURL(entry.objectUrl);
+      return prev.filter((f) => f.id !== id);
+    });
+    setOutputUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setOutputSize(null);
+  };
+
+  const handleProcessAnotherFile = () => {
+    files.forEach((entry) => URL.revokeObjectURL(entry.objectUrl));
+    if (outputUrl) URL.revokeObjectURL(outputUrl);
+    setFiles([]);
+    setOutputUrl(null);
+    setOutputSize(null);
+    setError(null);
+    setProgress(0);
+    setPageSize("Fit");
+    setOrientation("auto");
+    setMarginSize("none");
+    setQualityMode("lossless");
+  };
+
+  const move = (index: number, direction: "up" | "down") => {
+    setFiles((prev) => {
+      const next = [...prev];
+      const target = direction === "up" ? index - 1 : index + 1;
+      if (target < 0 || target >= next.length) return prev;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
+
+  /**
+   * Helper to embed an image into the PDF at highest fidelity.
+   * If the file is JPEG or PNG and QualityMode is "lossless", we embed the original
+   * raw bytes directly â€” achieving 100% bit-exact pixel fidelity with zero generation loss!
+   */
+  const embedImageInDoc = async (
+    doc: PDFDocumentType,
+    entry: ImageEntry,
+    signal: AbortSignal
+  ): Promise<{
+    image: PDFImage;
+    width: number;
+    height: number;
+  }> => {
+    const isJpg =
+      entry.file.type === "image/jpeg" ||
+      entry.file.type === "image/jpg" ||
+      /\.(jpe?g)$/i.test(entry.file.name);
+    const isPng =
+      entry.file.type === "image/png" ||
+      /\.(png)$/i.test(entry.file.name);
+
+    if (qualityMode === "lossless") {
+      if (isJpg) {
+        try {
+          throwIfCancelled(signal);
+          const bytes = await entry.file.arrayBuffer();
+          throwIfCancelled(signal);
+          const embedded = await doc.embedJpg(bytes);
+          return { image: embedded, width: embedded.width, height: embedded.height };
+        } catch {
+          throwIfCancelled(signal);
+          // Fall back to canvas if direct embed fails (e.g. CMYK or unusual JPEG)
+        }
+      }
+
+      if (isPng) {
+        try {
+          throwIfCancelled(signal);
+          const bytes = await entry.file.arrayBuffer();
+          throwIfCancelled(signal);
+          const embedded = await doc.embedPng(bytes);
+          return { image: embedded, width: embedded.width, height: embedded.height };
+        } catch {
+          throwIfCancelled(signal);
+          // Fall back to canvas if interlaced PNG
+        }
+      }
+    }
+
+    // High quality canvas render for WebP, HEIC, or when optimization is requested
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const i = new Image();
+      const onAbort = () => {
+        i.src = "";
+        reject(new DOMException("Operation cancelled.", "AbortError"));
+      };
+      i.onload = () => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(i);
+      };
+      i.onerror = () => {
+        signal.removeEventListener("abort", onAbort);
+        reject(new Error(`Failed to load ${entry.file.name}`));
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
+      i.src = entry.objectUrl;
+    });
+    throwIfCancelled(signal);
+
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth || img.width;
+    canvas.height = img.naturalHeight || img.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas context failed");
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, 0, 0);
+
+    if (qualityMode === "balanced") {
+      const blob = await new Promise<Blob>((resolve, reject) =>
+        canvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error("Encoding failed"))),
+          "image/jpeg",
+          0.85
+        )
+      );
+      throwIfCancelled(signal);
+      const ab = await blob.arrayBuffer();
+      throwIfCancelled(signal);
+      const embedded = await doc.embedJpg(ab);
+      return { image: embedded, width: canvas.width, height: canvas.height };
+    }
+
+    // High or Lossless fallback: use PNG
+    const blob = await new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error("Encoding failed"))),
+        "image/png"
+      )
+    );
+    throwIfCancelled(signal);
+    const ab = await blob.arrayBuffer();
+    throwIfCancelled(signal);
+    const embedded = await doc.embedPng(ab);
+    return { image: embedded, width: canvas.width, height: canvas.height };
+  };
+
+  const handleCreate = async () => {
+    if (files.length === 0) return;
+    setIsProcessing(true);
+    setError(null);
+    setOutputUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setOutputSize(null);
+    setProgress(0);
+    const controller = cancellation.start();
+
+    try {
+      const { PDFDocument } = await import("pdf-lib");
+      const doc = await PDFDocument.create();
+
+      for (let i = 0; i < files.length; i++) {
+        throwIfCancelled(controller.signal);
+        const entry = files[i];
+        const { image, width, height } = await embedImageInDoc(
+          doc,
+          entry,
+          controller.signal
+        );
+
+        let pageW: number;
+        let pageH: number;
+
+        if (pageSize === "Fit") {
+          // 1:1 Pixel Match â€” lossless dimensions
+          pageW = width;
+          pageH = height;
+        } else {
+          let baseW = 595.28; // A4
+          let baseH = 841.89;
+
+          if (pageSize === "Letter") {
+            baseW = 612;
+            baseH = 792;
+          } else if (pageSize === "Legal") {
+            baseW = 612;
+            baseH = 1008;
+          }
+
+          if (orientation === "portrait") {
+            pageW = Math.min(baseW, baseH);
+            pageH = Math.max(baseW, baseH);
+          } else if (orientation === "landscape") {
+            pageW = Math.max(baseW, baseH);
+            pageH = Math.min(baseW, baseH);
+          } else {
+            // Auto match image orientation
+            if (width > height) {
+              pageW = Math.max(baseW, baseH);
+              pageH = Math.min(baseW, baseH);
+            } else {
+              pageW = Math.min(baseW, baseH);
+              pageH = Math.max(baseW, baseH);
+            }
+          }
+        }
+
+        const page = doc.addPage([pageW, pageH]);
+
+        let margin = 0;
+        if (pageSize !== "Fit") {
+          if (marginSize === "compact") margin = 12;
+          if (marginSize === "standard") margin = 28;
+        }
+
+        const maxW = pageW - margin * 2;
+        const maxH = pageH - margin * 2;
+        const scale = Math.min(maxW / width, maxH / height);
+        const drawW = width * scale;
+        const drawH = height * scale;
+
+        page.drawImage(image, {
+          x: (pageW - drawW) / 2,
+          y: (pageH - drawH) / 2,
+          width: drawW,
+          height: drawH,
+        });
+        setProgress(Math.round(((i + 1) / files.length) * 100));
+      }
+
+      throwIfCancelled(controller.signal);
+      const out = await doc.save();
+      throwIfCancelled(controller.signal);
+      const blob = new Blob([out as BlobPart], { type: "application/pdf" });
+      setOutputUrl(URL.createObjectURL(blob));
+      setOutputSize(blob.size);
+    } catch (err) {
+      if (controller.signal.aborted) {
+        setError("PDF creation cancelled. No partial result was saved.");
+      } else {
+        console.error(err);
+        setError("Failed to create PDF. One or more images could not be embedded.");
+      }
+    } finally {
+      cancellation.finish(controller);
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Uploader */}
+      <FileUploader
+        accept="image/*,.heic,.heif,.tiff,.tif,.bmp"
+        multiple
+        files={files}
+        onFilesAdded={handleFilesAdded}
+        onFileRemove={handleRemove}
+        hint="Add JPG, PNG, WebP, HEIC, TIFF, or BMP images. Embeds directly with 100% original lossless quality."
+        disabled={isProcessing}
+      />
+
+      {/* Settings bar */}
+      {files.length > 0 && (
+        <div className="rounded-xl border border-border bg-card p-5 space-y-4 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
+            <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+              <Settings2 className="h-4 w-4" />
+              High-Fidelity PDF Options
+            </h3>
+
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleCreate}
+                disabled={isProcessing || files.length === 0}
+                className="gap-2"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Generating High-Res PDF...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    Create PDF ({files.length} {files.length === 1 ? "page" : "pages"})
+                  </>
+                )}
+              </Button>
+
+              {isProcessing && (
+                <CancelOperationButton
+                  onCancel={cancellation.cancel}
+                  isCancelling={cancellation.isCancelling}
+                  cancelLabel="Cancel after this image"
+                  cancellingLabel="Stopping after this image..."
+                />
+              )}
+
+              {outputUrl && (
+                <Button asChild variant="outline" className="gap-2">
+                  <a href={outputUrl} download="convaudit-document.pdf">
+                    <Download className="h-4 w-4" />
+                    Download PDF {outputSize ? `(${formatBytes(outputSize)})` : ""}
+                  </a>
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Page Size */}
+            <div className="space-y-1.5">
+              <Label htmlFor="page-size" className="text-xs font-medium text-muted-foreground">
+                Page Sizing
+              </Label>
+              <Select
+                value={pageSize}
+                onValueChange={(v: PageSize) => setPageSize(v)}
+                disabled={isProcessing}
+              >
+                <SelectTrigger id="page-size" className="h-9">
+                  <SelectValue placeholder="Size" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Fit">Fit Page to Image (100% Original Resolution)</SelectItem>
+                  <SelectItem value="A4">A4 (210 Ã— 297 mm)</SelectItem>
+                  <SelectItem value="Letter">US Letter (8.5 Ã— 11 in)</SelectItem>
+                  <SelectItem value="Legal">US Legal (8.5 Ã— 14 in)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Quality Mode */}
+            <div className="space-y-1.5">
+              <Label htmlFor="quality-mode" className="text-xs font-medium text-muted-foreground">
+                Quality / Fidelity
+              </Label>
+              <Select
+                value={qualityMode}
+                onValueChange={(v: QualityMode) => setQualityMode(v)}
+                disabled={isProcessing}
+              >
+                <SelectTrigger id="quality-mode" className="h-9">
+                  <SelectValue placeholder="Quality" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="lossless">100% Lossless (Direct Native Embed)</SelectItem>
+                  <SelectItem value="high">High Quality (Max Resolution)</SelectItem>
+                  <SelectItem value="balanced">Balanced (Compact File Size)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Orientation */}
+            <div className="space-y-1.5">
+              <Label htmlFor="page-orientation" className="text-xs font-medium text-muted-foreground">
+                Orientation
+              </Label>
+              <Select
+                value={orientation}
+                onValueChange={(v: Orientation) => setOrientation(v)}
+                disabled={isProcessing || pageSize === "Fit"}
+              >
+                <SelectTrigger id="page-orientation" className="h-9">
+                  <SelectValue placeholder="Orientation" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Auto (Match Image Ratio)</SelectItem>
+                  <SelectItem value="portrait">Portrait</SelectItem>
+                  <SelectItem value="landscape">Landscape</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Margins */}
+            <div className="space-y-1.5">
+              <Label htmlFor="page-margin" className="text-xs font-medium text-muted-foreground">
+                Margins
+              </Label>
+              <Select
+                value={marginSize}
+                onValueChange={(v: MarginSize) => setMarginSize(v)}
+                disabled={isProcessing || pageSize === "Fit"}
+              >
+                <SelectTrigger id="page-margin" className="h-9">
+                  <SelectValue placeholder="Margin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Margin (Full Bleed)</SelectItem>
+                  <SelectItem value="compact">Compact (12 pt)</SelectItem>
+                  <SelectItem value="standard">Standard (28 pt)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {isProcessing && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>
+                  {cancellation.isCancelling
+                    ? "Stopping after the current image..."
+                    : "Creating PDF..."}
+                </span>
+                <span>{progress}%</span>
+              </div>
+              <Progress value={progress} />
+            </div>
+          )}
+
+          {error && (
+            <p className="text-xs font-medium text-destructive" role="alert">
+              {error}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Image list with reordering */}
+      {files.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+            <span>Arrange page order ({files.length} images)</span>
+            <span>Drag or use arrows to reorder</span>
+          </div>
+
+          <ol className="space-y-2">
+            {files.map((f, i) => (
+              <li
+                key={f.id}
+                className="flex items-center gap-3 rounded-xl border border-border bg-card p-3 text-sm shadow-xs hover:border-border/80 transition-colors"
+              >
+                <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+                  {i + 1}
+                </span>
+
+                <div className="relative h-12 w-12 flex-none rounded-lg overflow-hidden border border-border bg-muted">
+                  <NextImage
+                    src={f.objectUrl}
+                    alt=""
+                    fill
+                    sizes="48px"
+                    unoptimized
+                    className="object-cover"
+                  />
+                </div>
+
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <p className="truncate font-medium text-foreground">{f.file.name}</p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{formatBytes(f.file.size)}</span>
+                    {f.width > 0 && (
+                      <>
+                        <span>â€¢</span>
+                        <Badge variant="outline" className="text-[10px] h-4 px-1 font-mono">
+                          {f.width} Ã— {f.height} px
+                        </Badge>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={i === 0 || isProcessing}
+                    onClick={() => move(i, "up")}
+                    aria-label="Move up"
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={i === files.length - 1 || isProcessing}
+                    onClick={() => move(i, "down")}
+                    aria-label="Move down"
+                  >
+                    <ArrowDown className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                    disabled={isProcessing}
+                    onClick={() => handleRemove(f.id)}
+                    aria-label="Remove image"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {/* Generated output banner */}
+      {outputUrl && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-900 dark:text-emerald-200">
+          <div className="flex items-center gap-3">
+            <FileCheck2 className="h-6 w-6 text-emerald-600 dark:text-emerald-400 flex-none" />
+            <div>
+              <p className="font-semibold text-sm">High-Resolution PDF Ready!</p>
+              <p className="text-xs text-muted-foreground">
+                Embedded {files.length} images with 100% original fidelity â€¢{" "}
+                {outputSize ? formatBytes(outputSize) : ""}
+              </p>
+            </div>
+          </div>
+          <Button asChild className="gap-2">
+            <a href={outputUrl} download="convaudit-document.pdf">
+              <Download className="h-4 w-4" />
+              Download PDF
+            </a>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleProcessAnotherFile}
+          >
+            Process another file
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/MergePdfTool.tsx
+========================================
+
+"use client";
+
+import { useState } from "react";
+import { ArrowDown, ArrowUp, Download, Loader2, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { FileUploader, type UploadedFile } from "./FileUploader";
+import { CancelOperationButton } from "./CancelOperationButton";
+import { useOperationCancellation } from "./useOperationCancellation";
+import { downloadBytes, formatBytes, shortId } from "@/lib/download";
+import { throwIfCancelled } from "@/lib/file-validation";
+
+type PdfEntry = UploadedFile & { pageCount: number };
+
+/**
+ * Merge PDF tool.
+ * Uses pdf-lib to copy pages from multiple PDFs into a single document.
+ * Users can reorder files in the list before merging.
+ */
+export function MergePdfTool() {
+  const [files, setFiles] = useState<PdfEntry[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [outputUrl, setOutputUrl] = useState<string | null>(null);
+  const [outputSize, setOutputSize] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const cancellation = useOperationCancellation();
+
+  const handleFilesAdded = async (newFiles: File[]) => {
+    const pdfs = newFiles.filter(
+      (f) => f.type === "application/pdf" || /\.pdf$/i.test(f.name)
+    );
+    if (pdfs.length < newFiles.length) {
+      setError("Some files were skipped â€” only PDF files are supported.");
+    } else {
+      setError(null);
+    }
+    // Read page counts for display
+    const entries: PdfEntry[] = [];
+    for (const f of pdfs) {
+      try {
+        const { PDFDocument } = await import("pdf-lib");
+        const buf = await f.arrayBuffer();
+        const doc = await PDFDocument.load(buf, { ignoreEncryption: true });
+        entries.push({
+          file: f,
+          id: shortId(),
+          pageCount: doc.getPageCount(),
+        });
+      } catch {
+        entries.push({ file: f, id: shortId(), pageCount: 0 });
+      }
+    }
+    setFiles((prev) => [...prev, ...entries]);
+    setOutputUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setOutputSize(null);
+  };
+
+  const handleRemove = (id: string) =>
+    setFiles((prev) => prev.filter((f) => f.id !== id));
+
+  const handleProcessAnotherFile = () => {
+    if (outputUrl) URL.revokeObjectURL(outputUrl);
+    setFiles([]);
+    setOutputUrl(null);
+    setOutputSize(null);
+    setError(null);
+    setProgress(0);
+  };
+
+  const move = (index: number, direction: "up" | "down") => {
+    setFiles((prev) => {
+      const next = [...prev];
+      const target = direction === "up" ? index - 1 : index + 1;
+      if (target < 0 || target >= next.length) return prev;
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
+
+  const handleMerge = async () => {
+    if (files.length < 2) {
+      setError("Add at least two PDFs to merge.");
+      return;
+    }
+    setIsProcessing(true);
+    setError(null);
+    setProgress(0);
+    const controller = cancellation.start();
+    setOutputUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setOutputSize(null);
+    try {
+      const { PDFDocument } = await import("pdf-lib");
+      const merged = await PDFDocument.create();
+      for (let i = 0; i < files.length; i++) {
+        throwIfCancelled(controller.signal);
+        const entry = files[i];
+        const buf = await entry.file.arrayBuffer();
+        throwIfCancelled(controller.signal);
+        const doc = await PDFDocument.load(buf, { ignoreEncryption: true });
+        throwIfCancelled(controller.signal);
+        const pages = await merged.copyPages(doc, doc.getPageIndices());
+        throwIfCancelled(controller.signal);
+        pages.forEach((p) => merged.addPage(p));
+        setProgress(Math.round(((i + 1) / files.length) * 100));
+      }
+      throwIfCancelled(controller.signal);
+      const bytes = await merged.save();
+      throwIfCancelled(controller.signal);
+      const blob = new Blob([bytes as BlobPart], { type: "application/pdf" });
+      setOutputUrl(URL.createObjectURL(blob));
+      setOutputSize(blob.size);
+    } catch (err) {
+      if (controller.signal.aborted) {
+        setError("Merge cancelled. No partial result was saved.");
+      } else {
+        console.error(err);
+        setError("Failed to merge PDFs. One of the files may be corrupted or encrypted.");
+      }
+    } finally {
+      cancellation.finish(controller);
+      setIsProcessing(false);
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <FileUploader
+        accept="application/pdf,.pdf"
+        multiple
+        files={files}
+        onFilesAdded={handleFilesAdded}
+        onFileRemove={handleRemove}
+        hint="Add two or more PDF files. Reorder them below before merging."
+        disabled={isProcessing}
+      />
+
+      {files.length > 1 && (
+        <ol className="space-y-2">
+          {files.map((f, i) => (
+            <li
+              key={f.id}
+              className="flex items-center gap-3 rounded-lg border bg-card p-3 text-sm"
+            >
+              <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+                {i + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium">{f.file.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {f.pageCount > 0 ? `${f.pageCount} pages` : "unreadable"}
+                </p>
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  aria-label="Move up"
+                  disabled={i === 0 || isProcessing}
+                  onClick={() => move(i, "up")}
+                >
+                  <ArrowUp className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  aria-label="Move down"
+                  disabled={i === files.length - 1 || isProcessing}
+                  onClick={() => move(i, "down")}
+                >
+                  <ArrowDown className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  aria-label="Remove"
+                  disabled={isProcessing}
+                  onClick={() => handleRemove(f.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {error && (
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      )}
+
+      {isProcessing && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              {cancellation.isCancelling
+                ? "Stopping after the current PDF..."
+                : `Preparing PDFs... ${progress}%`}
+            </p>
+            <CancelOperationButton
+              onCancel={cancellation.cancel}
+              isCancelling={cancellation.isCancelling}
+              cancelLabel="Cancel after this PDF"
+              cancellingLabel="Stopping after this PDF..."
+            />
+          </div>
+          <Progress value={progress} />
+        </div>
+      )}
+
+      <Button
+        onClick={handleMerge}
+        disabled={files.length < 2 || isProcessing}
+        className="w-full"
+        size="lg"
+      >
+        {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+        {isProcessing ? "Merging..." : `Merge ${files.length} PDFs`}
+      </Button>
+
+      {outputUrl && (
+        <div className="rounded-lg border bg-card p-4 text-sm">
+          <p className="font-medium">Merged PDF ready!</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {outputSize ? `${formatBytes(outputSize)} Â· ` : ""}Click below to download your merged document.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button asChild size="sm">
+              <a href={outputUrl} download="merged.pdf">
+                <Download className="mr-1 h-3.5 w-3.5" /> Download merged.pdf
+              </a>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleProcessAnotherFile}
+            >
+              Process another file
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/PdfToImageTool.tsx
+========================================
+
+"use client";
+
+import { useRef, useState } from "react";
+import Image from "next/image";
+import {
+  Download,
+  Loader2,
+  Trash2,
+  FileImage,
+  Sparkles,
+  Archive,
+  Layers,
+  Settings2,
+  CheckCircle2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { FileUploader, type UploadedFile } from "./FileUploader";
+import { CancelOperationButton } from "./CancelOperationButton";
+import { useOperationCancellation } from "./useOperationCancellation";
+import { downloadBlob, formatBytes, shortId } from "@/lib/download";
+import { throwIfCancelled } from "@/lib/file-validation";
+
+type ImageFormat = "png" | "jpeg" | "webp";
+type DpiPreset = "72" | "150" | "200" | "300" | "400" | "custom";
+
+interface RenderedPage {
+  pageNum: number;
+  blob: Blob;
+  previewUrl: string;
+  width: number;
+  height: number;
+  size: number;
+}
+
+export function PdfToImageTool() {
+  const [file, setFile] = useState<UploadedFile | null>(null);
+  const [pageCount, setPageCount] = useState<number | null>(null);
+  const [dpiPreset, setDpiPreset] = useState<DpiPreset>("300");
+  const [customScale, setCustomScale] = useState<number>(3.0);
+  const [format, setFormat] = useState<ImageFormat>("png");
+  const [jpegQuality, setJpegQuality] = useState<number>(95);
+  const [pageRange, setPageRange] = useState<string>("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [renderedPages, setRenderedPages] = useState<RenderedPage[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const renderTaskRef = useRef<{ cancel: () => void } | null>(null);
+  const cancellation = useOperationCancellation();
+
+  const getEffectiveScale = (): number => {
+    switch (dpiPreset) {
+      case "72":
+        return 1.0;
+      case "150":
+        return 150 / 72; // ~2.08x
+      case "200":
+        return 200 / 72; // ~2.78x
+      case "300":
+        return 300 / 72; // ~4.17x (Crisp 300 DPI print quality)
+      case "400":
+        return 400 / 72; // ~5.55x (Ultra 400 DPI)
+      case "custom":
+        return customScale;
+      default:
+        return 300 / 72;
+    }
+  };
+
+  const parseTargetPages = (total: number, rangeStr: string): number[] => {
+    const trimmed = rangeStr.trim();
+    if (!trimmed) {
+      return Array.from({ length: total }, (_, i) => i + 1);
+    }
+
+    const pages = new Set<number>();
+    const tokens = trimmed.split(",");
+
+    for (const token of tokens) {
+      const part = token.trim();
+      if (!part) continue;
+
+      if (part.includes("-")) {
+        const [startStr, endStr] = part.split("-");
+        const start = parseInt(startStr, 10);
+        const end = parseInt(endStr, 10);
+        if (!isNaN(start) && !isNaN(end)) {
+          const min = Math.max(1, Math.min(start, end));
+          const max = Math.min(total, Math.max(start, end));
+          for (let p = min; p <= max; p++) {
+            pages.add(p);
+          }
+        }
+      } else {
+        const p = parseInt(part, 10);
+        if (!isNaN(p) && p >= 1 && p <= total) {
+          pages.add(p);
+        }
+      }
+    }
+
+    const sorted = Array.from(pages).sort((a, b) => a - b);
+    return sorted.length > 0 ? sorted : Array.from({ length: total }, (_, i) => i + 1);
+  };
+
+  const handleFilesAdded = async (newFiles: File[]) => {
+    if (newFiles.length === 0) return;
+    const f = newFiles[0];
+    if (!f.name.toLowerCase().endsWith(".pdf")) {
+      setError("Please select a PDF document.");
+      return;
+    }
+
+    setError(null);
+    setFile({ file: f, id: shortId() });
+    setRenderedPages([]);
+    setProgress(0);
+
+    try {
+      const pdfjs = await import("pdfjs-dist/build/pdf.mjs");
+      pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+        "pdfjs-dist/build/pdf.worker.mjs",
+        import.meta.url
+      ).toString();
+
+      const buf = await f.arrayBuffer();
+      const doc = await pdfjs.getDocument({ data: buf }).promise;
+      setPageCount(doc.numPages);
+    } catch (err) {
+      console.error(err);
+      setError("Could not read PDF. The document might be password-protected or corrupted.");
+    }
+  };
+
+  const handleRemove = () => {
+    renderedPages.forEach((p) => URL.revokeObjectURL(p.previewUrl));
+    setFile(null);
+    setPageCount(null);
+    setRenderedPages([]);
+    setError(null);
+    setProgress(0);
+    setCurrentPage(0);
+  };
+
+  const handleProcessAnotherFile = () => {
+    handleRemove();
+    setDpiPreset("300");
+    setCustomScale(3.0);
+    setFormat("png");
+    setJpegQuality(95);
+    setPageRange("");
+  };
+
+  const handleConvert = async () => {
+    if (!file) return;
+    setIsProcessing(true);
+    setError(null);
+    setProgress(0);
+    setCurrentPage(0);
+    const controller = cancellation.start();
+
+    renderedPages.forEach((p) => URL.revokeObjectURL(p.previewUrl));
+    setRenderedPages([]);
+    const results: RenderedPage[] = [];
+
+    try {
+      throwIfCancelled(controller.signal);
+      const pdfjs = await import("pdfjs-dist/build/pdf.mjs");
+      pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+        "pdfjs-dist/build/pdf.worker.mjs",
+        import.meta.url
+      ).toString();
+
+      const buf = await file.file.arrayBuffer();
+      throwIfCancelled(controller.signal);
+      const doc = await pdfjs.getDocument({ data: buf }).promise;
+      throwIfCancelled(controller.signal);
+      const totalPages = doc.numPages;
+      const targetPages = parseTargetPages(totalPages, pageRange);
+
+      const scale = getEffectiveScale();
+      const mime = format === "png" ? "image/png" : format === "webp" ? "image/webp" : "image/jpeg";
+      const quality = format === "png" ? undefined : jpegQuality / 100;
+
+      for (let idx = 0; idx < targetPages.length; idx++) {
+        throwIfCancelled(controller.signal);
+        const pageNum = targetPages[idx];
+        setCurrentPage(pageNum);
+
+        const page = await doc.getPage(pageNum);
+        const viewport = page.getViewport({ scale });
+
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.floor(viewport.width);
+        canvas.height = Math.floor(viewport.height);
+
+        const ctx = canvas.getContext("2d", { alpha: format === "png" });
+        if (!ctx) throw new Error("Canvas context initialization failed");
+
+        // Fill white background for vector PDF rendering
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const renderTask = page.render({
+          canvasContext: ctx,
+          viewport,
+          canvas,
+        });
+        renderTaskRef.current = renderTask;
+        try {
+          await renderTask.promise;
+        } finally {
+          if (renderTaskRef.current === renderTask) renderTaskRef.current = null;
+        }
+        throwIfCancelled(controller.signal);
+
+        const blob = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob(
+            (b) => (b ? resolve(b) : reject(new Error(`Failed to encode page ${pageNum}`))),
+            mime,
+            quality
+          );
+        });
+        throwIfCancelled(controller.signal);
+
+        const previewUrl = URL.createObjectURL(blob);
+        results.push({
+          pageNum,
+          blob,
+          previewUrl,
+          width: canvas.width,
+          height: canvas.height,
+          size: blob.size,
+        });
+
+        setProgress(Math.round(((idx + 1) / targetPages.length) * 100));
+      }
+
+      throwIfCancelled(controller.signal);
+      setRenderedPages(results);
+    } catch (err) {
+      results.forEach((page) => URL.revokeObjectURL(page.previewUrl));
+      if (controller.signal.aborted) {
+        setError("Conversion cancelled. No partial images were saved.");
+      } else {
+        console.error(err);
+        setError(err instanceof Error ? err.message : "Failed to convert PDF pages to images.");
+      }
+    } finally {
+      renderTaskRef.current = null;
+      cancellation.finish(controller);
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDownloadSingle = (page: RenderedPage) => {
+    if (!file) return;
+    const base = file.file.name.replace(/\.pdf$/i, "");
+    downloadBlob(page.blob, `${base}-page-${page.pageNum}.${format}`);
+  };
+
+  const handleDownloadAllZip = async () => {
+    if (!file || renderedPages.length === 0) return;
+    setError(null);
+    try {
+      const { default: JSZip } = await import("jszip");
+      const zip = new JSZip();
+      const base = file.file.name.replace(/\.pdf$/i, "");
+
+      renderedPages.forEach((page) => {
+        zip.file(`${base}-page-${page.pageNum}.${format}`, page.blob);
+      });
+
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      downloadBlob(zipBlob, `${base}-images.zip`);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to prepare the ZIP download. Please try again.");
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Uploader */}
+      <FileUploader
+        accept=".pdf,application/pdf"
+        multiple={false}
+        files={file ? [file] : []}
+        onFilesAdded={handleFilesAdded}
+        onFileRemove={handleRemove}
+        hint="Upload any PDF to convert its pages into high-resolution JPG, PNG, or WebP images."
+        disabled={isProcessing}
+      />
+
+      {/* Settings Panel */}
+      {file && (
+        <div className="rounded-xl border border-border bg-card p-5 space-y-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4">
+            <div className="space-y-0.5">
+              <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+                <Settings2 className="h-4 w-4" />
+                High-Quality Render Settings
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Document contains {pageCount ?? "..."} {pageCount === 1 ? "page" : "pages"}.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleConvert}
+                disabled={isProcessing}
+                className="gap-2"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Rendering Page {currentPage}...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    Convert PDF to Images
+                  </>
+                )}
+              </Button>
+
+              {isProcessing && (
+                <CancelOperationButton
+                  onCancel={() => {
+                    cancellation.cancel();
+                    renderTaskRef.current?.cancel();
+                  }}
+                  isCancelling={cancellation.isCancelling}
+                />
+              )}
+
+              {renderedPages.length > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={handleDownloadAllZip}
+                  className="gap-2"
+                >
+                  <Archive className="h-4 w-4" />
+                  Download ZIP ({renderedPages.length})
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Resolution / DPI */}
+            <div className="space-y-1.5">
+              <Label htmlFor="dpi-preset" className="text-xs font-medium text-muted-foreground">
+                Quality / Resolution (DPI)
+              </Label>
+              <Select
+                value={dpiPreset}
+                onValueChange={(v: DpiPreset) => setDpiPreset(v)}
+                disabled={isProcessing}
+              >
+                <SelectTrigger id="dpi-preset" className="h-9">
+                  <SelectValue placeholder="Preset" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="300">Ultra Print (300 DPI â€” Razor Sharp)</SelectItem>
+                  <SelectItem value="200">Super HD (200 DPI â€” High Retina)</SelectItem>
+                  <SelectItem value="150">High Quality (150 DPI â€” Balanced)</SelectItem>
+                  <SelectItem value="72">Screen Quality (72 DPI â€” Standard)</SelectItem>
+                  <SelectItem value="400">Maximum Quality (400 DPI â€” 4K+)</SelectItem>
+                  <SelectItem value="custom">Custom Scale</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Output Format */}
+            <div className="space-y-1.5">
+              <Label htmlFor="img-format" className="text-xs font-medium text-muted-foreground">
+                Output Format
+              </Label>
+              <Select
+                value={format}
+                onValueChange={(v: ImageFormat) => setFormat(v)}
+                disabled={isProcessing}
+              >
+                <SelectTrigger id="img-format" className="h-9">
+                  <SelectValue placeholder="Format" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="png">PNG (Lossless &amp; Vector-Crisp)</SelectItem>
+                  <SelectItem value="jpeg">JPG (Compressed Photo)</SelectItem>
+                  <SelectItem value="webp">WebP (Modern Web Format)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Page Range */}
+            <div className="space-y-1.5">
+              <Label htmlFor="page-range" className="text-xs font-medium text-muted-foreground">
+                Page Range (Optional)
+              </Label>
+              <Input
+                id="page-range"
+                placeholder="e.g. 1-3, 5 (blank for all)"
+                value={pageRange}
+                onChange={(e) => setPageRange(e.target.value)}
+                className="h-9 text-xs"
+                disabled={isProcessing}
+              />
+            </div>
+
+            {/* Quality Slider (JPG/WebP) or Custom Scale */}
+            {dpiPreset === "custom" ? (
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <Label className="text-muted-foreground">Scale Multiplier</Label>
+                  <span className="font-medium text-foreground">{customScale}x</span>
+                </div>
+                <Slider
+                  value={[customScale]}
+                  min={1.0}
+                  max={5.0}
+                  step={0.5}
+                  onValueChange={(val) => setCustomScale(val[0])}
+                  className="py-1"
+                  disabled={isProcessing}
+                />
+              </div>
+            ) : format !== "png" ? (
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs">
+                  <Label className="text-muted-foreground">Image Quality</Label>
+                  <span className="font-medium text-foreground">{jpegQuality}%</span>
+                </div>
+                <Slider
+                  value={[jpegQuality]}
+                  min={70}
+                  max={100}
+                  step={1}
+                  onValueChange={(val) => setJpegQuality(val[0])}
+                  className="py-1"
+                  disabled={isProcessing}
+                />
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground">Mode</Label>
+                <div className="flex items-center gap-1.5 h-9 px-3 rounded-md bg-muted/40 text-xs text-muted-foreground">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                  Lossless PNG (Zero compression artifacts)
+                </div>
+              </div>
+            )}
+          </div>
+
+          {isProcessing && (
+            <div className="space-y-2 pt-2">
+              <div className="flex justify-between gap-3 text-xs text-muted-foreground">
+                <span>
+                  {cancellation.isCancelling
+                    ? "Stopping after the current page..."
+                    : `Rendering page ${currentPage}...`}
+                </span>
+                <span>{progress}%</span>
+              </div>
+              <Progress value={progress} className="h-2" />
+            </div>
+          )}
+
+          {error && (
+            <p className="text-xs font-medium text-destructive" role="alert">
+              {error}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Results Gallery */}
+      {renderedPages.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+              <Layers className="h-4 w-4" />
+              Converted Images ({renderedPages.length} {renderedPages.length === 1 ? "page" : "pages"})
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleProcessAnotherFile}
+                className="text-xs"
+              >
+                Process another file
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownloadAllZip}
+                disabled={isProcessing}
+                className="gap-1.5 text-xs"
+              >
+                <Archive className="h-3.5 w-3.5" />
+                Download All as ZIP
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {renderedPages.map((page) => (
+              <div
+                key={page.pageNum}
+                className="group relative flex flex-col rounded-xl border border-border bg-card overflow-hidden shadow-xs hover:border-border/80 transition-all"
+              >
+                {/* Preview Image */}
+                <div className="relative aspect-3/4 w-full bg-muted/30 p-2 flex items-center justify-center overflow-hidden border-b">
+                  <Image
+                    src={page.previewUrl}
+                    alt={`Page ${page.pageNum}`}
+                    width={page.width}
+                    height={page.height}
+                    sizes="(max-width: 640px) 100vw, 33vw"
+                    unoptimized
+                    className="max-h-full max-w-full rounded object-contain shadow-xs"
+                  />
+                  <Badge className="absolute top-3 left-3 bg-background/90 text-foreground backdrop-blur-sm border shadow-xs text-xs">
+                    Page {page.pageNum}
+                  </Badge>
+                </div>
+
+                {/* Info & Download Bar */}
+                <div className="p-3.5 flex items-center justify-between gap-2">
+                  <div className="space-y-0.5 text-xs">
+                    <p className="font-semibold text-foreground">
+                      {page.width} Ã— {page.height} px
+                    </p>
+                    <p className="text-muted-foreground">
+                      {formatBytes(page.size)} â€¢ {format.toUpperCase()}
+                    </p>
+                  </div>
+
+                  <Button
+                    size="sm"
+                    onClick={() => handleDownloadSingle(page)}
+                    disabled={isProcessing}
+                    className="h-8 gap-1.5 text-xs"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Download
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/PdfToWordTool.tsx
+========================================
+
+"use client";
+
+import { useState } from "react";
+import { ClipboardCopy, Download, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { FileUploader, type UploadedFile } from "./FileUploader";
+import { CancelOperationButton } from "./CancelOperationButton";
+import { useOperationCancellation } from "./useOperationCancellation";
+import { copyText, downloadBlob, shortId } from "@/lib/download";
+import { throwIfCancelled } from "@/lib/file-validation";
+
+/**
+ * PDF to Word tool.
+ *
+ * Uses pdfjs-dist to extract text content from each page of the PDF, then
+ * wraps that text in a minimal Word-compatible .doc file (HTML-based Word
+ * 97-2003 format that opens in Word, Google Docs, and LibreOffice).
+ *
+ * Note: This focuses on accurate text extraction. Complex layouts, tables,
+ * and images are NOT preserved.
+ */
+export function PdfToWordTool() {
+  const [file, setFile] = useState<UploadedFile | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [extractedText, setExtractedText] = useState<string>("");
+  const [clipboardStatus, setClipboardStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const cancellation = useOperationCancellation();
+
+  const handleFilesAdded = (newFiles: File[]) => {
+    if (newFiles.length === 0) return;
+    const f = newFiles[0];
+    if (!f.name.toLowerCase().endsWith(".pdf")) {
+      setError("Please upload a PDF file.");
+      return;
+    }
+    setError(null);
+    setFile({ file: f, id: shortId() });
+    setExtractedText("");
+    setClipboardStatus(null);
+  };
+
+  const handleRemove = () => {
+    setFile(null);
+    setExtractedText("");
+    setClipboardStatus(null);
+  };
+
+  const handleProcessAnotherFile = () => {
+    setFile(null);
+    setExtractedText("");
+    setError(null);
+    setProgress(0);
+    setClipboardStatus(null);
+  };
+
+  const handleConvert = async () => {
+    if (!file) return;
+    setIsProcessing(true);
+    setError(null);
+    setProgress(0);
+    setExtractedText("");
+    setClipboardStatus(null);
+    const controller = cancellation.start();
+
+    try {
+      throwIfCancelled(controller.signal);
+      // Lazy-load pdfjs-dist so the heavy WASM only loads when needed.
+      const pdfjs = await import("pdfjs-dist/build/pdf.mjs");
+      // Use a worker URL via webpack's new URL() support (Next.js compatible).
+      pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+        "pdfjs-dist/build/pdf.worker.mjs",
+        import.meta.url
+      ).toString();
+
+      const buf = await file.file.arrayBuffer();
+      throwIfCancelled(controller.signal);
+      const doc = await pdfjs.getDocument({ data: buf }).promise;
+      const lines: string[] = [];
+      for (let i = 1; i <= doc.numPages; i++) {
+        throwIfCancelled(controller.signal);
+        const page = await doc.getPage(i);
+        const content = await page.getTextContent();
+        throwIfCancelled(controller.signal);
+        const text = content.items
+          .map((item) => ("str" in item ? (item as { str: string }).str : ""))
+          .join(" ");
+        lines.push(text);
+        setProgress(Math.round((i / doc.numPages) * 100));
+      }
+      throwIfCancelled(controller.signal);
+      const fullText = lines.join("\n\n");
+      setExtractedText(fullText);
+    } catch (err) {
+      if (controller.signal.aborted) {
+        setError("Conversion cancelled. No partial document was created.");
+      } else {
+        console.error(err);
+        setError(
+          "Failed to extract text. The PDF may be scanned (images only) or corrupted."
+        );
+      }
+    } finally {
+      cancellation.finish(controller);
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDownload = () => {
+    if (!extractedText || !file) return;
+    const baseName = file.file.name.replace(/\.pdf$/i, "");
+    // Build a minimal Word-compatible .doc file (HTML format that Word reads).
+    const escaped = extractedText
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    const paragraphs = escaped
+      .split(/\n\n+/)
+      .map((p) => `<p>${p.replace(/\n/g, "<br/>")}</p>`)
+      .join("");
+    const html = `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${baseName}</title></head><body>${paragraphs}</body></html>`;
+    const blob = new Blob([html], { type: "application/msword" });
+    downloadBlob(blob, `${baseName}.doc`);
+  };
+
+  const handleCopyText = async () => {
+    const copied = await copyText(extractedText);
+    setClipboardStatus(
+      copied
+        ? "Text copied to clipboard."
+        : "Could not copy text. Select it from the preview and copy manually.",
+    );
+  };
+
+  const handleDownloadText = () => {
+    if (!extractedText || !file) return;
+    const baseName = file.file.name.replace(/\.pdf$/i, "");
+    const blob = new Blob([extractedText], { type: "text/plain;charset=utf-8" });
+    downloadBlob(blob, `${baseName}.txt`);
+  };
+
+  return (
+    <div className="space-y-5">
+      <FileUploader
+        accept="application/pdf,.pdf"
+        files={file ? [file] : []}
+        onFilesAdded={handleFilesAdded}
+        onFileRemove={handleRemove}
+        hint="Upload a PDF with embedded text. Scanned PDFs (images only) are not supported."
+        disabled={isProcessing}
+      />
+
+      {error && (
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      )}
+
+      {isProcessing && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              {cancellation.isCancelling
+                ? "Stopping after the current page..."
+                : `Extracting text... ${progress}%`}
+            </p>
+            <CancelOperationButton
+              onCancel={cancellation.cancel}
+              isCancelling={cancellation.isCancelling}
+              cancelLabel="Cancel after this page"
+              cancellingLabel="Stopping after this page..."
+            />
+          </div>
+          <Progress value={progress} />
+        </div>
+      )}
+
+      <Button
+        onClick={handleConvert}
+        disabled={!file || isProcessing}
+        className="w-full"
+        size="lg"
+      >
+        {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+        {isProcessing ? "Converting..." : "Convert to Word"}
+      </Button>
+
+      {extractedText && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold">Extracted text preview</h3>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" variant="outline" onClick={handleCopyText}>
+                <ClipboardCopy className="mr-1 h-3.5 w-3.5" /> Copy text
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleDownloadText}>
+                <Download className="mr-1 h-3.5 w-3.5" /> Download .txt
+              </Button>
+              <Button size="sm" onClick={handleDownload}>
+                <Download className="mr-1 h-3.5 w-3.5" /> Download .doc
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleProcessAnotherFile}
+              >
+                Process another file
+              </Button>
+            </div>
+          </div>
+          {clipboardStatus && (
+            <p className="text-sm text-muted-foreground" role="status" aria-live="polite">
+              {clipboardStatus}
+            </p>
+          )}
+          <pre className="max-h-80 overflow-y-auto rounded-lg border bg-muted/30 p-3 text-xs whitespace-pre-wrap">
+            {extractedText.slice(0, 4000)}
+            {extractedText.length > 4000 ? "\n..." : ""}
+          </pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/RemoveBackgroundTool.tsx
+========================================
+
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import {
+  Archive,
+  Check,
+  Download,
+  ImagePlus,
+  Loader2,
+  ShieldCheck,
+  X,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { FileUploader, type UploadedFile } from "./FileUploader";
+import { downloadBlob, shortId } from "@/lib/download";
+
+type Segmenter = import("@huggingface/transformers").BackgroundRemovalPipelineType;
+
+type QueueItem = UploadedFile & {
+  previewUrl: string;
+  status: "queued" | "processing" | "done" | "error";
+  progress: number;
+  progressLabel: string;
+  output?: Blob;
+  outputUrl?: string;
+  error?: string;
+  notice?: string;
+};
+
+type SourceImage = {
+  blob: Blob;
+  width: number;
+  height: number;
+  notice?: string;
+};
+
+const MODEL_ID = "Xenova/modnet";
+const PROCESSING_TIMEOUT_MS = 180_000;
+const MAX_PIXELS = 8_000_000;
+
+function isSupportedImage(file: File): boolean {
+  return (
+    ["image/jpeg", "image/png", "image/webp"].includes(file.type.toLowerCase()) ||
+    /\.(jpe?g|png|webp)$/i.test(file.name)
+  );
+}
+
+function getDevicePixelLimit(): number {
+  const navigatorWithMemory = navigator as Navigator & {
+    deviceMemory?: number;
+  };
+  const lowMemory =
+    (navigatorWithMemory.deviceMemory !== undefined &&
+      navigatorWithMemory.deviceMemory <= 4) ||
+    navigator.hardwareConcurrency <= 4;
+  return lowMemory ? 4_000_000 : MAX_PIXELS;
+}
+
+async function prepareSourceImage(file: File): Promise<SourceImage> {
+  if (typeof createImageBitmap !== "function") {
+    throw new Error("This browser cannot decode images for local processing.");
+  }
+
+  const bitmap = await createImageBitmap(file);
+  try {
+    const originalPixels = bitmap.width * bitmap.height;
+    const pixelLimit = getDevicePixelLimit();
+    const scale =
+      originalPixels > pixelLimit ? Math.sqrt(pixelLimit / originalPixels) : 1;
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { willReadFrequently: false });
+    if (!context) throw new Error("Your browser could not create an image canvas.");
+
+    context.drawImage(bitmap, 0, 0, width, height);
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (output) =>
+          output
+            ? resolve(output)
+            : reject(new Error("Could not prepare this image for processing.")),
+        "image/png",
+      );
+    });
+    canvas.width = 0;
+    canvas.height = 0;
+
+    return {
+      blob,
+      width,
+      height,
+      ...(scale < 1
+        ? {
+            notice: `Downscaled from ${bitmap.width.toLocaleString()} Ã— ${bitmap.height.toLocaleString()} to ${width.toLocaleString()} Ã— ${height.toLocaleString()} pixels to fit your device's memory limit.`,
+          }
+        : {}),
+    };
+  } finally {
+    bitmap.close();
+  }
+}
+
+/**
+ * Blur only the output's alpha channel so the transparent cutout edge is less harsh.
+ */
+async function featherCutout(
+  output: import("@huggingface/transformers").RawImage,
+): Promise<Blob> {
+  if (output.channels !== 4) {
+    throw new Error("The model returned an unsupported image format.");
+  }
+
+  const width = output.width;
+  const height = output.height;
+  const outputCanvas = document.createElement("canvas");
+  const alphaCanvas = document.createElement("canvas");
+  const blurredCanvas = document.createElement("canvas");
+  for (const canvas of [outputCanvas, alphaCanvas, blurredCanvas]) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+
+  const outputContext = outputCanvas.getContext("2d", {
+    willReadFrequently: true,
+  });
+  const alphaContext = alphaCanvas.getContext("2d", {
+    willReadFrequently: false,
+  });
+  const blurredContext = blurredCanvas.getContext("2d", {
+    willReadFrequently: true,
+  });
+  try {
+    if (!outputContext || !alphaContext || !blurredContext) {
+      throw new Error("Your browser could not refine the image edges.");
+    }
+
+    const rgba = new ImageData(width, height);
+    rgba.data.set(output.data);
+    outputContext.putImageData(rgba, 0, 0);
+
+    const alphaMask = new ImageData(width, height);
+    for (let pixel = 0; pixel < width * height; pixel++) {
+      const alpha = rgba.data[pixel * 4 + 3];
+      const offset = pixel * 4;
+      alphaMask.data[offset] = alpha;
+      alphaMask.data[offset + 1] = alpha;
+      alphaMask.data[offset + 2] = alpha;
+      alphaMask.data[offset + 3] = 255;
+    }
+    alphaContext.putImageData(alphaMask, 0, 0);
+    blurredContext.filter = "blur(1.2px)";
+    blurredContext.drawImage(alphaCanvas, 0, 0);
+    blurredContext.filter = "none";
+    const featheredAlpha = blurredContext.getImageData(0, 0, width, height);
+
+    for (let pixel = 0; pixel < width * height; pixel++) {
+      rgba.data[pixel * 4 + 3] = featheredAlpha.data[pixel * 4];
+    }
+    outputContext.putImageData(rgba, 0, 0);
+
+    return await new Promise<Blob>((resolve, reject) => {
+      outputCanvas.toBlob(
+        (result) =>
+          result
+            ? resolve(result)
+            : reject(new Error("Could not create the transparent PNG.")),
+        "image/png",
+      );
+    });
+  } finally {
+    for (const canvas of [outputCanvas, alphaCanvas, blurredCanvas]) {
+      canvas.width = 0;
+      canvas.height = 0;
+    }
+  }
+}
+
+function getFriendlyError(error: unknown): string {
+  const message = error instanceof Error ? error.message : "";
+  if (/timeout/i.test(message)) {
+    return "This image took too long to process. Retry it, or use a smaller image and close other tabs.";
+  }
+  if (
+    error instanceof RangeError ||
+    /memory|allocation|ArrayBuffer|out of memory/i.test(message)
+  ) {
+    return "Your device ran low on memory. Close other tabs, retry with a smaller image, or process fewer images at once.";
+  }
+  if (/decode|unsupported|image format|corrupt/i.test(message)) {
+    return "This image could not be decoded. Try a valid JPG, PNG, or WebP file.";
+  }
+  return "Could not remove this image's background. Try another image or retry after closing other tabs.";
+}
+
+function getOutputName(fileName: string): string {
+  return `${fileName.replace(/\.[^.]+$/, "")}-no-bg.png`;
+}
+
+export function RemoveBackgroundTool() {
+  const [files, setFiles] = useState<QueueItem[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [activeFileId, setActiveFileId] = useState<string | null>(null);
+  const [comparison, setComparison] = useState(50);
+  const [error, setError] = useState<string | null>(null);
+  const [isCreatingZip, setIsCreatingZip] = useState(false);
+  const [modelMessage, setModelMessage] = useState<string | null>(null);
+  const segmenterRef = useRef<Segmenter | null>(null);
+  const filesRef = useRef<QueueItem[]>([]);
+
+  filesRef.current = files;
+
+  useEffect(
+    () => () => {
+      for (const item of filesRef.current) {
+        URL.revokeObjectURL(item.previewUrl);
+        if (item.outputUrl) URL.revokeObjectURL(item.outputUrl);
+      }
+    },
+    [],
+  );
+
+  const updateItem = (
+    id: string,
+    update: (item: QueueItem) => QueueItem,
+  ) => {
+    setFiles((current) => current.map((item) => (item.id === id ? update(item) : item)));
+  };
+
+  const handleFilesAdded = (newFiles: File[]) => {
+    const validFiles = newFiles.filter(isSupportedImage);
+    const rejectedCount = newFiles.length - validFiles.length;
+    if (rejectedCount > 0) {
+      setError(
+        `${rejectedCount} file${rejectedCount === 1 ? " was" : "s were"} skipped. Choose JPG, PNG, or WebP images.`,
+      );
+    } else {
+      setError(null);
+    }
+
+    const added = validFiles.map((file): QueueItem => ({
+      file,
+      id: shortId(),
+      previewUrl: URL.createObjectURL(file),
+      status: "queued",
+      progress: 0,
+      progressLabel: "Waiting",
+    }));
+    setFiles((current) => [...current, ...added]);
+    if (!activeFileId && added[0]) setActiveFileId(added[0].id);
+  };
+
+  const handleRemove = (id: string) => {
+    const removed = files.find((item) => item.id === id);
+    if (removed) {
+      URL.revokeObjectURL(removed.previewUrl);
+      if (removed.outputUrl) URL.revokeObjectURL(removed.outputUrl);
+    }
+    setFiles((current) => current.filter((item) => item.id !== id));
+    if (activeFileId === id) {
+      setActiveFileId(files.find((item) => item.id !== id)?.id ?? null);
+    }
+  };
+
+  const getSegmenter = async (
+    onProgress: (progress: number, label: string) => void,
+  ): Promise<Segmenter> => {
+    if (segmenterRef.current) return segmenterRef.current;
+
+    setModelMessage(
+      "Loading the AI model. The first download is about 12 MB plus runtime files; the browser caches it where supported.",
+    );
+    const { env, pipeline } = await import("@huggingface/transformers");
+    env.useBrowserCache = true;
+    env.useFS = false;
+
+    const segmenter = await pipeline("background-removal", MODEL_ID, {
+      dtype: "q4f16",
+      progress_callback: (info) => {
+        if (info.status === "progress") {
+          onProgress(
+            Math.round((info.progress / 100) * 45),
+            `Downloading AI model: ${info.file}`,
+          );
+        } else if (info.status === "ready") {
+          onProgress(45, "AI model ready; processing locally");
+          setModelMessage(
+            "AI model ready. Model files are stored in the browser cache where supported.",
+          );
+        } else if (info.status === "download") {
+          setModelMessage("Downloading AI model files for first useâ€¦");
+        }
+      },
+    });
+    segmenterRef.current = segmenter;
+    return segmenter;
+  };
+
+  const runWithTimeout = async <T,>(
+    operation: Promise<T>,
+    timeoutMs: number,
+  ): Promise<T> => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        operation,
+        new Promise<T>((_, reject) => {
+          timeoutId = setTimeout(
+            () => reject(new Error("Processing timeout")),
+            timeoutMs,
+          );
+        }),
+      ]);
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
+  };
+
+  const handleProcess = async () => {
+    const queued = files.filter(
+      (item) => item.status === "queued" || item.status === "error",
+    );
+    if (queued.length === 0) return;
+
+    setIsProcessing(true);
+    setError(null);
+    setModelMessage(null);
+
+    for (const queuedItem of queued) {
+      updateItem(queuedItem.id, (item) => ({
+        ...item,
+        status: "processing",
+        progress: 3,
+        progressLabel: "Preparing image",
+        error: undefined,
+      }));
+
+      let segmenter: Segmenter | null = null;
+      try {
+        const source = await prepareSourceImage(queuedItem.file);
+        updateItem(queuedItem.id, (item) => ({
+          ...item,
+          progress: 10,
+          progressLabel: "Loading AI model",
+          notice: source.notice,
+        }));
+
+        segmenter = await getSegmenter((progress, progressLabel) => {
+          updateItem(queuedItem.id, (item) => ({
+            ...item,
+            progress: Math.max(item.progress, progress),
+            progressLabel,
+          }));
+        });
+        updateItem(queuedItem.id, (item) => ({
+          ...item,
+          progress: 55,
+          progressLabel: "Running AI on your device",
+        }));
+
+        const output = await runWithTimeout(
+          segmenter(source.blob),
+          PROCESSING_TIMEOUT_MS,
+        );
+        if (output.length === 0) {
+          throw new Error("The model returned no image.");
+        }
+        updateItem(queuedItem.id, (item) => ({
+          ...item,
+          progress: 82,
+          progressLabel: "Refining transparent edges",
+        }));
+        const result = await featherCutout(output[0]);
+        const outputUrl = URL.createObjectURL(result);
+        updateItem(queuedItem.id, (item) => {
+          if (item.outputUrl) URL.revokeObjectURL(item.outputUrl);
+          return {
+            ...item,
+            status: "done",
+            progress: 100,
+            progressLabel: "Complete",
+            output: result,
+            outputUrl,
+            notice: source.notice,
+            error: undefined,
+          };
+        });
+        setActiveFileId((current) => current ?? queuedItem.id);
+      } catch (processingError) {
+        console.error(processingError);
+        if (
+          segmenter &&
+          segmenterRef.current === segmenter &&
+          processingError instanceof Error &&
+          /timeout/i.test(processingError.message)
+        ) {
+          segmenterRef.current = null;
+          try {
+            await segmenter.dispose();
+          } catch (disposeError) {
+            console.error("Could not release the timed-out model session.", disposeError);
+          }
+        }
+        updateItem(queuedItem.id, (item) => ({
+          ...item,
+          status: "error",
+          progress: 0,
+          progressLabel: "Could not process",
+          error: getFriendlyError(processingError),
+        }));
+      }
+    }
+
+    setIsProcessing(false);
+  };
+
+  const handleDownloadZip = async () => {
+    const completed = files.filter(
+      (item): item is QueueItem & { output: Blob } =>
+        item.status === "done" && item.output !== undefined,
+    );
+    if (completed.length === 0) return;
+
+    setIsCreatingZip(true);
+    setError(null);
+    try {
+      const { default: JSZip } = await import("jszip");
+      const zip = new JSZip();
+      for (const item of completed) {
+        zip.file(getOutputName(item.file.name), item.output);
+      }
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      downloadBlob(zipBlob, "convaudit-background-removed.zip");
+    } catch (zipError) {
+      console.error(zipError);
+      setError("Could not prepare the ZIP file. Download the finished images individually.");
+    } finally {
+      setIsCreatingZip(false);
+    }
+  };
+
+  const activeFile = files.find((item) => item.id === activeFileId);
+  const completedCount = files.filter((item) => item.status === "done").length;
+  const queuedCount = files.filter(
+    (item) => item.status === "queued" || item.status === "error",
+  ).length;
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-start gap-3 rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm">
+        <ShieldCheck className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
+        <p>
+          Images stay on this device. The browser downloads the AI model and
+          runs it locally; your photos are not uploaded.
+        </p>
+      </div>
+
+      <FileUploader
+        accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+        multiple
+        files={files}
+        onFilesAdded={handleFilesAdded}
+        onFileRemove={handleRemove}
+        hint="Add JPG, PNG, or WebP images. They will be processed one at a time."
+        disabled={isProcessing || isCreatingZip}
+      />
+
+      {modelMessage && (
+        <p className="rounded-lg border bg-muted/30 p-3 text-xs text-muted-foreground" aria-live="polite">
+          {modelMessage}
+        </p>
+      )}
+
+      {files.length > 0 && (
+        <section className="space-y-3" aria-label="Image processing queue">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold">
+              What is the image processing progress? ({completedCount} of{" "}
+              {files.length} complete)
+            </h2>
+            {completedCount > 1 && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={handleDownloadZip}
+                disabled={isProcessing || isCreatingZip}
+              >
+                {isCreatingZip ? (
+                  <Loader2 className="mr-1.5 size-4 animate-spin" />
+                ) : (
+                  <Archive className="mr-1.5 size-4" />
+                )}
+                Download all as ZIP
+              </Button>
+            )}
+          </div>
+
+          <ul className="space-y-2">
+            {files.map((item) => (
+              <li
+                key={item.id}
+                className={`rounded-lg border p-3 ${
+                  activeFileId === item.id ? "border-primary/50 bg-primary/5" : ""
+                }`}
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <button
+                    type="button"
+                    className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                    onClick={() => setActiveFileId(item.id)}
+                    aria-label={`Preview ${item.file.name}`}
+                  >
+                    <img
+                      src={item.previewUrl}
+                      alt=""
+                      className="size-11 shrink-0 rounded object-cover"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">
+                        {item.file.name}
+                      </span>
+                      <span className="block text-xs text-muted-foreground">
+                        {item.progressLabel}
+                      </span>
+                    </span>
+                  </button>
+                  {item.status === "done" && item.output ? (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      aria-label={`Download ${getOutputName(item.file.name)}`}
+                      onClick={() =>
+                        downloadBlob(item.output!, getOutputName(item.file.name))
+                      }
+                    >
+                      <Download className="size-4" />
+                    </Button>
+                  ) : item.status === "queued" ? (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      aria-label={`Remove ${item.file.name}`}
+                      disabled={isProcessing}
+                      onClick={() => handleRemove(item.id)}
+                    >
+                      <X className="size-4" />
+                    </Button>
+                  ) : null}
+                </div>
+                {(item.status === "processing" || item.status === "done") && (
+                  <Progress
+                    value={item.progress}
+                    className="mt-3 h-1.5"
+                    aria-label={`${item.file.name}: ${item.progress}%`}
+                  />
+                )}
+                {item.notice && (
+                  <p className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+                    {item.notice}
+                  </p>
+                )}
+                {item.error && (
+                  <p className="mt-2 text-xs text-destructive" role="alert">
+                    {item.error}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+
+          {activeFile?.outputUrl && (
+            <div className="space-y-3 rounded-xl border bg-card p-4">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="min-w-0 truncate text-sm font-semibold">
+                  Before and after: {activeFile.file.name}
+                </h3>
+                <span className="flex shrink-0 items-center gap-1 text-xs text-emerald-600">
+                  <Check className="size-3.5" aria-hidden />
+                  Transparent PNG
+                </span>
+              </div>
+              <div className="relative mx-auto aspect-4/3 max-h-112 w-full overflow-hidden rounded-lg border bg-[linear-gradient(45deg,#e5e7eb_25%,transparent_25%),linear-gradient(-45deg,#e5e7eb_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#e5e7eb_75%),linear-gradient(-45deg,transparent_75%,#e5e7eb_75%)] bg-size-[20px_20px] bg-position-[0_0,0_10px,10px_-10px,-10px_0] dark:bg-[linear-gradient(45deg,#374151_25%,transparent_25%),linear-gradient(-45deg,#374151_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#374151_75%),linear-gradient(-45deg,transparent_75%,#374151_75%)]">
+                <img
+                  src={activeFile.previewUrl}
+                  alt={`Original ${activeFile.file.name}`}
+                  className="absolute inset-0 size-full object-contain"
+                />
+                <img
+                  src={activeFile.outputUrl}
+                  alt={`Background removed from ${activeFile.file.name}`}
+                  className="absolute inset-0 size-full object-contain"
+                  style={{ clipPath: `inset(0 ${100 - comparison}% 0 0)` }}
+                />
+                <div
+                  className="pointer-events-none absolute inset-y-0 z-10 w-0.5 bg-white shadow"
+                  style={{ left: `${comparison}%` }}
+                  aria-hidden
+                >
+                  <span className="absolute left-1/2 top-1/2 grid size-9 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-white bg-primary text-white shadow">
+                    <ImagePlus className="size-4" />
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={comparison}
+                  onChange={(event) => setComparison(Number(event.target.value))}
+                  aria-label="Drag to compare original image and background-removed result"
+                  className="absolute inset-x-0 bottom-0 z-20 h-full w-full cursor-ew-resize appearance-none opacity-0 touch-pan-y"
+                />
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Result</span>
+                <span>Original</span>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {error && (
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      )}
+
+      {files.length > 0 && (
+        <Button
+          type="button"
+          size="lg"
+          className="w-full"
+          onClick={handleProcess}
+          disabled={queuedCount === 0 || isProcessing || isCreatingZip}
+        >
+          {isProcessing ? (
+            <Loader2 className="mr-2 size-4 animate-spin" />
+          ) : (
+            <ImagePlus className="mr-2 size-4" />
+          )}
+          {isProcessing
+            ? "Removing backgroundsâ€¦"
+            : queuedCount > 0
+              ? `Remove backgrounds (${queuedCount})`
+              : "All images processed"}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/RemoveExifTool.tsx
+========================================
+
+"use client";
+
+import { useState } from "react";
+import NextImage from "next/image";
+import {
+  Download,
+  Loader2,
+  Trash2,
+  ShieldAlert,
+  ShieldCheck,
+  Eye,
+  Camera,
+  MapPin,
+  Calendar,
+  Sparkles,
+  Archive,
+  RefreshCw,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { FileUploader, type UploadedFile } from "./FileUploader";
+import { CancelOperationButton } from "./CancelOperationButton";
+import { useOperationCancellation } from "./useOperationCancellation";
+import { downloadBlob, formatBytes, shortId } from "@/lib/download";
+import { throwIfCancelled } from "@/lib/file-validation";
+
+interface ExifDetails {
+  make?: string;
+  model?: string;
+  software?: string;
+  lensModel?: string;
+  dateTime?: string;
+  iso?: number;
+  fNumber?: number;
+  exposureTime?: string | number;
+  focalLength?: number;
+  hasGps: boolean;
+  latitude?: number;
+  longitude?: number;
+  altitude?: number;
+  artist?: string;
+  copyright?: string;
+  tagCount: number;
+  rawTags: Record<string, unknown>;
+}
+
+interface ImageItem extends UploadedFile {
+  objectUrl: string;
+  exif: ExifDetails | null;
+  cleanedBlob: Blob | null;
+  cleanedSize?: number;
+  tagsRemoved?: number;
+  status: "idle" | "parsing" | "ready" | "cleaning" | "done" | "error" | "cancelled";
+  errorMsg?: string;
+}
+
+export function RemoveExifTool() {
+  const [files, setFiles] = useState<ImageItem[]>([]);
+  const [outputFormat, setOutputFormat] = useState<"original" | "image/jpeg" | "image/png" | "image/webp">("original");
+  const [jpegQuality, setJpegQuality] = useState<number>(95);
+  const [isProcessingAll, setIsProcessingAll] = useState(false);
+  const [activeCleanId, setActiveCleanId] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [activeExifModal, setActiveExifModal] = useState<ImageItem | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const cancellation = useOperationCancellation();
+
+  const parseExifData = async (file: File): Promise<ExifDetails> => {
+    const { default: exifr } = await import("exifr");
+    try {
+      const data = await exifr.parse(file, {
+        tiff: true,
+        xmp: true,
+        icc: true,
+        iptc: true,
+        jfif: true,
+        gps: true,
+      });
+
+      if (!data || Object.keys(data).length === 0) {
+        return {
+          hasGps: false,
+          tagCount: 0,
+          rawTags: {},
+        };
+      }
+
+      let lat: number | undefined;
+      let lon: number | undefined;
+
+      try {
+        const gps = await exifr.gps(file);
+        if (gps && typeof gps.latitude === "number" && typeof gps.longitude === "number") {
+          lat = gps.latitude;
+          lon = gps.longitude;
+        }
+      } catch {
+        // GPS parse optional
+      }
+
+      return {
+        make: data.Make ? String(data.Make).trim() : undefined,
+        model: data.Model ? String(data.Model).trim() : undefined,
+        software: data.Software ? String(data.Software).trim() : undefined,
+        lensModel: (data.LensModel || data.LensInfo) ? String(data.LensModel || data.LensInfo).trim() : undefined,
+        dateTime: data.DateTimeOriginal
+          ? new Date(data.DateTimeOriginal).toLocaleString()
+          : data.CreateDate
+          ? new Date(data.CreateDate).toLocaleString()
+          : undefined,
+        iso: typeof data.ISO === "number" ? data.ISO : undefined,
+        fNumber: typeof data.FNumber === "number" ? data.FNumber : undefined,
+        exposureTime: data.ExposureTime
+          ? typeof data.ExposureTime === "number" && data.ExposureTime < 1
+            ? `1/${Math.round(1 / data.ExposureTime)}s`
+            : `${data.ExposureTime}s`
+          : undefined,
+        focalLength: typeof data.FocalLength === "number" ? data.FocalLength : undefined,
+        hasGps: Boolean(lat !== undefined && lon !== undefined),
+        latitude: lat,
+        longitude: lon,
+        altitude: typeof data.GPSAltitude === "number" ? data.GPSAltitude : undefined,
+        artist: data.Artist ? String(data.Artist) : undefined,
+        copyright: data.Copyright ? String(data.Copyright) : undefined,
+        tagCount: Object.keys(data).length,
+        rawTags: data,
+      };
+    } catch {
+      return {
+        hasGps: false,
+        tagCount: 0,
+        rawTags: {},
+      };
+    }
+  };
+
+  const handleFilesAdded = async (newFiles: File[]) => {
+    // Accept by extension too: browsers often report HEIC/TIFF with an
+    // empty or generic MIME type, which previously caused valid files
+    // to be silently dropped here.
+    const imageFiles = newFiles.filter(
+      (f) =>
+        f.type.startsWith("image/") ||
+        /\.(jpg|jpeg|png|webp|heic|heif|tiff|tif|bmp|avif)$/i.test(f.name)
+    );
+    if (imageFiles.length === 0) return;
+
+    const newItems: ImageItem[] = imageFiles.map((file) => ({
+      file,
+      id: shortId(),
+      objectUrl: URL.createObjectURL(file),
+      exif: null,
+      cleanedBlob: null,
+      status: "parsing",
+    }));
+
+    setFiles((prev) => [...prev, ...newItems]);
+
+    // Parse EXIF for each newly added file
+    for (const item of newItems) {
+      try {
+        const parsed = await parseExifData(item.file);
+        setFiles((prev) =>
+          prev.map((it) =>
+            it.id === item.id
+              ? { ...it, exif: parsed, status: "ready" }
+              : it
+          )
+        );
+      } catch (err) {
+        console.error("Failed to load the EXIF parser.", err);
+        setError("Could not load the EXIF parser. Please refresh and try again.");
+        setFiles((prev) =>
+          prev.map((it) =>
+            it.id === item.id
+              ? {
+                  ...it,
+                  status: "error",
+                  errorMsg: "Could not load the EXIF parser.",
+                }
+              : it
+          )
+        );
+      }
+    }
+  };
+
+  const handleRemove = (id: string) => {
+    setFiles((prev) => {
+      const item = prev.find((f) => f.id === id);
+      if (item) URL.revokeObjectURL(item.objectUrl);
+      return prev.filter((f) => f.id !== id);
+    });
+  };
+
+  const handleProcessAnotherFile = () => {
+    files.forEach((item) => URL.revokeObjectURL(item.objectUrl));
+    setFiles([]);
+    setActiveExifModal(null);
+    setProgress(0);
+    setOutputFormat("original");
+    setJpegQuality(95);
+  };
+
+  const cleanSingleImage = async (
+    item: ImageItem,
+    signal: AbortSignal
+  ): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const onAbort = () => {
+        img.src = "";
+        reject(new DOMException("Operation cancelled.", "AbortError"));
+      };
+      img.onload = () => {
+        signal.removeEventListener("abort", onAbort);
+        try {
+          throwIfCancelled(signal);
+          const canvas = document.createElement("canvas");
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            reject(new Error("Canvas context creation failed"));
+            return;
+          }
+
+          // Draw directly onto blank canvas to strip all EXIF / metadata blocks
+          ctx.drawImage(img, 0, 0);
+
+          let mimeType = item.file.type;
+          if (outputFormat !== "original") {
+            mimeType = outputFormat;
+          } else if (!mimeType || mimeType === "image/heic" || mimeType === "image/tiff") {
+            mimeType = "image/jpeg";
+          }
+
+          const quality = mimeType === "image/png" ? undefined : jpegQuality / 100;
+
+          canvas.toBlob(
+            (blob) => {
+              if (signal.aborted) {
+                reject(new DOMException("Operation cancelled.", "AbortError"));
+              } else if (blob) {
+                resolve(blob);
+              } else {
+                reject(new Error("Failed to export cleaned image"));
+              }
+            },
+            mimeType,
+            quality
+          );
+        } catch (err) {
+          reject(err);
+        }
+      };
+      img.onerror = () => {
+        signal.removeEventListener("abort", onAbort);
+        reject(new Error("Failed to load image into memory"));
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
+      img.src = item.objectUrl;
+    });
+  };
+
+  const handleCleanOne = async (id: string) => {
+    const item = files.find((f) => f.id === id);
+    if (!item || isProcessingAll || activeCleanId) return;
+    const controller = cancellation.start();
+    setActiveCleanId(id);
+
+    setFiles((prev) =>
+      prev.map((it) => (it.id === id ? { ...it, status: "cleaning" } : it))
+    );
+
+    try {
+      const cleaned = await cleanSingleImage(item, controller.signal);
+      throwIfCancelled(controller.signal);
+      const tagsCount = item.exif?.tagCount || 0;
+
+      setFiles((prev) =>
+        prev.map((it) =>
+          it.id === id
+            ? {
+                ...it,
+                cleanedBlob: cleaned,
+                cleanedSize: cleaned.size,
+                tagsRemoved: tagsCount,
+                status: "done",
+              }
+            : it
+        )
+      );
+    } catch (err) {
+      setFiles((prev) =>
+        prev.map((it) =>
+          it.id === id
+            ? {
+                ...it,
+                status: controller.signal.aborted ? "cancelled" : "error",
+                errorMsg: controller.signal.aborted
+                  ? "Cleaning cancelled. You can try again."
+                  : err instanceof Error
+                    ? err.message
+                    : "Cleaning failed",
+              }
+            : it
+        )
+      );
+    } finally {
+      cancellation.finish(controller);
+      setActiveCleanId(null);
+    }
+  };
+
+  const handleCleanAll = async () => {
+    if (files.length === 0 || activeCleanId) return;
+    setIsProcessingAll(true);
+    setProgress(0);
+    const controller = cancellation.start();
+
+    for (let i = 0; i < files.length; i++) {
+      const item = files[i];
+      if (controller.signal.aborted) break;
+      try {
+        setFiles((prev) =>
+          prev.map((it) => (it.id === item.id ? { ...it, status: "cleaning" } : it))
+        );
+        const cleaned = await cleanSingleImage(item, controller.signal);
+        throwIfCancelled(controller.signal);
+        const tagsCount = item.exif?.tagCount || 0;
+
+        setFiles((prev) =>
+          prev.map((it) =>
+            it.id === item.id
+              ? {
+                  ...it,
+                  cleanedBlob: cleaned,
+                  cleanedSize: cleaned.size,
+                  tagsRemoved: tagsCount,
+                  status: "done",
+                }
+              : it
+          )
+        );
+      } catch (err) {
+        setFiles((prev) =>
+          prev.map((it) =>
+            it.id === item.id
+              ? {
+                  ...it,
+                  status: controller.signal.aborted ? "cancelled" : "error",
+                  errorMsg: controller.signal.aborted
+                    ? "Cleaning cancelled. You can try again."
+                    : err instanceof Error
+                      ? err.message
+                      : "Cleaning failed",
+                }
+              : it
+          )
+        );
+        if (controller.signal.aborted) break;
+      }
+      setProgress(Math.round(((i + 1) / files.length) * 100));
+    }
+
+    cancellation.finish(controller);
+    setIsProcessingAll(false);
+  };
+
+  const getCleanedExtension = (item: ImageItem): string => {
+    if (outputFormat === "image/png") return "png";
+    if (outputFormat === "image/webp") return "webp";
+    if (outputFormat === "image/jpeg") return "jpg";
+    const ext = item.file.name.split(".").pop()?.toLowerCase();
+    return ext && ["jpg", "jpeg", "png", "webp"].includes(ext) ? ext : "jpg";
+  };
+
+  const handleDownloadOne = (item: ImageItem) => {
+    if (!item.cleanedBlob) return;
+    const ext = getCleanedExtension(item);
+    const baseName = item.file.name.replace(/\.[^.]+$/, "");
+    downloadBlob(item.cleanedBlob, `${baseName}-no-exif.${ext}`);
+  };
+
+  const handleDownloadAllZip = async () => {
+    const readyItems = files.filter((f) => f.cleanedBlob !== null);
+    if (readyItems.length === 0) return;
+
+    setError(null);
+    try {
+      const { default: JSZip } = await import("jszip");
+      const zip = new JSZip();
+      readyItems.forEach((item) => {
+        const ext = getCleanedExtension(item);
+        const baseName = item.file.name.replace(/\.[^.]+$/, "");
+        if (item.cleanedBlob) zip.file(`${baseName}-no-exif.${ext}`, item.cleanedBlob);
+      });
+
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      downloadBlob(zipBlob, "convaudit-cleaned-images.zip");
+    } catch (err) {
+      console.error(err);
+      setError("Failed to prepare the ZIP download. Please try again.");
+    }
+  };
+
+  const anyCleaned = files.some((f) => f.cleanedBlob !== null);
+  const totalGpsFound = files.filter((f) => f.exif?.hasGps).length;
+
+  return (
+    <div className="space-y-6">
+      {/* Upload Zone */}
+      {error && (
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      )}
+      <FileUploader
+        accept="image/*,.heic,.heif,.tiff,.tif,.bmp,.avif"
+        multiple
+        files={files}
+        onFilesAdded={handleFilesAdded}
+        onFileRemove={handleRemove}
+        hint="Upload JPG, PNG, WebP, or HEIC images to view and remove all EXIF, GPS location, and device metadata."
+        disabled={isProcessingAll || Boolean(activeCleanId)}
+      />
+
+      {/* Global Alert if GPS Detected */}
+      {totalGpsFound > 0 && (
+        <div className="flex items-start gap-3 rounded-xl border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive dark:bg-destructive/20">
+          <ShieldAlert className="h-5 w-5 flex-none text-destructive mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-semibold">
+              Privacy Alert: GPS Location Detected in {totalGpsFound} {totalGpsFound === 1 ? "image" : "images"}!
+            </p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              These photos contain exact coordinates where they were taken. Cleaning will permanently wipe all location coordinates, camera serial numbers, and personal info.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Output Configuration Bar */}
+      {files.length > 0 && (
+        <div className="rounded-xl border border-border bg-card p-4 space-y-4 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="output-format" className="text-xs font-medium text-muted-foreground">
+                  Output Format
+                </Label>
+                <Select
+                  value={outputFormat}
+                  onValueChange={(v: "original" | "image/jpeg" | "image/png" | "image/webp") => setOutputFormat(v)}
+                  disabled={isProcessingAll || Boolean(activeCleanId)}
+                >
+                  <SelectTrigger id="output-format" className="w-45 h-9">
+                    <SelectValue placeholder="Format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="original">Keep Original Format</SelectItem>
+                    <SelectItem value="image/jpeg">JPG (Cleaned)</SelectItem>
+                    <SelectItem value="image/png">PNG (Lossless)</SelectItem>
+                    <SelectItem value="image/webp">WebP (Modern)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {outputFormat !== "image/png" && (
+                <div className="space-y-1.5 w-48">
+                  <div className="flex justify-between text-xs">
+                    <Label className="text-muted-foreground">Quality</Label>
+                    <span className="font-medium text-foreground">{jpegQuality}%</span>
+                  </div>
+                  <Slider
+                    value={[jpegQuality]}
+                    min={70}
+                    max={100}
+                    step={1}
+                    onValueChange={(val) => setJpegQuality(val[0])}
+                    className="py-1"
+                    disabled={isProcessingAll || Boolean(activeCleanId)}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleCleanAll}
+                disabled={isProcessingAll || Boolean(activeCleanId) || files.length === 0}
+                className="gap-2"
+              >
+                {isProcessingAll ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Cleaning...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    Remove EXIF from All ({files.length})
+                  </>
+                )}
+              </Button>
+
+              {anyCleaned && (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleDownloadAllZip}
+                    className="gap-2"
+                  >
+                    <Archive className="h-4 w-4" />
+                    Download ZIP
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleProcessAnotherFile}
+                    disabled={isProcessingAll || Boolean(activeCleanId)}
+                  >
+                    Process another file
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {isProcessingAll && (
+            <div className="space-y-2 pt-2">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-muted-foreground">
+                  {cancellation.isCancelling
+                    ? "Stopping after the current image..."
+                    : `${progress}% completed`}
+                </p>
+                <CancelOperationButton
+                  onCancel={cancellation.cancel}
+                  isCancelling={cancellation.isCancelling}
+                  cancelLabel="Cancel after this image"
+                  cancellingLabel="Stopping after this image..."
+                />
+              </div>
+              <Progress value={progress} className="h-2" />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Images List */}
+      {files.length > 0 && (
+        <div className="space-y-3">
+          {files.map((item) => {
+            const hasExif = item.exif && item.exif.tagCount > 0;
+            const isDone = item.status === "done";
+
+            return (
+              <div
+                key={item.id}
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:border-border/80 shadow-xs"
+              >
+                {/* Left: Image thumbnail + File Info */}
+                <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                  <div className="relative h-14 w-14 flex-none rounded-lg overflow-hidden border border-border bg-muted">
+                    <NextImage
+                      src={item.objectUrl}
+                      alt={item.file.name}
+                      fill
+                      sizes="56px"
+                      unoptimized
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <p className="truncate font-medium text-sm text-foreground">
+                      {item.file.name}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span>{formatBytes(item.file.size)}</span>
+                      <span>â€¢</span>
+                      {item.status === "parsing" ? (
+                        <span className="flex items-center gap-1 text-muted-foreground">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          Reading metadata...
+                        </span>
+                      ) : hasExif ? (
+                        <span className="text-amber-600 dark:text-amber-400 font-medium">
+                          {item.exif?.tagCount} metadata tags found
+                        </span>
+                      ) : (
+                        <span className="text-emerald-600 dark:text-emerald-400">
+                          No EXIF tags detected
+                        </span>
+                      )}
+
+                      {item.exif?.hasGps && (
+                        <Badge variant="destructive" className="h-5 px-1.5 text-[10px] gap-1">
+                          <MapPin className="h-2.5 w-2.5" />
+                          GPS coordinates
+                        </Badge>
+                      )}
+
+                      {item.exif?.model && (
+                        <span className="hidden md:inline-flex items-center gap-1 text-muted-foreground">
+                          <Camera className="h-3 w-3" />
+                          {item.exif.model}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Actions & Status */}
+                <div className="flex flex-wrap items-center gap-2 self-end sm:self-center">
+                  {hasExif && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setActiveExifModal(item)}
+                      disabled={isProcessingAll || Boolean(activeCleanId)}
+                      className="h-8 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      View Metadata
+                    </Button>
+                  )}
+
+                  {isDone ? (
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-md border border-emerald-200 dark:border-emerald-800">
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        <span>Cleaned ({formatBytes(item.cleanedSize || 0)})</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleDownloadOne(item)}
+                        className="h-8 gap-1.5 text-xs"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Download
+                      </Button>
+                    </div>
+                  ) : item.status === "cleaning" ? (
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" disabled className="h-8 gap-1.5 text-xs">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Stripping...
+                      </Button>
+                      {!isProcessingAll && (
+                        <CancelOperationButton
+                          onCancel={cancellation.cancel}
+                          isCancelling={cancellation.isCancelling}
+                          cancelLabel="Cancel after this image"
+                          cancellingLabel="Stopping after this image..."
+                        />
+                      )}
+                    </div>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleCleanOne(item.id)}
+                      disabled={isProcessingAll || Boolean(activeCleanId)}
+                      className="h-8 gap-1.5 text-xs"
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Remove EXIF
+                    </Button>
+                  )}
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemove(item.id)}
+                    disabled={isProcessingAll || Boolean(activeCleanId)}
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                {item.errorMsg && (
+                  <p className="w-full text-xs text-destructive" role="status">
+                    {item.errorMsg}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* EXIF Details Modal */}
+      {activeExifModal && activeExifModal.exif && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
+          onClick={() => setActiveExifModal(null)}
+        >
+          <div
+            className="w-full max-w-xl max-h-[85vh] overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b pb-4">
+              <div className="space-y-0.5">
+                <h3 className="text-lg font-semibold text-foreground">
+                  Embedded EXIF &amp; Metadata
+                </h3>
+                <p className="text-xs text-muted-foreground truncate max-w-md">
+                  {activeExifModal.file.name}
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setActiveExifModal(null)}
+                className="h-8 w-8 p-0"
+              >
+                âœ•
+              </Button>
+            </div>
+
+            {/* Quick summary cards */}
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div className="p-3 rounded-lg bg-muted/50 border border-border/50 space-y-1">
+                <span className="text-muted-foreground flex items-center gap-1 font-medium">
+                  <Camera className="h-3.5 w-3.5" /> Camera
+                </span>
+                <p className="font-semibold text-foreground">
+                  {activeExifModal.exif.make || activeExifModal.exif.model
+                    ? `${activeExifModal.exif.make || ""} ${activeExifModal.exif.model || ""}`.trim()
+                    : "Not specified"}
+                </p>
+              </div>
+
+              <div className="p-3 rounded-lg bg-muted/50 border border-border/50 space-y-1">
+                <span className="text-muted-foreground flex items-center gap-1 font-medium">
+                  <Calendar className="h-3.5 w-3.5" /> Date &amp; Time
+                </span>
+                <p className="font-semibold text-foreground">
+                  {activeExifModal.exif.dateTime || "Not specified"}
+                </p>
+              </div>
+
+              {activeExifModal.exif.hasGps ? (
+                <div className="col-span-2 p-3 rounded-lg bg-destructive/10 border border-destructive/30 space-y-1 text-destructive">
+                  <span className="flex items-center gap-1 font-medium">
+                    <MapPin className="h-3.5 w-3.5" /> GPS Coordinates (Location Data)
+                  </span>
+                  <p className="font-mono text-xs">
+                    Lat: {activeExifModal.exif.latitude?.toFixed(6)}, Lon:{" "}
+                    {activeExifModal.exif.longitude?.toFixed(6)}
+                    {activeExifModal.exif.altitude ? ` (Alt: ${activeExifModal.exif.altitude.toFixed(1)}m)` : ""}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    This reveals where the photo was captured. It will be removed when cleaned.
+                  </p>
+                </div>
+              ) : (
+                <div className="col-span-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 text-xs">
+                  <span className="flex items-center gap-1 font-medium">
+                    <ShieldCheck className="h-3.5 w-3.5" /> No GPS Coordinates Embedded
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* All raw tags table */}
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                All Extracted Tags ({activeExifModal.exif.tagCount})
+              </h4>
+              <div className="max-h-60 overflow-y-auto rounded-lg border border-border/60 bg-muted/20 text-xs font-mono p-2 divide-y divide-border/40">
+                {Object.entries(activeExifModal.exif.rawTags).map(([k, v]) => (
+                  <div key={k} className="py-1.5 flex justify-between gap-4">
+                    <span className="text-muted-foreground truncate">{k}</span>
+                    <span className="text-foreground text-right truncate max-w-60">
+                      {typeof v === "object" ? JSON.stringify(v) : String(v)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setActiveExifModal(null)}
+              >
+                Close
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  handleCleanOne(activeExifModal.id);
+                  setActiveExifModal(null);
+                }}
+                className="gap-1.5"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Remove All Metadata
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/RotatePdfTool.tsx
+========================================
+
+"use client";
+
+import { useState } from "react";
+import { Download, Loader2, RotateCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { FileUploader, type UploadedFile } from "./FileUploader";
+import { downloadBytes, shortId } from "@/lib/download";
+
+type PdfThumbnail = {
+  pageNumber: number;
+  dataUrl: string;
+};
+
+type RotationAngle = 90 | 180 | 270;
+
+function getPdfErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : "";
+  const name = error instanceof Error ? error.name : "";
+
+  if (name === "PasswordException" || /password|encrypt/i.test(message)) {
+    return "This PDF is password-protected. Remove its password before using this tool.";
+  }
+  if (/memory|allocation|out of memory/i.test(message)) {
+    return "Your browser ran out of memory while processing this PDF. Try a smaller file or close other tabs.";
+  }
+  return "Could not process this PDF. The file may be corrupted or use an unsupported feature.";
+}
+
+export function RotatePdfTool() {
+  const [file, setFile] = useState<UploadedFile | null>(null);
+  const [thumbnails, setThumbnails] = useState<PdfThumbnail[]>([]);
+  const [selectedPages, setSelectedPages] = useState<number[]>([]);
+  const [rotation, setRotation] = useState<RotationAngle>(90);
+  const [isLoadingPages, setIsLoadingPages] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [result, setResult] = useState<Uint8Array | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleFilesAdded = async (newFiles: File[]) => {
+    const selectedFile = newFiles[0];
+    if (!selectedFile) return;
+    if (!selectedFile.name.toLowerCase().endsWith(".pdf")) {
+      setError("Please upload a PDF file.");
+      return;
+    }
+
+    setFile({ file: selectedFile, id: shortId() });
+    setThumbnails([]);
+    setSelectedPages([]);
+    setResult(null);
+    setError(null);
+    setProgress(0);
+    setIsLoadingPages(true);
+
+    let document: Awaited<
+      ReturnType<Awaited<ReturnType<typeof import("pdfjs-dist/build/pdf.mjs")>["getDocument"]>["promise"]>
+    > | null = null;
+    try {
+      const pdfjs = await import("pdfjs-dist/build/pdf.mjs");
+      pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+        "pdfjs-dist/build/pdf.worker.mjs",
+        import.meta.url,
+      ).toString();
+
+      const bytes = await selectedFile.arrayBuffer();
+      document = await pdfjs.getDocument({ data: bytes }).promise;
+      const pages: PdfThumbnail[] = [];
+
+      for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber++) {
+        const page = await document.getPage(pageNumber);
+        const baseViewport = page.getViewport({ scale: 1 });
+        const viewport = page.getViewport({
+          scale: Math.min(180 / baseViewport.width, 180 / baseViewport.height),
+        });
+        const canvas = window.document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("Unable to create a PDF preview canvas.");
+
+        canvas.width = Math.ceil(viewport.width);
+        canvas.height = Math.ceil(viewport.height);
+        await page.render({ canvas, canvasContext: context, viewport }).promise;
+        pages.push({
+          pageNumber,
+          dataUrl: canvas.toDataURL("image/jpeg", 0.7),
+        });
+        canvas.width = 0;
+        canvas.height = 0;
+        page.cleanup();
+        setProgress(Math.round((pageNumber / document.numPages) * 100));
+      }
+
+      setThumbnails(pages);
+      setSelectedPages(pages.map((page) => page.pageNumber));
+    } catch (loadError) {
+      console.error(loadError);
+      setError(getPdfErrorMessage(loadError));
+      setFile(null);
+    } finally {
+      await document?.destroy();
+      setIsLoadingPages(false);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setFile(null);
+    setThumbnails([]);
+    setSelectedPages([]);
+    setResult(null);
+    setProgress(0);
+    setError(null);
+  };
+
+  const togglePage = (pageNumber: number) => {
+    setSelectedPages((current) =>
+      current.includes(pageNumber)
+        ? current.filter((page) => page !== pageNumber)
+        : [...current, pageNumber].sort((a, b) => a - b),
+    );
+    setResult(null);
+  };
+
+  const selectAllPages = () => {
+    if (selectedPages.length === thumbnails.length) {
+      setSelectedPages([]);
+    } else {
+      setSelectedPages(thumbnails.map((page) => page.pageNumber));
+    }
+    setResult(null);
+  };
+
+  const handleRotate = async () => {
+    if (!file || selectedPages.length === 0) return;
+
+    setIsProcessing(true);
+    setProgress(0);
+    setError(null);
+    setResult(null);
+
+    try {
+      const { PDFDocument, degrees } = await import("pdf-lib");
+      const pdf = await PDFDocument.load(await file.file.arrayBuffer());
+      const selected = new Set(selectedPages);
+
+      for (let index = 0; index < pdf.getPageCount(); index++) {
+        if (selected.has(index + 1)) {
+          const page = pdf.getPage(index);
+          page.setRotation(
+            degrees((page.getRotation().angle + rotation) % 360),
+          );
+        }
+        setProgress(Math.round(((index + 1) / pdf.getPageCount()) * 100));
+        if (index % 10 === 9) {
+          await new Promise<void>((resolve) => setTimeout(resolve, 0));
+        }
+      }
+
+      setResult(await pdf.save());
+      setProgress(100);
+    } catch (processingError) {
+      console.error(processingError);
+      setError(getPdfErrorMessage(processingError));
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const isBusy = isLoadingPages || isProcessing;
+  const allPagesSelected =
+    thumbnails.length > 0 && selectedPages.length === thumbnails.length;
+  const outputName = file
+    ? `${file.file.name.replace(/\.pdf$/i, "")}-rotated.pdf`
+    : "rotated.pdf";
+
+  return (
+    <div className="space-y-5">
+      <FileUploader
+        accept="application/pdf,.pdf"
+        files={file ? [file] : []}
+        onFilesAdded={handleFilesAdded}
+        onFileRemove={handleRemoveFile}
+        hint="Upload a PDF to preview and select pages."
+        disabled={isBusy}
+      />
+
+      {thumbnails.length > 0 && (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted-foreground">
+              {selectedPages.length} of {thumbnails.length} pages selected
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={selectAllPages}
+              disabled={isBusy}
+            >
+              {allPagesSelected ? "Deselect all" : "Select all"}
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            {thumbnails.map(({ pageNumber, dataUrl }) => {
+              const isSelected = selectedPages.includes(pageNumber);
+              return (
+                <button
+                  key={pageNumber}
+                  type="button"
+                  aria-pressed={isSelected}
+                  aria-label={`Page ${pageNumber}${isSelected ? ", selected" : ""}`}
+                  onClick={() => togglePage(pageNumber)}
+                  disabled={isBusy}
+                  className={`rounded-lg border p-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                    isSelected
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/50"
+                  }`}
+                >
+                  <img
+                    src={dataUrl}
+                    alt={`Preview of page ${pageNumber}`}
+                    className="mx-auto h-36 max-w-full object-contain"
+                  />
+                  <span className="mt-2 block text-center text-xs font-medium">
+                    Page {pageNumber}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {thumbnails.length > 0 && (
+        <div className="space-y-2">
+          <label htmlFor="pdf-rotation" className="text-sm font-medium">
+            Rotate clockwise
+          </label>
+          <select
+            id="pdf-rotation"
+            value={rotation}
+            onChange={(event) =>
+              setRotation(Number(event.target.value) as RotationAngle)
+            }
+            disabled={isBusy}
+            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <option value={90}>90 degrees</option>
+            <option value={180}>180 degrees</option>
+            <option value={270}>270 degrees</option>
+          </select>
+        </div>
+      )}
+
+      {isBusy && (
+        <div className="space-y-2" role="status" aria-live="polite">
+          <p className="text-xs text-muted-foreground">
+            {isLoadingPages
+              ? `Preparing page previews... ${progress}%`
+              : `Rotating PDF... ${progress}%`}
+          </p>
+          <Progress value={progress} />
+        </div>
+      )}
+
+      {error && (
+        <p
+          className="rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+          role="alert"
+        >
+          {error}
+        </p>
+      )}
+
+      {thumbnails.length > 0 && (
+        <Button
+          type="button"
+          onClick={handleRotate}
+          disabled={!file || selectedPages.length === 0 || isBusy}
+          className="w-full"
+          size="lg"
+        >
+          {isProcessing ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <RotateCw className="mr-2 h-4 w-4" />
+          )}
+          {isProcessing ? "Rotating..." : "Rotate PDF"}
+        </Button>
+      )}
+
+      {result && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/70 bg-muted/30 p-4">
+          <p className="min-w-0 truncate text-sm font-medium">{outputName}</p>
+          <Button
+            type="button"
+            onClick={() =>
+              downloadBytes(result, outputName, "application/pdf")
+            }
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Download PDF
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/SplitPdfTool.tsx
+========================================
+
+"use client";
+
+import { useState } from "react";
+import { Download, Loader2, Archive } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { FileUploader, type UploadedFile } from "./FileUploader";
+import { CancelOperationButton } from "./CancelOperationButton";
+import { useOperationCancellation } from "./useOperationCancellation";
+import { downloadBlob, downloadBytes, formatBytes, shortId } from "@/lib/download";
+import { throwIfCancelled } from "@/lib/file-validation";
+
+type Range = { from: number; to: number };
+type SplitResult = { name: string; bytes: Uint8Array };
+
+/**
+ * Split PDF tool.
+ * Parses user-entered page ranges (e.g. "1-3, 5, 7-9") and produces a
+ * separate PDF for each range using pdf-lib.
+ */
+export function SplitPdfTool() {
+  const [file, setFile] = useState<UploadedFile | null>(null);
+  const [rangesInput, setRangesInput] = useState("1-1");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [results, setResults] = useState<SplitResult[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [pageCount, setPageCount] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const cancellation = useOperationCancellation();
+
+  const handleFilesAdded = async (newFiles: File[]) => {
+    if (newFiles.length === 0) return;
+    const f = newFiles[0];
+    if (!f.name.toLowerCase().endsWith(".pdf")) {
+      setError("Please upload a PDF file.");
+      return;
+    }
+    setError(null);
+    setFile({ file: f, id: shortId() });
+    setResults([]);
+    try {
+      const { PDFDocument } = await import("pdf-lib");
+      const buf = await f.arrayBuffer();
+      const doc = await PDFDocument.load(buf, { ignoreEncryption: true });
+      setPageCount(doc.getPageCount());
+    } catch {
+      setPageCount(0);
+    }
+  };
+
+  const handleRemove = () => {
+    setFile(null);
+    setResults([]);
+    setPageCount(0);
+  };
+
+  const handleProcessAnotherFile = () => {
+    handleRemove();
+    setError(null);
+    setProgress(0);
+    setRangesInput("1-1");
+  };
+
+  /**
+   * Parse a string like "1-3, 5, 7-9" into an array of {from, to} ranges.
+   * Whitespace is ignored. Invalid tokens are reported via thrown Error.
+   */
+  function parseRanges(input: string): Range[] {
+    const tokens = input.split(",").map((s) => s.trim()).filter(Boolean);
+    if (tokens.length === 0) throw new Error("Please enter at least one page range.");
+    const ranges: Range[] = [];
+    for (const token of tokens) {
+      const m = /^(\d+)\s*-\s*(\d+)$|^(\d+)$/.exec(token);
+      if (!m) throw new Error(`Invalid range: "${token}"`);
+      if (m[1] && m[2]) {
+        const from = parseInt(m[1], 10);
+        const to = parseInt(m[2], 10);
+        if (from > to) throw new Error(`Range start is greater than end: "${token}"`);
+        ranges.push({ from, to });
+      } else if (m[3]) {
+        const p = parseInt(m[3], 10);
+        ranges.push({ from: p, to: p });
+      }
+    }
+    return ranges;
+  }
+
+  const handleSplit = async () => {
+    if (!file) return;
+    setIsProcessing(true);
+    setError(null);
+    setResults([]);
+    setProgress(0);
+    const controller = cancellation.start();
+    try {
+      throwIfCancelled(controller.signal);
+      const ranges = parseRanges(rangesInput);
+      const { PDFDocument } = await import("pdf-lib");
+      const buf = await file.file.arrayBuffer();
+      throwIfCancelled(controller.signal);
+      const src = await PDFDocument.load(buf, { ignoreEncryption: true });
+      const total = src.getPageCount();
+      for (const r of ranges) {
+        if (r.from < 1 || r.to > total) {
+          throw new Error(
+            `Range ${r.from}-${r.to} is out of bounds (PDF has ${total} pages).`
+          );
+        }
+      }
+      const out: SplitResult[] = [];
+      const baseName = file.file.name.replace(/\.pdf$/i, "");
+      for (let i = 0; i < ranges.length; i++) {
+        throwIfCancelled(controller.signal);
+        const r = ranges[i];
+        const newDoc = await PDFDocument.create();
+        const pageIndices: number[] = [];
+        for (let p = r.from; p <= r.to; p++) pageIndices.push(p - 1);
+        const pages = await newDoc.copyPages(src, pageIndices);
+        throwIfCancelled(controller.signal);
+        pages.forEach((p) => newDoc.addPage(p));
+        const bytes = await newDoc.save();
+        throwIfCancelled(controller.signal);
+        const label =
+          r.from === r.to ? `page-${r.from}` : `pages-${r.from}-${r.to}`;
+        out.push({ name: `${baseName}-${label}.pdf`, bytes });
+        setProgress(Math.round(((i + 1) / ranges.length) * 100));
+      }
+      setResults(out);
+    } catch (err) {
+      if (controller.signal.aborted) {
+        setError("Split cancelled. No partial results were saved.");
+      } else {
+        console.error(err);
+        setError(err instanceof Error ? err.message : "Failed to split PDF.");
+      }
+    } finally {
+      cancellation.finish(controller);
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDownloadAllZip = async () => {
+    setError(null);
+    try {
+      const { default: JSZip } = await import("jszip");
+      const zip = new JSZip();
+      for (const result of results) zip.file(result.name, result.bytes);
+      const blob = await zip.generateAsync({ type: "blob" });
+      const base = file?.file.name.replace(/\.pdf$/i, "") ?? "split";
+      downloadBlob(blob, `${base}-split.zip`);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to prepare the ZIP download. Please try again.");
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <FileUploader
+        accept="application/pdf,.pdf"
+        files={file ? [file] : []}
+        onFilesAdded={handleFilesAdded}
+        onFileRemove={handleRemove}
+        hint="Upload a single PDF file to split."
+        disabled={isProcessing}
+      />
+
+      {pageCount > 0 && (
+        <p className="text-xs text-muted-foreground">
+          This PDF has <span className="font-medium">{pageCount}</span> pages.
+        </p>
+      )}
+
+      <div className="space-y-2">
+        <Label htmlFor="ranges">Page ranges</Label>
+        <Input
+          id="ranges"
+          value={rangesInput}
+          onChange={(e) => setRangesInput(e.target.value)}
+          placeholder="e.g. 1-3, 5, 7-9"
+          disabled={isProcessing}
+        />
+        <p className="text-xs text-muted-foreground">
+          Each range produces a separate PDF. Use commas to separate multiple ranges.
+        </p>
+      </div>
+
+      {error && (
+        <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      )}
+
+      {isProcessing && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              {cancellation.isCancelling
+                ? "Stopping after the current page range..."
+                : `Splitting PDF... ${progress}%`}
+            </p>
+            <CancelOperationButton
+              onCancel={cancellation.cancel}
+              isCancelling={cancellation.isCancelling}
+              cancelLabel="Cancel after this range"
+              cancellingLabel="Stopping after this range..."
+            />
+          </div>
+          <Progress value={progress} />
+        </div>
+      )}
+
+      <Button
+        onClick={handleSplit}
+        disabled={!file || isProcessing}
+        className="w-full"
+        size="lg"
+      >
+        {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+        {isProcessing ? "Splitting..." : "Split PDF"}
+      </Button>
+
+      {results.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold">
+              Results ({results.length} file{results.length === 1 ? "" : "s"})
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleProcessAnotherFile}
+              >
+                Process another file
+              </Button>
+              {results.length > 1 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleDownloadAllZip}
+                >
+                  <Archive className="mr-1 h-3.5 w-3.5" /> Download all as ZIP
+                </Button>
+              )}
+            </div>
+          </div>
+          <ul className="space-y-2">
+            {results.map((r, i) => (
+              <li
+                key={i}
+                className="flex items-center justify-between rounded-lg border bg-card p-3 text-sm"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{r.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatBytes(r.bytes.byteLength)}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    downloadBytes(r.bytes, r.name, "application/pdf")
+                  }
+                >
+                  <Download className="mr-1 h-3.5 w-3.5" /> Download
+                </Button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/CancelOperationButton.tsx
+========================================
+
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+export function CancelOperationButton({
+  onCancel,
+  isCancelling = false,
+  cancelLabel = "Cancel",
+  cancellingLabel = "Cancelling...",
+}: {
+  onCancel: () => void;
+  isCancelling?: boolean;
+  cancelLabel?: string;
+  cancellingLabel?: string;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={onCancel}
+      disabled={isCancelling}
+    >
+      <X className="mr-1.5 size-3.5" aria-hidden />
+      {isCancelling ? cancellingLabel : cancelLabel}
+    </Button>
+  );
+}
+
+
+========================================
+FILE: src/components/tools/useOperationCancellation.ts
+========================================
+
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+
+export function useOperationCancellation() {
+  const controllerRef = useRef<AbortController | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  const start = useCallback(() => {
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    setIsCancelling(false);
+    return controller;
+  }, []);
+
+  const cancel = useCallback(() => {
+    controllerRef.current?.abort();
+    setIsCancelling(true);
+  }, []);
+
+  const finish = useCallback((controller: AbortController) => {
+    if (controllerRef.current === controller) {
+      controllerRef.current = null;
+      setIsCancelling(false);
+    }
+  }, []);
+
+  useEffect(
+    () => () => {
+      controllerRef.current?.abort();
+    },
+    []
+  );
+
+  return { start, cancel, finish, isCancelling };
+}
+
